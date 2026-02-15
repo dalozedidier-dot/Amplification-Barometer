@@ -58,7 +58,7 @@ def inject_falsification(
     if proxy not in df.columns:
         raise ValueError(f"Proxy absent: {proxy}")
     out = df.copy()
-    s = pd.to_numeric(out[proxy], errors="coerce").astype(float).to_numpy()
+    s = pd.to_numeric(out[proxy], errors="coerce").to_numpy(dtype=float, copy=True)
     n = len(s)
     start = int(n * float(start_frac))
     rng = np.random.default_rng(seed)
@@ -109,7 +109,7 @@ def detect_falsification(
     if proxy not in df.columns:
         return DetectionResult(detected=True, out_of_range_rate=1.0, jump_rate=1.0, shift_score=1e9, notes={"missing": 1.0})
 
-    s = pd.to_numeric(df[proxy], errors="coerce").astype(float).to_numpy()
+    s = pd.to_numeric(df[proxy], errors="coerce").to_numpy(dtype=float, copy=False)
     lo, hi = meta["expected_range"]
     oor = float(np.mean((s < lo) | (s > hi)))
 
