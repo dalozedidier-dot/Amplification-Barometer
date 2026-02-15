@@ -8,7 +8,7 @@ import pandas as pd
 
 
 # Version des pondérations et conventions (auditabilité)
-WEIGHTS_VERSION = "v0.3.0"
+WEIGHTS_VERSION = "v0.4.0"
 
 
 @dataclass(frozen=True)
@@ -119,28 +119,39 @@ G_SPEC = CompositeSpec(
 )
 
 
-def compute_p(df: pd.DataFrame) -> pd.Series:
+
+def _override_weights(spec: CompositeSpec, weights: Sequence[float] | None) -> CompositeSpec:
+    if weights is None:
+        return spec
+    w = np.asarray(list(weights), dtype=float)
+    if w.shape[0] != len(spec.proxies):
+        raise ValueError(f"Override weights for {spec.name} must have length {len(spec.proxies)}")
+    if not np.isclose(float(np.sum(w)), 1.0):
+        w = w / float(np.sum(w))
+    return CompositeSpec(name=spec.name, proxies=spec.proxies, weights=w, invert=spec.invert)
+
+def compute_p(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
     """Puissance P(t): échelle, vitesse, levier, autonomie, réplicabilité."""
-    return compute_composite(df, P_SPEC, norm="robust")
+    return compute_composite(df, _override_weights(P_SPEC, weights), norm="robust")
 
 
-def compute_o(df: pd.DataFrame) -> pd.Series:
+def compute_o(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
     """Orientation O(t): arrêt, seuils, décision, exécution, cohérence."""
-    return compute_composite(df, O_SPEC, norm="robust")
+    return compute_composite(df, _override_weights(O_SPEC, weights), norm="robust")
 
 
-def compute_e(df: pd.DataFrame) -> pd.Series:
+def compute_e(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
     """Externalités E(t): traité comme stock ou quasi-stock.
 
     Pour la démo, on calcule un flux composite puis on cumule.
     """
-    flow = compute_composite(df, E_SPEC, norm="robust").to_numpy()
+    flow = compute_composite(df, _override_weights(E_SPEC, weights), norm="robust").to_numpy()
     stock = np.cumsum(flow)
     z = robust_zscore(stock)
     return pd.Series(z, index=df.index, name="E")
 
 
-def compute_r(df: pd.DataFrame) -> pd.Series:
+def compute_r(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
     """Résilience R(t): marges, redondances, diversité, temps de récupération.
 
     Les proxys margin, redundancy, diversity sont "bénéfiques".
@@ -153,34 +164,67 @@ def compute_r(df: pd.DataFrame) -> pd.Series:
     # inversion du coût recovery_time_proxy
     arr[:, 3] = -arr[:, 3]
 
-    raw = _weighted_average(arr, np.array([0.25, 0.25, 0.25, 0.25]))
+    w = np.array([0.25, 0.25, 0.25, 0.25]) if weights is None else np.asarray(list(weights), dtype=float)
+    if w.shape[0] != 4:
+        raise ValueError("Override weights for R must have length 4")
+    raw = _weighted_average(arr, w)
     z = robust_zscore(raw)
     return pd.Series(z, index=df.index, name="R")
 
 
-def compute_g(df: pd.DataFrame) -> pd.Series:
+def compute_g(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
     """Stabilité narrative G(t): conformité effective, délais de sanction, intégrité contrôle.
 
     G est construit en "sens risque", puis inversé.
     """
-    return compute_composite(df, G_SPEC, norm="robust")
+    return compute_composite(df, _override_weights(G_SPEC, weights), norm="robust")
 
 
-def compute_at(df: pd.DataFrame, eps: float = 1e-8) -> pd.Series:
-    """@(t) = P(t) / O(t) avec garde-fou numérique."""
-    p = compute_p(df)
-    o = compute_o(df)
+
+def compute_p_level(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
+    """P_level(t): moyenne pondérée des proxys bruts de P(t).
+
+    Nota: ceci est un niveau (unités de proxy), pas un z-score.
+    On l'utilise pour construire @(t) = P_level / O_level sans ambiguïté de signe.
+    """
+    _require_columns(df, P_SPEC.proxies, "P_level")
+    w = P_SPEC.weights if weights is None else np.asarray(list(weights), dtype=float)
+    if w.shape[0] != len(P_SPEC.proxies):
+        raise ValueError(f"Override weights for P_level must have length {len(P_SPEC.proxies)}")
+    raw = _weighted_average(df.loc[:, list(P_SPEC.proxies)].astype(float).to_numpy(), w)
+    return pd.Series(raw, index=df.index, name="P_LEVEL")
+
+
+def compute_o_level(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
+    """O_level(t): moyenne pondérée des proxys bruts de O(t)."""
+    _require_columns(df, O_SPEC.proxies, "O_level")
+    w = O_SPEC.weights if weights is None else np.asarray(list(weights), dtype=float)
+    if w.shape[0] != len(O_SPEC.proxies):
+        raise ValueError(f"Override weights for O_level must have length {len(O_SPEC.proxies)}")
+    raw = _weighted_average(df.loc[:, list(O_SPEC.proxies)].astype(float).to_numpy(), w)
+    return pd.Series(raw, index=df.index, name="O_LEVEL")
+
+
+def compute_at(df: pd.DataFrame, eps: float = 1e-8, *, p_weights: Sequence[float] | None = None, o_weights: Sequence[float] | None = None) -> pd.Series:
+    """@(t) = P_level(t) / O_level(t).
+
+    Important pour l'audit:
+    - évite l'ambiguïté de signe induite par des z-scores centrés (P ou O négatifs)
+    - la normalisation (robust_zscore) se fait ensuite, au niveau du risque ou des seuils
+    """
+    p = compute_p_level(df, weights=p_weights)
+    o = compute_o_level(df, weights=o_weights)
     at = p / (o + eps)
     at.name = "AT"
     return at
 
 
-def compute_delta_d(df: pd.DataFrame, window: int = 5) -> pd.Series:
-    """Δd(t) = dP/dt - dO/dt via lissage + différences finies."""
+def compute_delta_d(df: pd.DataFrame, window: int = 5, *, p_weights: Sequence[float] | None = None, o_weights: Sequence[float] | None = None) -> pd.Series:
+    """Δd(t) = dP_level/dt - dO_level/dt via lissage + différences finies."""
     if window < 1:
         raise ValueError("window doit être >= 1")
-    p = compute_p(df).rolling(window=window, min_periods=1).mean()
-    o = compute_o(df).rolling(window=window, min_periods=1).mean()
+    p = compute_p_level(df, weights=p_weights).rolling(window=window, min_periods=1).mean()
+    o = compute_o_level(df, weights=o_weights).rolling(window=window, min_periods=1).mean()
     dp = p.diff().fillna(0.0)
     do = o.diff().fillna(0.0)
     dd = dp - do

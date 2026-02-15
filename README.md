@@ -1,5 +1,8 @@
 # Amplification Barometer
 
+Audit-ready, modular barometer to measure amplification dynamics and validate limit-operator performance with reproducible synthetic stress tests.
+
+
 Auditable barometer for amplification dynamics, with reproducible synthetic regimes, stability audits, anti-gaming checks, and L(t) performance tests.
 
 Implémentation modulaire et auditable d'un baromètre d'amplification, avec une démonstration reproductible sur données synthétiques.

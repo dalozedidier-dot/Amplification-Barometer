@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .composites import compute_at, compute_delta_d, compute_e, compute_g, compute_o, compute_p, compute_r, robust_zscore
+from .manipulability import O_PROXIES, detect_falsification, inject_bias_o
 
 
 @dataclass(frozen=True)
@@ -248,3 +249,69 @@ def run_stress_suite(
         results[sc] = StressResult(status=status, degradation=degradation, details=details)
 
     return results
+
+
+def anti_gaming_o_bias(
+    df: pd.DataFrame,
+    *,
+    magnitude: float = 0.15,
+    start_frac: float = 0.5,
+    clamp_volatility: bool = True,
+    window: int = 5,
+) -> Dict[str, float | str]:
+    """Test anti-gaming ciblé O(t).
+
+    1) on calcule une signature risque baseline (robust_zscore(@) + robust_zscore(Δd))
+    2) on injecte un biais O (gonflement + option lissage)
+    3) on mesure la baisse de risque obtenue
+    4) on vérifie qu'au moins un détecteur de falsification sur proxys O déclenche
+
+    Verdict:
+    - Resistant si la manipulation est détectée ou si le gain de risque est faible
+    - Vulnerable si le gain est grand sans détection
+    """
+    base_at = compute_at(df).to_numpy(dtype=float)
+    base_dd = compute_delta_d(df, window=window).to_numpy(dtype=float)
+    base_risk = robust_zscore(base_at) + robust_zscore(base_dd)
+
+    df_biased = inject_bias_o(df, magnitude=magnitude, start_frac=start_frac, clamp_volatility=clamp_volatility)
+    bias_at = compute_at(df_biased).to_numpy(dtype=float)
+    bias_dd = compute_delta_d(df_biased, window=window).to_numpy(dtype=float)
+    bias_risk = robust_zscore(bias_at) + robust_zscore(bias_dd)
+
+    base_mean = float(np.mean(base_risk))
+    bias_mean = float(np.mean(bias_risk))
+    base_sd = float(np.std(base_risk)) or 1.0
+
+    risk_drop = float(base_mean - bias_mean)
+    risk_drop_sd = float(risk_drop / base_sd)
+
+    detected_any = False
+    triggered = 0
+    available = 0
+    for proxy in O_PROXIES:
+        if proxy not in df.columns:
+            continue
+        available += 1
+        det = detect_falsification(df_biased, proxy=proxy)
+        if det.detected:
+            detected_any = True
+            triggered += 1
+
+    # heuristic threshold: a drop larger than 0.75 std is considered meaningful
+    meaningful_drop = risk_drop_sd >= 0.75
+
+    status = "Resistant"
+    if meaningful_drop and not detected_any:
+        status = "Vulnerable"
+
+    return {
+        "status": status,
+        "risk_drop_mean": float(risk_drop),
+        "risk_drop_std": float(risk_drop_sd),
+        "detected_any": float(1.0 if detected_any else 0.0),
+        "o_proxies_available": float(available),
+        "o_proxies_triggered": float(triggered),
+        "params_magnitude": float(magnitude),
+        "params_clamp_volatility": float(1.0 if clamp_volatility else 0.0),
+    }

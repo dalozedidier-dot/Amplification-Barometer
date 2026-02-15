@@ -30,10 +30,10 @@ from .audit_tools import audit_score_stability, run_stress_suite, run_stress_tes
 from .audit_report import build_audit_report, write_audit_report
 from .calibration import discriminate_regimes, derive_thresholds, risk_signature
 from .manipulability import run_manipulability_suite, validate_proxy_ranges
-from .ode_model import simulate_barometer_ode, simulate_minimal_po
+from .ode_model import simulate_barometer_ode, simulate_endogenous_g, simulate_minimal_po
 from .proxy_protocol import PROXY_PROTOCOL, required_proxies
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 __all__ = [
     "WEIGHTS_VERSION",

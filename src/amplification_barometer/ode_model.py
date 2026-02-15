@@ -119,3 +119,70 @@ def simulate_barometer_ode(
 
     sol = odeint(f, initial_state, t)
     return pd.DataFrame(sol, columns=["P", "O", "E", "R"], index=t)
+
+
+def _sigmoid(x: float) -> float:
+    return float(1.0 / (1.0 + np.exp(-float(x))))
+
+
+def endogenous_g_ode(x, t, *, alpha0: float, beta: float, gamma: float, delta: float, eta: float, xi: float, g_set: float, shock_u: float = 0.0):
+    """Système (P,O,G) non linéaire minimaliste pour illustrer G(t) endogène.
+
+    Intuition (démonstrateur):
+    - G augmente vers g_set si le système est "calme" (relaxation).
+    - Lorsque P dépasse O durablement (pression d'amplification), G tend à baisser.
+    - G module l'accélération de P (boucle culturelle/institutionnelle simplifiée).
+    """
+    P, O, G = x
+    eff_alpha = alpha0 * (1.0 + 0.5 * max(0.0, min(1.0, G)))
+    dPdt = eff_alpha * P - beta * O + shock_u
+    dOdt = gamma * P - delta * O + 0.10 * (1.0 - G)
+
+    pressure = _sigmoid(P - O)  # dans [0,1]
+    dGdt = eta * (g_set - G) - xi * pressure
+
+    return [dPdt, dOdt, dGdt]
+
+
+def simulate_endogenous_g(
+    initial_state=(1.0, 1.0, 0.8),
+    t: np.ndarray | None = None,
+    *,
+    alpha0: float = 0.12,
+    beta: float = 0.05,
+    gamma: float = 0.06,
+    delta: float = 0.10,
+    eta: float = 0.15,
+    xi: float = 0.35,
+    g_set: float = 0.85,
+    shock_profile: Optional[Callable[[float], float]] = None,
+) -> pd.DataFrame:
+    """Simule un modèle (P,O,G) avec G(t) endogène (démo).
+
+    Ce module n'est pas une "preuve". Il sert à générer des régimes et des chocs
+    sans données sensibles, en cohérence avec la section "extensions ODE" du document.
+    """
+    if t is None:
+        t = np.linspace(0.0, 40.0, 800)
+    t = np.asarray(t, dtype=float)
+
+    if shock_profile is None:
+        def shock_profile(_tt: float) -> float:
+            return 0.0
+
+    def f(x, tt):
+        return endogenous_g_ode(
+            x,
+            tt,
+            alpha0=alpha0,
+            beta=beta,
+            gamma=gamma,
+            delta=delta,
+            eta=eta,
+            xi=xi,
+            g_set=g_set,
+            shock_u=float(shock_profile(tt)),
+        )
+
+    sol = odeint(f, initial_state, t)
+    return pd.DataFrame(sol, columns=["P", "O", "G"], index=t)

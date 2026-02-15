@@ -172,26 +172,50 @@ def apply_limit_action(
 @dataclass(frozen=True)
 class MaturityAssessment:
     label: str
-    cap_score: float
-    act_score: float
+    cap_score_raw: float
+    cap_score_enforced: float
+    act_score_raw: float
+    act_score_enforced: float
     act_drop_under_stress: float
     notes: Dict[str, float]
 
 
 def assess_maturity(df: pd.DataFrame, *, df_stressed: pd.DataFrame | None = None) -> MaturityAssessment:
-    """Typologie simple: Mature, Immature, Dissonant."""
+    """Typologie simple: Mature, Immature, Dissonant.
+
+    Principe d'audit:
+    - L_cap mesure une capacité intrinsèque sur proxys techniques (arrêt, seuils, exécution, cohérence).
+    - L_act mesure l'activation effective sous contraintes institutionnelles (exemptions, délais, turnover, conflits).
+    - Pour éviter la circularité, on applique une règle d'enforcement explicite:
+      si control_turnover moyen dépasse 5%, la capacité est considérée comme moins fiable.
+
+    Cette règle matérialise le point du document: "viser L_cap > 0.95 via enforcement"
+    en rendant l'objectif conditionnel à une stabilité organisationnelle minimale.
+    """
     _require(df, L_CAP_PROXIES, "L_cap")
     _require(df, L_ACT_PROXIES, "L_act")
 
     cap_raw = np.mean(df.loc[:, list(L_CAP_PROXIES)].astype(float).to_numpy(), axis=1)
-    cap_score = float(np.mean(cap_raw))
+    cap_score_raw = float(np.mean(cap_raw))
 
     ex = df["exemption_rate"].astype(float).to_numpy()
     sd_norm = np.clip(df["sanction_delay"].astype(float).to_numpy() / 365.0, 0.0, 1.0)
     ct = df["control_turnover"].astype(float).to_numpy()
     ci = df["conflict_interest_proxy"].astype(float).to_numpy()
     act_raw = 1.0 - (0.30 * ex + 0.25 * sd_norm + 0.25 * ct + 0.20 * ci)
-    act_score = float(np.mean(act_raw))
+    act_score_raw = float(np.mean(act_raw))
+    act_score_enforced = act_score_raw
+
+    turnover_mean = float(np.mean(ct))
+    turnover_target = 0.05
+
+    if turnover_mean <= turnover_target:
+        enforcement_factor = 1.0
+    else:
+        # degrade smoothly: at +15% turnover above target, factor reaches 0
+        enforcement_factor = float(max(0.0, 1.0 - (turnover_mean - turnover_target) / 0.15))
+
+    cap_score_enforced = float(cap_score_raw * enforcement_factor)
 
     act_drop = 0.0
     if df_stressed is not None:
@@ -203,15 +227,26 @@ def assess_maturity(df: pd.DataFrame, *, df_stressed: pd.DataFrame | None = None
         act_raw_s = 1.0 - (0.30 * ex_s + 0.25 * sd_s + 0.25 * ct_s + 0.20 * ci_s)
         act_drop = float(np.mean(act_raw) - np.mean(act_raw_s))
 
-    cap_high = cap_score >= 0.95
-    act_high = act_score >= 0.70
+    cap_high = cap_score_enforced >= 0.95
+    act_high = act_score_enforced >= 0.70
     label = "Mature" if (cap_high and act_high) else ("Immature" if not cap_high else "Dissonant")
 
     notes = {
         "cap_high_threshold": 0.95,
         "act_high_threshold": 0.70,
+        "turnover_mean": float(turnover_mean),
+        "turnover_target": float(turnover_target),
+        "enforcement_factor": float(enforcement_factor),
     }
-    return MaturityAssessment(label=label, cap_score=cap_score, act_score=act_score, act_drop_under_stress=act_drop, notes=notes)
+    return MaturityAssessment(
+        label=label,
+        cap_score_raw=cap_score_raw,
+        cap_score_enforced=cap_score_enforced,
+        act_score_raw=act_score_raw,
+        act_score_enforced=act_score_enforced,
+        act_drop_under_stress=act_drop,
+        notes=notes,
+    )
 
 
 def evaluate_l_performance(

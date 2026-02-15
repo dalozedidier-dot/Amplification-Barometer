@@ -9,7 +9,7 @@ from typing import Any, Dict, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from .audit_tools import audit_score_stability, run_stress_suite
+from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
 from .composites import (
     WEIGHTS_VERSION,
     compute_at,
@@ -38,6 +38,7 @@ class AuditReport:
     maturity: Dict[str, Any]
     l_performance: Dict[str, Any]
     manipulability: Dict[str, Any]
+    anti_gaming: Dict[str, Any]
 
 
 def _series_stats(x: pd.Series) -> Dict[str, float]:
@@ -92,6 +93,7 @@ def build_audit_report(
     topk_frac: float = 0.10,
     stress_intensity: float = 1.0,
     manipulability_magnitude: float = 0.2,
+    o_bias_magnitude: float = 0.15,
 ) -> AuditReport:
     """Builds a reproducible audit report for a single dataset.
 
@@ -162,9 +164,12 @@ def build_audit_report(
     l_perf = evaluate_l_performance(df, window=delta_d_window, topk_frac=topk_frac, intensity=stress_intensity)
 
     manipulability = run_manipulability_suite(df, magnitude=manipulability_magnitude)
+    anti_gaming = {
+        "o_bias": anti_gaming_o_bias(df, magnitude=o_bias_magnitude, window=delta_d_window),
+    }
 
     return AuditReport(
-        version="0.3.0",
+        version="0.4.0",
         weights_version=WEIGHTS_VERSION,
         dataset_name=dataset_name,
         created_utc=created,
@@ -174,6 +179,7 @@ def build_audit_report(
         maturity=maturity,
         l_performance=l_perf,
         manipulability=manipulability,
+        anti_gaming=anti_gaming,
     )
 
 
@@ -191,6 +197,7 @@ def write_audit_report(report: AuditReport, out_path: str | Path) -> None:
         "maturity": report.maturity,
         "l_performance": report.l_performance,
         "manipulability": report.manipulability,
+        "anti_gaming": report.anti_gaming,
     }
     out_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False, default=_json_default),

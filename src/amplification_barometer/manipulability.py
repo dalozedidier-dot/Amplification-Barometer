@@ -81,6 +81,49 @@ def inject_falsification(
     return out
 
 
+
+# Ciblage O(t): manipulation de l'orientation pour faire baisser @(t)
+O_PROXIES: Tuple[str, ...] = ("stop_proxy", "threshold_proxy", "decision_proxy", "execution_proxy", "coherence_proxy")
+
+
+def inject_bias_o(
+    df: pd.DataFrame,
+    *,
+    magnitude: float = 0.15,
+    start_frac: float = 0.5,
+    clamp_volatility: bool = False,
+    seed: int = 7,
+) -> pd.DataFrame:
+    """Injecte un biais artificiel sur les proxys de O(t).
+
+    But: simuler une tentative de gaming où l'acteur "fait monter" les indicateurs
+    d'orientation (arrêt, seuils, exécution) pour faire baisser @(t).
+
+    Options:
+    - clamp_volatility: réduit artificiellement la variance après start (cas de "reporting" lissé)
+    """
+    out = df.copy()
+    n = len(out)
+    start = int(n * float(start_frac))
+    rng = np.random.default_rng(seed)
+
+    for proxy in O_PROXIES:
+        if proxy not in out.columns:
+            continue
+        s = pd.to_numeric(out[proxy], errors="coerce").to_numpy(dtype=float, copy=True)
+
+        if clamp_volatility:
+            base = float(np.nanmedian(s[:start]))
+            noise = rng.normal(0.0, 0.02 * (np.nanstd(s[:start]) + 1e-12), size=n - start)
+            s[start:] = base + noise
+
+        # gonflement "positif" (conserve l'ordre de grandeur)
+        s[start:] = s[start:] * (1.0 + float(magnitude))
+
+        out[proxy] = s
+
+    return out
+
 @dataclass(frozen=True)
 class DetectionResult:
     detected: bool

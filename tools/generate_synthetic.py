@@ -28,7 +28,7 @@ def make_stable(n: int, seed: int) -> pd.DataFrame:
     # bornes plausibles pour G
     df["exemption_rate"] = np.clip(0.10 + rng.normal(0.0, 0.02, size=n), 0.0, 1.0)
     df["sanction_delay"] = np.clip(20 + rng.normal(0.0, 5.0, size=n), 0.0, 365.0)
-    df["control_turnover"] = np.clip(0.08 + rng.normal(0.0, 0.02, size=n), 0.0, 1.0)
+    df["control_turnover"] = np.clip(0.04 + rng.normal(0.0, 0.01, size=n), 0.0, 1.0)
     df["conflict_interest_proxy"] = np.clip(0.10 + rng.normal(0.0, 0.03, size=n), 0.0, 1.0)
     # recovery_time_proxy est un coût, plus bas dans le régime stable
     df["recovery_time_proxy"] = np.clip(0.6 + rng.normal(0.0, 0.05, size=n), 0.0, 2.0)
@@ -89,7 +89,7 @@ def make_bifurcation(n: int, seed: int) -> pd.DataFrame:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", type=str, default="data/synthetic")
-    ap.add_argument("--n", type=int, default=120)
+    ap.add_argument("--n", type=int, default=365)
     ap.add_argument("--start-date", type=str, default="2020-01-01")
     ap.add_argument("--seed", type=int, default=7)
     args = ap.parse_args()
