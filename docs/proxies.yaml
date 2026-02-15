@@ -1,0 +1,180 @@
+version: "v1.0"
+notes:
+  purpose: "Proxy specifications for auditable composites. Ranges are default demo ranges and must be adapted per sector."
+  normalization_default: "mad_z"
+  missing_policy: "raise"
+
+families:
+  P:
+    description: "Power and scaling capacity"
+    proxies:
+      scale_proxy:
+        definition: "Relative ability to scale throughput/capacity"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "internal_metrics"
+        frequency: "daily"
+        manipulability_test: "detect_step_jump"
+      speed_proxy:
+        definition: "Execution speed and decision cycle acceleration"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "internal_metrics"
+        frequency: "daily"
+        manipulability_test: "detect_volatility_clamp"
+      leverage_proxy:
+        definition: "Leverage per unit resource"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "internal_metrics"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+      autonomy_proxy:
+        definition: "Autonomy of operation without external human gating"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "controls_registry"
+        frequency: "weekly"
+        manipulability_test: "detect_out_of_range"
+      replicability_proxy:
+        definition: "Replicability across contexts"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "deployment_logs"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+
+  O:
+    description: "Orientation and stop capacity at the operational layer"
+    proxies:
+      stop_proxy:
+        definition: "Stop switch effectiveness and feasibility"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "control_tests"
+        frequency: "weekly"
+        manipulability_test: "detect_out_of_range"
+      threshold_proxy:
+        definition: "Clarity and enforceability of thresholds"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "policy_registry"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+      decision_proxy:
+        definition: "Decision quality and gating discipline"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "governance_logs"
+        frequency: "weekly"
+        manipulability_test: "detect_volatility_clamp"
+      execution_proxy:
+        definition: "Execution fidelity of stop or throttle actions"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "incident_response"
+        frequency: "daily"
+        manipulability_test: "detect_volatility_clamp"
+      coherence_proxy:
+        definition: "Coherence between decisions and observed actions"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "audit_samples"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+
+  E:
+    description: "Externalities stock with inertia and potential irreversibility"
+    proxies:
+      impact_proxy:
+        definition: "Direct impact intensity per unit time"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "external_reports"
+        frequency: "monthly"
+        manipulability_test: "detect_out_of_range"
+      propagation_proxy:
+        definition: "Propagation speed or breadth in networks"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "network_metrics"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+      hysteresis_proxy:
+        definition: "Persistence of effects after actions"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "postmortems"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+
+  R:
+    description: "Resilience capacity, margins and recovery"
+    proxies:
+      margin_proxy:
+        definition: "Operational safety margin"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "safety_tests"
+        frequency: "weekly"
+        manipulability_test: "detect_out_of_range"
+      redundancy_proxy:
+        definition: "Redundancy and fallback availability"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "architecture_registry"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+      diversity_proxy:
+        definition: "Diversity of controls and decision paths"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "governance_registry"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+      recovery_time_proxy:
+        definition: "Mean time to recover, normalized so lower is better"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "incident_response"
+        frequency: "monthly"
+        manipulability_test: "detect_out_of_range"
+
+  G:
+    description: "Governance and narrative stability as measurable compliance"
+    proxies:
+      exemption_rate:
+        definition: "Rate of exemptions to the rule set"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "policy_exemptions"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+      sanction_delay:
+        definition: "Median sanction delay, normalized to 0..1"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "sanctions_db"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+      control_turnover:
+        definition: "Turnover rate of control teams"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "hr_metrics"
+        frequency: "monthly"
+        manipulability_test: "detect_out_of_range"
+      conflict_interest_proxy:
+        definition: "Conflict of interest signal proxy"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "compliance_flags"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+      rule_execution_gap:
+        definition: "Rule versus execution gap, target below 0.05 in mature regimes"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "audit_samples"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
