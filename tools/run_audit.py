@@ -1,9 +1,11 @@
+
 #!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
+from typing import List, Tuple
 
 import matplotlib
 
@@ -12,18 +14,46 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from amplification_barometer.audit_report import build_audit_report, write_audit_report  # noqa: E402
-from amplification_barometer.calibration import discriminate_regimes  # noqa: E402
+from amplification_barometer.calibration import derive_thresholds, discriminate_regimes  # noqa: E402
 from amplification_barometer.composites import compute_at, compute_delta_d  # noqa: E402
 from amplification_barometer.l_operator import compute_l_act, compute_l_cap  # noqa: E402
 
 
-def _plot_series_matplotlib(
-    df: pd.DataFrame, out_dir: Path, *, window: int = 5, prefix: str = ""
-) -> None:
-    """Legacy PNG plots (matplotlib).
+def _read_csv(path: Path) -> pd.DataFrame:
+    df = pd.read_csv(path)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        df = df.set_index("date").sort_index()
+    return df
 
-    Keep this as a fallback (CI-friendly). For modern interactive plots, use --plotly.
-    """
+
+def _write_md_summary(report, out_path: Path) -> None:
+    s = report.summary
+    m = report.maturity
+    lp = report.l_performance
+    out = []
+    out.append(f"# Audit report: {report.dataset_name}\n")
+    out.append(f"- Created UTC: {report.created_utc}")
+    out.append(f"- Weights version: {report.weights_version}")
+    out.append("")
+    out.append("## Risk")
+    out.append(f"- Risk threshold: {s.get('risk_threshold')}")
+    out.append(f"- Mean Risk: {s.get('RISK', {}).get('mean')}")
+    out.append("")
+    out.append("## Maturity (anti-circularity)")
+    out.append(f"- Label: {m.get('label')}")
+    out.append(f"- L_cap_bench_score: {m.get('l_cap_bench_score')}")
+    out.append(f"- L_act_mean: {m.get('l_act_mean')}")
+    out.append("")
+    out.append("## L performance (reactive)")
+    out.append(f"- prevented_exceedance_rel: {lp.get('prevented_exceedance_rel')}")
+    out.append(f"- prevented_topk_excess_rel: {lp.get('prevented_topk_excess_rel')}")
+    out.append(f"- activation_delay_steps: {lp.get('activation_delay_steps')}")
+    out.append(f"- e_reduction_rel: {lp.get('e_reduction_rel')}")
+    out_path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+def _plot_series_matplotlib(df: pd.DataFrame, out_dir: Path, *, window: int = 5, prefix: str = "") -> None:
     at = compute_at(df)
     dd = compute_delta_d(df, window=window)
     lcap = compute_l_cap(df)
@@ -66,185 +96,93 @@ def _plot_series_matplotlib(
     plt.close(fig3)
 
 
-def _plot_series_plotly(
-    df: pd.DataFrame, out_dir: Path, *, window: int = 5, prefix: str = ""
-) -> None:
-    """Interactive HTML plots (Plotly)."""
-    from amplification_barometer.plotly_viz import (
+def _plot_series_plotly(df: pd.DataFrame, out_dir: Path, *, window: int = 5, prefix: str = "") -> None:
+    from amplification_barometer.plotly_viz import (  # noqa: WPS433
         build_dashboard,
         plot_exponential_or_bifurcation,
         plot_lcap_lact,
         plot_oscillating,
     )
 
+    pfx = f"{prefix}_" if prefix else ""
+
     at = compute_at(df)
     dd = compute_delta_d(df, window=window)
     lcap = compute_l_cap(df)
     lact = compute_l_act(df)
 
-    pfx = f"{prefix}_" if prefix else ""
-    name = prefix or "series"
-
-    # Heuristic: oscillating-like if name contains 'oscill' or if variability is small
-    oscill_hint = ("oscill" in name.lower()) or (float(at.std()) < 0.8 and float(at.abs().max()) < 6.0)
-
-    if oscill_hint:
-        plot_oscillating(
-            at.index,
-            at.to_numpy(),
-            title=f"@(t) – {name}",
-            y_label="@(t)",
-            out_html=out_dir / f"{pfx}at.html",
-            baseline=1.0,
-        )
-    else:
-        plot_exponential_or_bifurcation(
-            at.index,
-            at.to_numpy(),
-            title=f"@(t) – {name}",
-            y_label="@(t)",
-            out_html=out_dir / f"{pfx}at.html",
-        )
-
-    # Δd(t): keep linear (no log), smoothing + rangeslider does the job
-    plot_exponential_or_bifurcation(
-        dd.index,
-        dd.to_numpy(),
-        title=f"Δd(t) – {name}",
-        y_label="Δd(t)",
-        out_html=out_dir / f"{pfx}delta_d.html",
-        smooth_sigma=3.0,
-        raw_opacity=0.5,
-    )
-
-    plot_lcap_lact(
-        lcap.index,
-        lcap.to_numpy(),
-        lact.to_numpy(),
-        title=f"L_cap vs L_act – {name}",
-        out_html=out_dir / f"{pfx}l_cap_l_act.html",
-    )
+    plot_oscillating(at.to_numpy(dtype=float), out_dir / f"{pfx}at.html", title="@ (oscillations)", baseline=float(at.median()))
+    plot_exponential_or_bifurcation(dd.to_numpy(dtype=float), out_dir / f"{pfx}delta_d.html", title="Δd (bifurcation?)")
+    plot_lcap_lact(lcap.to_numpy(dtype=float), lact.to_numpy(dtype=float), out_dir / f"{pfx}l_cap_l_act.html")
 
     build_dashboard(
-        at.index,
-        at.to_numpy(),
-        dd.to_numpy(),
-        lcap.to_numpy(),
-        lact.to_numpy(),
-        title=f"Audit dashboard – {name}",
-        out_html=out_dir / f"{pfx}dashboard.html",
+        at=at.to_numpy(dtype=float),
+        dd=dd.to_numpy(dtype=float),
+        lcap=lcap.to_numpy(dtype=float),
+        lact=lact.to_numpy(dtype=float),
+        out_path=out_dir / f"{pfx}dashboard.html",
+        title=f"Dashboard {prefix or 'dataset'}",
     )
-
-
-def _read_csv(path: Path) -> pd.DataFrame:
-    return pd.read_csv(path, parse_dates=["date"]).set_index("date")
-
-
-def _write_md_summary(report, out_path: Path) -> None:
-    lines = [
-        f"# Audit report: {report.dataset_name}",
-        "",
-        f"Version: {report.version}",
-        f"Weights version: {report.weights_version}",
-        "",
-        "## Stability",
-        f"Stable flag: {report.stability.get('stable_flag')}",
-        f"Spearman worst (risk): {float(report.stability.get('spearman_worst_risk')):.3f}",
-        f"TopK Jaccard worst (risk): {float(report.stability.get('topk_jaccard_worst_risk')):.3f}",
-        "",
-        "## Limit operator performance",
-        f"Verdict: {report.l_performance.get('verdict')}",
-        f"Prevented exceedance: {float(report.l_performance.get('prevented_exceedance')):.3f}",
-        f"Prevented exceedance (rel): {float(report.l_performance.get('prevented_exceedance_rel', 0.0)):.3f}",
-        f"First activation delay (steps): {report.l_performance.get('first_activation_delay_steps')}",
-        f"Risk drop around activation: {report.l_performance.get('risk_drop_around_activation')}",
-        "",
-        "## Limit operator performance (proactive variant)",
-        f"Verdict: {report.l_performance_proactive.get('verdict')}",
-        f"Prevented exceedance (rel): {float(report.l_performance_proactive.get('prevented_exceedance_rel', 0.0)):.3f}",
-        f"TopK frac: {float(report.targets.get('proactive_topk_frac', 0.0)):.3f}",
-        "",
-        "## Targets",
-        f"rule_execution_gap mean: {float(report.targets.get('rule_execution_gap_mean', float('nan'))):.3f}",
-        f"rule_execution_gap target max: {float(report.targets.get('rule_execution_gap_target_max', 0.05)):.3f}",
-        f"rule_execution_gap meets target: {bool(report.targets.get('rule_execution_gap_meets_target', False))}",
-        f"prevented_exceedance_rel target min: {float(report.targets.get('prevented_exceedance_rel_target_min', 0.10)):.3f}",
-        f"prevented_exceedance_rel meets target: {bool(report.targets.get('prevented_exceedance_meets_target', False))}",
-        "",
-        "## Maturity",
-        f"Label: {report.maturity.get('label')}",
-        f"L_cap raw mean: {float(report.maturity.get('cap_score_raw')):.3f}",
-        f"L_cap enforced mean: {float(report.maturity.get('cap_score_enforced')):.3f}",
-        f"Turnover mean: {float(report.maturity.get('notes', {}).get('turnover_mean', 0.0)):.3f}",
-        f"Enforcement factor: {float(report.maturity.get('notes', {}).get('enforcement_factor', 1.0)):.3f}",
-        f"L_act raw mean: {float(report.maturity.get('act_score_raw')):.3f}",
-        f"L_act enforced mean: {float(report.maturity.get('act_score_enforced')):.3f}",
-        f"L_act drop under stress: {float(report.maturity.get('act_drop_under_stress')):.3f}",
-        "",
-        "## Anti-gaming",
-        f"Detection rate (suite): {float(report.manipulability.get('summary', {}).get('detected_rate', 0.0)):.3f}",
-        f"Scenarios tested: {int(report.manipulability.get('summary', {}).get('n_scenarios', 0))}",
-        "",
-        "## Stress suite",
-    ]
-    for k, v in report.stress_suite.items():
-        lines.append(f"- {k}: {v.get('status')} (degradation={float(v.get('degradation')):.3f})")
-    lines.append("")
-    out_path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Build audit reports + optional visualizations.")
-    ap.add_argument("--dataset", type=str, help="CSV dataset with a 'date' column.")
-    ap.add_argument("--name", type=str, default="", help="Dataset name for outputs.")
-    ap.add_argument("--out-dir", type=str, default="_ci_out", help="Output directory.")
-    ap.add_argument("--window", type=int, default=5, help="Smoothing window for Δd(t).")
-    ap.add_argument("--plot", action="store_true", help="Write PNG plots with matplotlib.")
-    ap.add_argument("--plotly", action="store_true", help="Write interactive HTML plots with Plotly.")
-    ap.add_argument("--all-synthetic", action="store_true", help="Run on all synthetic datasets.")
-    ap.add_argument("--synthetic-dir", type=str, default="data/synthetic", help="Synthetic data directory.")
-
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--csv", action="append", default=[], help="Dataset CSV path (can be repeated)")
+    ap.add_argument("--name", action="append", default=[], help="Name for each --csv (can be repeated)")
+    ap.add_argument("--baseline-csv", default="", help="Stable baseline CSV for thresholds")
+    ap.add_argument("--out-dir", default="_ci_out/audit", help="Output dir")
+    ap.add_argument("--window", type=int, default=5)
+    ap.add_argument("--plot", action="store_true")
+    ap.add_argument("--plotly", action="store_true")
+    ap.add_argument("--calibrate", action="store_true", help="Run discriminate_regimes on synthetic set if present")
     args = ap.parse_args()
+
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    datasets = []
-    if args.all_synthetic:
-        syn = Path(args.synthetic_dir)
-        datasets = [
-            (syn / "stable_regime.csv", "stable"),
-            (syn / "oscillating_regime.csv", "oscillating"),
-            (syn / "bifurcation_regime.csv", "bifurcation"),
-        ]
-    else:
-        if not args.dataset:
-            raise SystemExit("--dataset is required unless --all-synthetic is set")
-        datasets = [(Path(args.dataset), args.name or Path(args.dataset).stem)]
+    # Resolve datasets list
+    datasets: List[Tuple[Path, str]] = []
+    for i, csv_path in enumerate(args.csv):
+        p = Path(csv_path)
+        name = args.name[i] if i < len(args.name) else p.stem
+        datasets.append((p, name))
 
+    if not datasets:
+        # default synthetic set if present
+        for p in [
+            Path("data/synthetic/stable_regime.csv"),
+            Path("data/synthetic/oscillating_regime.csv"),
+            Path("data/synthetic/bifurcation_regime.csv"),
+        ]:
+            if p.exists():
+                datasets.append((p, p.stem.replace("_regime", "")))
 
-    # Calibration discrimination summary (synthetic only): derived once from stable regime
-    if args.all_synthetic:
-        syn = Path(args.synthetic_dir)
-        disc = discriminate_regimes(
-            {
-                "stable": _read_csv(syn / "stable_regime.csv"),
-                "oscillating": _read_csv(syn / "oscillating_regime.csv"),
-                "bifurcation": _read_csv(syn / "bifurcation_regime.csv"),
-            },
-            stable_name="stable",
-            window=args.window,
-        )
-        (out_dir / "calibration_report.json").write_text(
-            json.dumps(disc, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+    # Baseline thresholds
+    thresholds = None
+    baseline_csv = Path(args.baseline_csv) if args.baseline_csv else Path("data/synthetic/stable_regime.csv")
+    if baseline_csv.exists():
+        stable_df = _read_csv(baseline_csv)
+        thresholds = derive_thresholds(stable_df, window=args.window)
+        (out_dir / "baseline_thresholds.json").write_text(json.dumps(thresholds.__dict__, indent=2), encoding="utf-8")
+
+    if args.calibrate:
+        synth = {}
+        for p in [
+            Path("data/synthetic/stable_regime.csv"),
+            Path("data/synthetic/oscillating_regime.csv"),
+            Path("data/synthetic/bifurcation_regime.csv"),
+        ]:
+            if p.exists():
+                synth[p.stem.replace("_regime", "").replace("stable", "stable")] = _read_csv(p)
+        if "stable" in synth and len(synth) >= 2:
+            disc = discriminate_regimes(synth, stable_name="stable", window=args.window)
+            (out_dir / "calibration_report.json").write_text(json.dumps(disc, indent=2, ensure_ascii=False), encoding="utf-8")
 
     for path, name in datasets:
         df = _read_csv(path)
-        report = build_audit_report(df, dataset_name=name)
-        write_audit_report(report, out_dir / f"audit_report_{name}.json")
-
-        _write_md_summary(report, out_dir / f"audit_report_{name}.md")
-
+        rep = build_audit_report(df, dataset_name=name, window=args.window, thresholds=thresholds)
+        write_audit_report(rep, out_dir / f"audit_report_{name}.json")
+        _write_md_summary(rep, out_dir / f"audit_report_{name}.md")
         if args.plot:
             _plot_series_matplotlib(df, out_dir, window=args.window, prefix=name)
         if args.plotly:

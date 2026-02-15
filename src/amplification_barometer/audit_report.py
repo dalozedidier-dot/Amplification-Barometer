@@ -1,29 +1,30 @@
+
 from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict, Sequence
 
 import numpy as np
 import pandas as pd
 
 from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
+from .calibration import Thresholds, derive_thresholds, risk_signature
 from .composites import (
     WEIGHTS_VERSION,
     compute_at,
     compute_delta_d,
-    compute_e,
+    compute_e_metrics,
     compute_g,
     compute_o,
     compute_o_level,
     compute_p,
-    compute_r,
-    robust_zscore,
-    standard_zscore,
+    compute_p_level,
+    compute_r_metrics,
 )
-from .l_operator import MaturityAssessment, assess_maturity, evaluate_l_performance
+from .l_operator import assess_maturity, evaluate_l_performance
 from .manipulability import run_manipulability_suite
 
 
@@ -56,198 +57,89 @@ def _series_stats(x: pd.Series) -> Dict[str, float]:
     }
 
 
-def _risk_series(df: pd.DataFrame, *, window: int = 5) -> pd.Series:
-    at = compute_at(df).to_numpy(dtype=float)
-    dd = compute_delta_d(df, window=window).to_numpy(dtype=float)
-    risk = robust_zscore(at) + robust_zscore(dd)
-    return pd.Series(risk, index=df.index, name="RISK")
-
-
 def _topk_indices(x: pd.Series, k: int) -> Sequence[int]:
+    arr = x.to_numpy(dtype=float)
     if k <= 0:
         return []
-    return [int(i) for i in np.argsort(x.to_numpy(dtype=float))[-k:]]
-
-
-def _json_default(obj: Any) -> Any:
-    if isinstance(obj, np.integer):
-        return int(obj)
-    if isinstance(obj, np.floating):
-        return float(obj)
-    if isinstance(obj, np.bool_):
-        return bool(obj)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, pd.Timestamp):
-        return obj.isoformat()
-    if isinstance(obj, pd.Timedelta):
-        return obj.total_seconds()
-    if isinstance(obj, Path):
-        return str(obj)
-    raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serialisable")
+    idx = np.argpartition(arr, -k)[-k:]
+    return [int(i) for i in idx.tolist()]
 
 
 def build_audit_report(
     df: pd.DataFrame,
     *,
     dataset_name: str = "dataset",
-    delta_d_window: int = 5,
-    stability_windows: Sequence[int] = (3, 5, 8),
-    topk_frac: float = 0.10,
-    stress_intensity: float = 1.0,
-    manipulability_magnitude: float = 0.2,
-    o_bias_magnitude: float = 0.15,
+    window: int = 5,
+    thresholds: Thresholds | None = None,
 ) -> AuditReport:
-    """Builds a reproducible audit report for a single dataset.
-
-    Scope:
-    - measurability: statistics for P,O,E,R,G,@,Δd
-    - stability: rank-based stability and Top-K consistency under small perturbations
-    - stress suite: standard scenarios including adversarial cases
-    - anti-gaming: proxy range checks and falsification detection suite
-    - limit operator: L_cap/L_act maturity label and tested performance on the series
-    """
-    created = datetime.now(timezone.utc).isoformat()
+    if thresholds is None:
+        thresholds = derive_thresholds(df, window=window)
 
     p = compute_p(df)
     o = compute_o(df)
-    e = compute_e(df)
-    r = compute_r(df)
     g = compute_g(df)
+    e_m = compute_e_metrics(df)
+    r_m = compute_r_metrics(df)
     at = compute_at(df)
-    dd = compute_delta_d(df, window=delta_d_window)
-    risk = _risk_series(df, window=delta_d_window)
+    dd = compute_delta_d(df, window=window)
+    risk = risk_signature(df, thresholds=thresholds, window=window, at_series=at, dd_series=dd)
 
-    k = max(1, int(len(df) * float(topk_frac)))
-    topk = _topk_indices(risk, k)
+    p_level = compute_p_level(df)
+    o_level = compute_o_level(df)
 
     summary = {
         "P": _series_stats(p),
         "O": _series_stats(o),
-        "E": _series_stats(e),
-        "R": _series_stats(r),
         "G": _series_stats(g),
+        "E_level": _series_stats(e_m["E_level"]),
+        "E_stock": _series_stats(e_m["E_stock"]),
+        "dE_dt": _series_stats(e_m["dE_dt"]),
+        "E_irreversibility": float(np.mean(e_m["E_irreversibility"].to_numpy(dtype=float))),
+        "R_level": _series_stats(r_m["R_level"]),
+        "R_mttr_proxy": _series_stats(r_m["R_mttr_proxy"]),
         "AT": _series_stats(at),
         "DELTA_D": _series_stats(dd),
         "RISK": _series_stats(risk),
-        "topk_frac": float(topk_frac),
-        "topk_k": int(k),
-        "topk_indices": topk,
+        "P_level": _series_stats(p_level),
+        "O_level": _series_stats(o_level),
+        "risk_threshold": float(thresholds.risk_thr),
+        "topk_risk_indices": _topk_indices(risk, k=max(1, int(len(df) * 0.10))),
     }
 
-    stability = audit_score_stability(df, windows=stability_windows, topk_frac=topk_frac)
+    stability = audit_score_stability(df, windows=(3, 5, 8), topk_frac=0.10)
+    stress_suite = run_stress_suite(df, window=window, thresholds=thresholds)
+    maturity = asdict(assess_maturity(df, window=window))
 
-    # Compare robust vs standard normalization on the same raw risk series
-    risk_std = pd.Series(standard_zscore(risk.to_numpy(dtype=float)), index=risk.index, name="RISK_STD")
-    stability["risk_norm_spearman_robust_vs_standard"] = float(
-        np.corrcoef(pd.Series(risk).rank().to_numpy(), pd.Series(risk_std).rank().to_numpy())[0, 1]
-    )
+    l_perf = evaluate_l_performance(df, window=window, thresholds=thresholds)
 
-    suite = run_stress_suite(df, intensity=stress_intensity)
-    stress_suite: Dict[str, Any] = {
-        name: {"status": r.status, "degradation": r.degradation, "details": r.details} for name, r in suite.items()
-    }
+    # proactive: O weakness triggers desired activation earlier
+    o_thr = float(np.percentile(o_level.to_numpy(dtype=float), 10))
+    l_perf_pro = evaluate_l_performance(df, window=window, thresholds=thresholds, o_threshold=o_thr)
 
-    # Maturity label with overload stress
-    df_over = None
-    try:
-        from .audit_tools import _apply_scenario  # type: ignore
+    manipulability = run_manipulability_suite(df)
+    anti_gaming = anti_gaming_o_bias(df, window=window)
 
-        df_over = _apply_scenario(df, "Overload", stress_intensity)
-    except Exception:
-        df_over = None
-
-    maturity_assessment: MaturityAssessment
-    if df_over is not None:
-        maturity_assessment = assess_maturity(df, df_stressed=df_over)
-    else:
-        maturity_assessment = assess_maturity(df)
-    maturity = asdict(maturity_assessment)
-
-    l_perf = evaluate_l_performance(df, window=delta_d_window, topk_frac=topk_frac, intensity=stress_intensity)
-
-    # Variante proactive: activation basée sur risque OU orientation dégradée (O_level).
-    # Intention: booster la prévention (>10%) avec un L proactif via seuils O(t), sans données sensibles.
-    o_level = compute_o_level(df)
-    o_thr = float(np.quantile(o_level.to_numpy(dtype=float), 0.15))
-
-    proactive_topk = float(max(float(topk_frac), 0.20))
-    variants: list[dict[str, Any]] = []
-
-    v1 = evaluate_l_performance(
-        df,
-        window=delta_d_window,
-        topk_frac=proactive_topk,
-        o_threshold=o_thr,
-        persist=2,
-        max_delay=8,
-        intensity=stress_intensity,
-    )
-    v1["variant"] = "proactive_v1_risk_or_low_o"
-    variants.append(v1)
-
-    # Auto-tuning minimal si la cible >10% n'est pas atteinte.
-    # On augmente la proactivité: topk plus large, persistance minimale, délai max réduit, seuil O un peu plus strict.
-    if (float(v1.get("prevented_topk_excess_rel", 0.0)) < 0.10) and (float(v1.get("prevented_exceedance_rel", 0.0)) < 0.10):
-        o_thr2 = float(np.quantile(o_level.to_numpy(dtype=float), 0.20))
-        v2 = evaluate_l_performance(
-            df,
-            window=delta_d_window,
-            topk_frac=float(max(float(topk_frac), 0.30)),
-            o_threshold=o_thr2,
-            persist=1,
-            max_delay=6,
-            intensity=stress_intensity,
-        )
-        v2["variant"] = "proactive_v2_autotune"
-        variants.append(v2)
-
-    # On choisit la variante la plus efficace, priorité à la réduction de sévérité de queue.
-    l_perf_pro = max(
-        variants,
-        key=lambda d: (
-            float(d.get("prevented_topk_excess_rel", 0.0)),
-            float(d.get("prevented_exceedance_rel", 0.0)),
-        ),
-    )
-    l_perf_pro["variants_tried"] = [
-        {
-            "variant": v.get("variant"),
-            "prevented_exceedance_rel": float(v.get("prevented_exceedance_rel", 0.0)),
-            "prevented_topk_excess_rel": float(v.get("prevented_topk_excess_rel", 0.0)),
-            "params": v.get("params", {}),
-        }
-        for v in variants
-    ]
-
-    manipulability = run_manipulability_suite(df, magnitude=manipulability_magnitude)
-    anti_gaming = {
-        "o_bias": anti_gaming_o_bias(df, magnitude=o_bias_magnitude, window=delta_d_window),
-    }
-
-    # Cibles de démonstration (audit réel: ces seuils doivent être justifiés par secteur)
-    gap_mean = float(np.mean(df["rule_execution_gap"].astype(float).to_numpy())) if "rule_execution_gap" in df.columns else float("nan")
-    targets: Dict[str, Any] = {
-        "rule_execution_gap_target_max": 0.05,
-        "rule_execution_gap_mean": gap_mean,
-        "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
+    targets = {
+        "recovery_rate_post_stress_target_min": 0.90,
+        "activation_delay_steps_target_max": 5,
+        "E_reduction_rel_target_min": 0.20,
         "prevented_exceedance_rel_target_min": 0.10,
-        "prevented_topk_excess_rel_target_min": 0.10,
-        "prevented_exceedance_rel": float(l_perf_pro.get("prevented_exceedance_rel", 0.0)),
-        "prevented_topk_excess_rel": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
-        "prevented_primary_metric": "prevented_topk_excess_rel",
-        "prevented_primary_value": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
-        "prevented_exceedance_meets_target": bool(float(l_perf_pro.get("prevented_exceedance_rel", 0.0)) >= 0.10),
-        "prevented_meets_target": bool(float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)) >= 0.10),
-        "proactive_topk_frac": proactive_topk,
-        "proactive_o_threshold": float(o_thr),
+        "rule_execution_gap_target_max": 0.05,
+        "control_turnover_target_max": 0.05,
+        # backward compatible aliases
+        "recovery_rate_post_stress_min": 0.90,
+        "activation_delay_steps_max": 5,
+        "E_reduction_rel_min": 0.20,
+        "prevented_exceedance_rel_min": 0.10,
     }
+
+    created_utc = datetime.now(timezone.utc).isoformat()
 
     return AuditReport(
-        version="0.4.3",
+        version="0.5.0",
         weights_version=WEIGHTS_VERSION,
-        dataset_name=dataset_name,
-        created_utc=created,
+        dataset_name=str(dataset_name),
+        created_utc=created_utc,
         summary=summary,
         stability=stability,
         stress_suite=stress_suite,
@@ -261,24 +153,7 @@ def build_audit_report(
 
 
 def write_audit_report(report: AuditReport, out_path: str | Path) -> None:
-    out_path = Path(out_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "version": report.version,
-        "weights_version": report.weights_version,
-        "dataset_name": report.dataset_name,
-        "created_utc": report.created_utc,
-        "summary": report.summary,
-        "stability": report.stability,
-        "stress_suite": report.stress_suite,
-        "maturity": report.maturity,
-        "l_performance": report.l_performance,
-        "l_performance_proactive": report.l_performance_proactive,
-        "manipulability": report.manipulability,
-        "anti_gaming": report.anti_gaming,
-        "targets": report.targets,
-    }
-    out_path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False, default=_json_default),
-        encoding="utf-8",
-    )
+    p = Path(out_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as f:
+        json.dump(asdict(report), f, indent=2, ensure_ascii=False)

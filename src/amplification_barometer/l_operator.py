@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,7 +7,8 @@ from typing import Any, Dict, Tuple
 import numpy as np
 import pandas as pd
 
-from .composites import compute_at, compute_delta_d, robust_zscore, compute_o_level
+from .calibration import Thresholds, derive_thresholds, risk_signature
+from .composites import compute_e_metrics, compute_o_level, compute_at, compute_delta_d, robust_zscore
 
 
 def _require(df: pd.DataFrame, cols: Tuple[str, ...], context: str) -> None:
@@ -25,11 +27,18 @@ L_ACT_PROXIES: Tuple[str, ...] = (
 )
 
 
-def compute_l_cap(df: pd.DataFrame) -> pd.Series:
-    """L_cap: capacité intrinsèque d'arrêt.
+def _sigmoid(x: np.ndarray) -> np.ndarray:
+    x = np.asarray(x, dtype=float)
+    return 1.0 / (1.0 + np.exp(-x))
 
-    Démonstrateur: agrégat sur proxys d'arrêt et d'exécution, puis z-score robuste.
-    """
+
+def _to_unit_interval(z: np.ndarray) -> np.ndarray:
+    z = np.asarray(z, dtype=float)
+    return np.clip(_sigmoid(z), 0.0, 1.0)
+
+
+def compute_l_cap(df: pd.DataFrame) -> pd.Series:
+    """L_cap: capacité intrinsèque (proxy technique)."""
     _require(df, L_CAP_PROXIES, "L_cap")
     arr = df.loc[:, list(L_CAP_PROXIES)].astype(float).to_numpy()
     raw = np.mean(arr, axis=1)
@@ -38,11 +47,7 @@ def compute_l_cap(df: pd.DataFrame) -> pd.Series:
 
 
 def compute_l_act(df: pd.DataFrame) -> pd.Series:
-    """L_act: activation effective.
-
-    Démonstrateur: agrégat sur exemptions, délai de sanction et signaux de capture.
-    Sens: plus exemptions et délais montent, plus L_act doit baisser.
-    """
+    """L_act: activation observée, neutre, mesurable."""
     _require(df, L_ACT_PROXIES, "L_act")
     ex = df["exemption_rate"].astype(float).to_numpy()
     sd = df["sanction_delay"].astype(float).to_numpy()
@@ -51,34 +56,24 @@ def compute_l_act(df: pd.DataFrame) -> pd.Series:
     ci = df["conflict_interest_proxy"].astype(float).to_numpy()
     gap = df["rule_execution_gap"].astype(float).to_numpy()
 
-    # Plus le gap règle/exécution monte, plus l'activation effective est compromise.
     risk = 0.25 * ex + 0.20 * sd_norm + 0.20 * ct + 0.15 * ci + 0.20 * gap
-    raw = 1.0 - risk
+    raw = 1.0 - risk  # higher is better activation
     z = robust_zscore(raw)
     return pd.Series(z, index=df.index, name="L_ACT")
 
 
-def _risk_series(df: pd.DataFrame, *, window: int = 5) -> pd.Series:
-    at = compute_at(df).to_numpy(dtype=float)
-    dd = compute_delta_d(df, window=window).to_numpy(dtype=float)
-    risk = robust_zscore(at) + robust_zscore(dd)
-    return pd.Series(risk, index=df.index, name="RISK")
-
-
-def _to_unit_interval(z: np.ndarray) -> np.ndarray:
-    """Maps z-scores to [0,1] in a bounded, monotonic way."""
-    z = np.asarray(z, dtype=float)
-    return np.clip(0.5 + 0.25 * z, 0.0, 1.0)
-
-
 def desired_activation(risk: pd.Series, *, threshold: float, persist: int = 3) -> pd.Series:
-    """Returns desired activation signal based on persistence above a threshold."""
-    persist = max(1, int(persist))
-    above = (risk.to_numpy(dtype=float) > float(threshold)).astype(int)
-    # rolling sum over the last `persist` points
-    roll = np.convolve(above, np.ones(persist, dtype=int), mode="same")
-    desired = roll >= persist
-    return pd.Series(desired, index=risk.index, name="L_DESIRED")
+    """Desired activation signal based on persistent exceedance."""
+    r = risk.to_numpy(dtype=float)
+    mask = r > float(threshold)
+    out = np.zeros_like(mask, dtype=bool)
+    run = 0
+    for i, v in enumerate(mask):
+        run = run + 1 if v else 0
+        if run >= int(persist):
+            out[i] = True
+    return pd.Series(out, index=risk.index, name="DESIRED")
+
 
 def desired_activation_proactive(
     risk: pd.Series,
@@ -88,68 +83,40 @@ def desired_activation_proactive(
     o_threshold: float,
     persist: int = 3,
 ) -> pd.Series:
-    """Desired activation when risk is high OR orientation is low.
-
-    This implements the "L proactif via seuils O(t)" requirement:
-    - risk_threshold captures quantitative risk exceedance
-    - o_threshold captures degraded orientation (weak capacity to stop/steer)
-    - persistence is applied to the combined trigger to reduce false positives
-    """
-    persist = max(1, int(persist))
-    r = risk.to_numpy(dtype=float)
-    o = o_level.to_numpy(dtype=float)
-    trig = ((r > float(risk_threshold)) | (o < float(o_threshold))).astype(int)
-    roll = np.convolve(trig, np.ones(persist, dtype=int), mode="same")
-    desired = roll >= persist
-    return pd.Series(desired, index=risk.index, name="L_DESIRED_PROACTIVE")
+    """Proactive desired activation: combine risk exceedance and O weakness."""
+    r = risk.to_numpy(dtype=float) > float(risk_threshold)
+    o = o_level.to_numpy(dtype=float) < float(o_threshold)
+    mask = r | o
+    out = np.zeros_like(mask, dtype=bool)
+    run = 0
+    for i, v in enumerate(mask):
+        run = run + 1 if v else 0
+        if run >= int(persist):
+            out[i] = True
+    return pd.Series(out, index=risk.index, name="DESIRED")
 
 
-
-def realize_activation(
-    desired: pd.Series,
-    lact: pd.Series,
-    *,
-    max_delay: int = 12,
-    min_on: int = 3,
-) -> pd.Series:
-    """Realizes activation with delay that depends on L_act.
-
-    - If L_act is low, delay increases.
-    - min_on enforces a minimal persistence once activated.
-    """
-    max_delay = max(0, int(max_delay))
-    min_on = max(1, int(min_on))
-
+def realize_activation(desired: pd.Series, lact: pd.Series, *, max_delay: int = 12) -> pd.Series:
+    """Real activation: desired delayed depending on L_act strength."""
     d = desired.to_numpy(dtype=bool)
-    a = lact.to_numpy(dtype=float)
-    a01 = _to_unit_interval(a)
+    a = np.zeros_like(d, dtype=bool)
+    lact01 = _to_unit_interval(lact.to_numpy(dtype=float))
+    # lower lact => more delay
+    delays = np.round((1.0 - lact01) * float(max_delay)).astype(int)
 
-    n = len(d)
-    out = np.zeros(n, dtype=bool)
-
-    i = 0
-    while i < n:
-        if not d[i]:
-            i += 1
-            continue
-
-        # start of a desired episode
-        j = i
-        while j < n and d[j]:
-            j += 1
-
-        # delay is higher when L_act is low
-        delay = int(round((1.0 - float(np.mean(a01[i:j]))) * max_delay))
-        start = min(n, i + delay)
-        end = j
-
-        if start < end:
-            on_end = min(n, end + min_on)
-            out[start:on_end] = True
-
-        i = j
-
-    return pd.Series(out, index=desired.index, name="L_ACTIVATED")
+    last_desired = -10**9
+    for i, v in enumerate(d):
+        if v and (i != last_desired):
+            last_desired = i
+            delay = int(delays[i])
+            j = min(len(a) - 1, i + delay)
+            a[j] = True
+    # keep activation "on" for a short hold to model enforcement duration
+    hold = max(1, int(max_delay // 3))
+    for i in range(len(a)):
+        if a[i]:
+            a[i:min(len(a), i + hold)] = True
+    return pd.Series(a, index=desired.index, name="ACTIVATED")
 
 
 def apply_limit_action(
@@ -159,11 +126,7 @@ def apply_limit_action(
     *,
     intensity: float = 1.0,
 ) -> pd.DataFrame:
-    """Applies a stylized limit action to proxies after activation.
-
-    This does not claim realism. It is a minimal demonstrator that allows
-    performance tests without sensitive data.
-    """
+    """Stylized limit action applied on proxies after activation."""
     out = df.copy()
     act = activation.to_numpy(dtype=bool)
     cap01 = _to_unit_interval(lcap.to_numpy(dtype=float))
@@ -174,27 +137,22 @@ def apply_limit_action(
 
     idx = out.index[act]
 
-    # Reduce amplification proxies when L is active
     for c in ("scale_proxy", "speed_proxy", "leverage_proxy", "autonomy_proxy", "replicability_proxy"):
         if c in out.columns:
             out.loc[idx, c] = out.loc[idx, c].astype(float) * (1.0 - 0.15 * strength)
 
-    # Increase orientation and stop proxies when L is active
     for c in ("stop_proxy", "threshold_proxy", "decision_proxy", "execution_proxy", "coherence_proxy"):
         if c in out.columns:
             out.loc[idx, c] = out.loc[idx, c].astype(float) * (1.0 + 0.10 * strength)
 
-    # Reduce externalities proxies modestly (mitigation)
     for c in ("impact_proxy", "propagation_proxy", "hysteresis_proxy"):
         if c in out.columns:
             out.loc[idx, c] = out.loc[idx, c].astype(float) * (1.0 - 0.08 * strength)
 
-    # Improve resilience proxies modestly (margins, redundancy, diversity)
     for c in ("margin_proxy", "redundancy_proxy", "diversity_proxy"):
         if c in out.columns:
             out.loc[idx, c] = out.loc[idx, c].astype(float) * (1.0 + 0.08 * strength)
 
-    # Recovery time should go down under effective limit actions
     if "recovery_time_proxy" in out.columns:
         out.loc[idx, "recovery_time_proxy"] = out.loc[idx, "recovery_time_proxy"].astype(float) * (1.0 - 0.06 * strength)
 
@@ -204,83 +162,23 @@ def apply_limit_action(
 @dataclass(frozen=True)
 class MaturityAssessment:
     label: str
-    cap_score_raw: float
-    cap_score_enforced: float
-    act_score_raw: float
-    act_score_enforced: float
-    act_drop_under_stress: float
+    l_cap_bench_score: float
+    l_act_mean: float
+    activation_delay_steps: float
+    activation_stability: float
+    prevented_exceedance_rel: float
+    e_reduction_rel: float
+    governance_rule_execution_gap: float
+    governance_control_turnover: float
     notes: Dict[str, float]
 
 
-def assess_maturity(df: pd.DataFrame, *, df_stressed: pd.DataFrame | None = None) -> MaturityAssessment:
-    """Typologie simple: Mature, Immature, Dissonant.
-
-    Principe d'audit:
-    - L_cap mesure une capacité intrinsèque sur proxys techniques (arrêt, seuils, exécution, cohérence).
-    - L_act mesure l'activation effective sous contraintes institutionnelles (exemptions, délais, turnover, conflits).
-    - Pour éviter la circularité, on applique une règle d'enforcement explicite:
-      si control_turnover moyen dépasse 5%, la capacité est considérée comme moins fiable.
-
-    Cette règle matérialise le point du document: "viser L_cap > 0.95 via enforcement"
-    en rendant l'objectif conditionnel à une stabilité organisationnelle minimale.
-    """
-    _require(df, L_CAP_PROXIES, "L_cap")
-    _require(df, L_ACT_PROXIES, "L_act")
-
-    cap_raw = np.mean(df.loc[:, list(L_CAP_PROXIES)].astype(float).to_numpy(), axis=1)
-    cap_score_raw = float(np.mean(cap_raw))
-
-    ex = df["exemption_rate"].astype(float).to_numpy()
-    sd_norm = np.clip(df["sanction_delay"].astype(float).to_numpy() / 365.0, 0.0, 1.0)
-    ct = df["control_turnover"].astype(float).to_numpy()
-    ci = df["conflict_interest_proxy"].astype(float).to_numpy()
-    gap = df["rule_execution_gap"].astype(float).to_numpy()
-    act_raw = 1.0 - (0.25 * ex + 0.20 * sd_norm + 0.20 * ct + 0.15 * ci + 0.20 * gap)
-    act_score_raw = float(np.mean(act_raw))
-    act_score_enforced = act_score_raw
-
-    turnover_mean = float(np.mean(ct))
-    turnover_target = 0.05
-
-    if turnover_mean <= turnover_target:
-        enforcement_factor = 1.0
-    else:
-        # degrade smoothly: at +15% turnover above target, factor reaches 0
-        enforcement_factor = float(max(0.0, 1.0 - (turnover_mean - turnover_target) / 0.15))
-
-    cap_score_enforced = float(cap_score_raw * enforcement_factor)
-
-    act_drop = 0.0
-    if df_stressed is not None:
-        _require(df_stressed, L_ACT_PROXIES, "L_act stressed")
-        ex_s = df_stressed["exemption_rate"].astype(float).to_numpy()
-        sd_s = np.clip(df_stressed["sanction_delay"].astype(float).to_numpy() / 365.0, 0.0, 1.0)
-        ct_s = df_stressed["control_turnover"].astype(float).to_numpy()
-        ci_s = df_stressed["conflict_interest_proxy"].astype(float).to_numpy()
-        gap_s = df_stressed["rule_execution_gap"].astype(float).to_numpy()
-        act_raw_s = 1.0 - (0.25 * ex_s + 0.20 * sd_s + 0.20 * ct_s + 0.15 * ci_s + 0.20 * gap_s)
-        act_drop = float(np.mean(act_raw) - np.mean(act_raw_s))
-
-    cap_high = cap_score_enforced >= 0.95
-    act_high = act_score_enforced >= 0.70
-    label = "Mature" if (cap_high and act_high) else ("Immature" if not cap_high else "Dissonant")
-
-    notes = {
-        "cap_high_threshold": 0.95,
-        "act_high_threshold": 0.70,
-        "turnover_mean": float(turnover_mean),
-        "turnover_target": float(turnover_target),
-        "enforcement_factor": float(enforcement_factor),
-    }
-    return MaturityAssessment(
-        label=label,
-        cap_score_raw=cap_score_raw,
-        cap_score_enforced=cap_score_enforced,
-        act_score_raw=act_score_raw,
-        act_score_enforced=act_score_enforced,
-        act_drop_under_stress=act_drop,
-        notes=notes,
-    )
+def _risk_series(df: pd.DataFrame, *, window: int = 5, thresholds: Thresholds | None = None) -> pd.Series:
+    if thresholds is None:
+        thresholds = derive_thresholds(df, window=window)
+    at = compute_at(df)
+    dd = compute_delta_d(df, window=window)
+    return risk_signature(df, thresholds=thresholds, window=window, at_series=at, dd_series=dd)
 
 
 def evaluate_l_performance(
@@ -293,22 +191,17 @@ def evaluate_l_performance(
     persist: int = 3,
     max_delay: int = 12,
     intensity: float = 1.0,
+    thresholds: Thresholds | None = None,
+    lact_override: pd.Series | None = None,
+    lcap_override: pd.Series | None = None,
 ) -> Dict[str, Any]:
-    """Evaluates L(t) performance with reproducible, non-sensitive tests.
-
-    Performance definition (demonstrator):
-    - Desired activation is defined by persistent exceedance of a risk threshold.
-    - L_act controls delay (capture/exemptions reduce effective activation).
-    - L_cap controls effect magnitude once activated.
-    - We measure reduction of exceedance and risk after activation, plus delay.
-    """
-    risk = _risk_series(df, window=window)
+    risk = _risk_series(df, window=window, thresholds=thresholds)
     if risk_threshold is None:
         k = max(1, int(len(df) * float(topk_frac)))
         risk_threshold = float(np.partition(risk.to_numpy(dtype=float), -k)[-k])
 
-    lact = compute_l_act(df)
-    lcap = compute_l_cap(df)
+    lact = compute_l_act(df) if lact_override is None else lact_override
+    lcap = compute_l_cap(df) if lcap_override is None else lcap_override
 
     if o_threshold is None:
         desired = desired_activation(risk, threshold=float(risk_threshold), persist=persist)
@@ -321,10 +214,10 @@ def evaluate_l_performance(
             o_threshold=float(o_threshold),
             persist=persist,
         )
-    activated = realize_activation(desired, lact, max_delay=max_delay)
 
+    activated = realize_activation(desired, lact, max_delay=max_delay)
     df_limited = apply_limit_action(df, activated, lcap, intensity=intensity)
-    risk_limited = _risk_series(df_limited, window=window)
+    risk_limited = _risk_series(df_limited, window=window, thresholds=thresholds)
 
     base_mask = risk.to_numpy(dtype=float) > float(risk_threshold)
     lim_mask = risk_limited.to_numpy(dtype=float) > float(risk_threshold)
@@ -334,7 +227,6 @@ def evaluate_l_performance(
     prevented = float(max(0.0, exceed_base - exceed_limited))
     prevented_rel = float(prevented / exceed_base) if exceed_base > 1e-12 else 0.0
 
-    # tail severity reduction (Top-K excess above threshold), more stable than pure exceedance counts
     eps = 1e-12
     r_arr = risk.to_numpy(dtype=float)
     rl_arr = risk_limited.to_numpy(dtype=float)
@@ -347,27 +239,21 @@ def evaluate_l_performance(
     mean_excess_limited = float(np.mean(tail_limited))
     prevented_topk_excess_rel = float(max(0.0, mean_excess_base - mean_excess_limited) / (mean_excess_base + eps))
 
-    # delay estimate: first desired episode start vs first activation
     d = desired.to_numpy(dtype=bool)
     a = activated.to_numpy(dtype=bool)
     first_d = int(np.argmax(d)) if np.any(d) else -1
     first_a = int(np.argmax(a)) if np.any(a) else -1
-    delay = float(first_a - first_d) if (first_d >= 0 and first_a >= 0) else float("nan")
+    activation_delay_steps = float(first_a - first_d) if (first_d >= 0 and first_a >= 0) else float("nan")
 
-    # risk drop around activation: compare mean risk pre/post (window of 10 points)
-    drop = float("nan")
-    if np.any(a):
-        idxs = np.where(a)[0]
-        t0 = int(idxs[0])
-        pre = risk.to_numpy(dtype=float)[max(0, t0 - 10):t0]
-        post = risk_limited.to_numpy(dtype=float)[t0:min(len(risk), t0 + 10)]
-        if len(pre) > 0 and len(post) > 0:
-            drop = float(np.mean(pre) - np.mean(post))
+    # E reduction relative
+    e_base = compute_e_metrics(df)["E_level"].to_numpy(dtype=float)
+    e_lim = compute_e_metrics(df_limited)["E_level"].to_numpy(dtype=float)
+    e_base_mean = float(np.mean(e_base))
+    e_lim_mean = float(np.mean(e_lim))
+    e_reduction_rel = float(max(0.0, e_base_mean - e_lim_mean) / (abs(e_base_mean) + 1e-12))
 
-    # simple verdict
     cap01 = float(np.mean(_to_unit_interval(lcap.to_numpy(dtype=float))))
     act01 = float(np.mean(_to_unit_interval(lact.to_numpy(dtype=float))))
-
     verdict = "Mature"
     if cap01 < 0.45:
         verdict = "Immature"
@@ -375,25 +261,60 @@ def evaluate_l_performance(
         verdict = "Dissonant"
 
     return {
+        "prevented_exceedance": float(prevented),
+        "prevented_exceedance_rel": float(prevented_rel),
+        "prevented_topk_excess_rel": float(prevented_topk_excess_rel),
+        "activation_delay_steps": float(activation_delay_steps),
+        "e_reduction_rel": float(e_reduction_rel),
         "risk_threshold": float(risk_threshold),
-        "exceedance_base": exceed_base,
-        "exceedance_limited": exceed_limited,
-        "prevented_exceedance": prevented,
-        "prevented_exceedance_rel": prevented_rel,
-        "prevented_topk_excess_rel": prevented_topk_excess_rel,
-        "topk_mean_excess_base": mean_excess_base,
-        "topk_mean_excess_limited": mean_excess_limited,
-        "first_activation_delay_steps": delay,
-        "risk_drop_around_activation": drop,
-        "mean_l_cap_unit": cap01,
-        "mean_l_act_unit": act01,
         "verdict": verdict,
-        "params": {
-            "window": int(window),
-            "topk_frac": float(topk_frac),
-            "o_threshold": (float(o_threshold) if o_threshold is not None else None),
-            "persist": int(persist),
-            "max_delay": int(max_delay),
-            "intensity": float(intensity),
-        },
     }
+
+
+def assess_maturity(df: pd.DataFrame, *, window: int = 5) -> MaturityAssessment:
+    """Maturity without circularity: L_cap bench + L_act observed."""
+    lcap = compute_l_cap(df)
+    lact = compute_l_act(df)
+    # Bench: ideal activation (always on)
+    ideal_lact = pd.Series(np.ones(len(df), dtype=float) * 10.0, index=df.index, name="L_ACT_IDEAL")
+    perf_ideal = evaluate_l_performance(df, window=window, lact_override=ideal_lact, lcap_override=lcap)
+
+    l_cap_bench_score = float(0.6 * perf_ideal["prevented_exceedance_rel"] + 0.4 * perf_ideal["prevented_topk_excess_rel"])
+    perf_real = evaluate_l_performance(df, window=window, thresholds=None)
+    activation_delay_steps = float(perf_real["activation_delay_steps"])
+    act01 = _to_unit_interval(lact.to_numpy(dtype=float))
+    activation_stability = float(1.0 - np.std(act01))
+
+    gap = float(np.mean(pd.to_numeric(df.get("rule_execution_gap", 0.0), errors="coerce").to_numpy(dtype=float))) if "rule_execution_gap" in df.columns else 1.0
+    ct = float(np.mean(pd.to_numeric(df.get("control_turnover", 0.0), errors="coerce").to_numpy(dtype=float))) if "control_turnover" in df.columns else 1.0
+
+    # Criteria targets
+    prevented_exceedance_rel = float(perf_real["prevented_exceedance_rel"])
+    e_reduction_rel = float(perf_real["e_reduction_rel"])
+
+    label = "Mature"
+    if l_cap_bench_score < 0.45:
+        label = "Immature"
+    else:
+        # dissonant if activation low or governance off-target
+        if (float(np.mean(act01)) < 0.45) or (gap > 0.05) or (ct > 0.05):
+            label = "Dissonant"
+
+    notes = {
+        "cap01": float(np.mean(_to_unit_interval(lcap.to_numpy(dtype=float)))),
+        "act01": float(np.mean(act01)),
+        "gap_mean": gap,
+        "ct_mean": ct,
+    }
+    return MaturityAssessment(
+        label=label,
+        l_cap_bench_score=float(l_cap_bench_score),
+        l_act_mean=float(np.mean(act01)),
+        activation_delay_steps=activation_delay_steps,
+        activation_stability=float(activation_stability),
+        prevented_exceedance_rel=prevented_exceedance_rel,
+        e_reduction_rel=e_reduction_rel,
+        governance_rule_execution_gap=gap,
+        governance_control_turnover=ct,
+        notes=notes,
+    )

@@ -1,11 +1,89 @@
 version: "v1.0"
 created_utc: "2026-02-15T00:00:00Z"
+scope:
+  purpose: "Mapping formel théorie -> audit (baromètre NEP-LIMITE)"
+  note: "Ce mapping décrit des observables auditables et des formules de démonstration. Il ne prétend pas être une vérité ontologique."
+
+aliases:
+  Ad: "DELTA_D"
+  "Δd": "DELTA_D"
+  "@": "AT"
+
 observables:
-  P: {role: "Power scaling observable"}
-  O: {role: "Operational orientation"}
-  E: {role: "Externalities stock and flow"}
-  R: {role: "Resilience recovery capacity"}
-  G: {role: "Governance measurable"}
-  AT: {role: "Amplification ratio P/O"}
-  DELTA_D: {role: "Differential drift"}
-maturity_labels: [Mature, Immature, Dissonant]
+  P:
+    name: "P(t)"
+    role: "Puissance et capacité de mise à l'échelle"
+    family: "P"
+    formula: "P(t) = Σ_i w_P,i * z_baseline(X_P,i(t))"
+    output: "P (time series), P_level (raw mean in original units)"
+  O:
+    name: "O(t)"
+    role: "Orientation, arrêt, discipline opérationnelle"
+    family: "O"
+    formula: "O(t) = Σ_i w_O,i * z_baseline(X_O,i(t))"
+    output: "O (time series), O_level (raw mean in original units)"
+  E:
+    name: "E(t)"
+    role: "Externalités avec inertie et irréversibilité"
+    family: "E"
+    formula: "E_level(t) = Σ_i w_E,i * z_baseline(X_E,i(t)); E_stock(t) = ∫ E_level dt"
+    output: "E_level, E_stock, dE_dt, E_irreversibility"
+  R:
+    name: "R(t)"
+    role: "Résilience: marges, redondance, diversité, récupération"
+    family: "R"
+    formula: "R_level(t) = Σ_i w_R,i * z_baseline(X_R,i(t))"
+    output: "R_level, R_mttr_proxy, R_recovery_time_est"
+  G:
+    name: "G(t)"
+    role: "Gouvernance mesurable, neutre, auditable"
+    family: "G"
+    formula: "G_level(t) = 1 - Σ_i w_G,i * z_baseline(X_G,i(t))"
+    output: "G_level + composants (exemption_rate, sanction_delay, control_turnover, conflict_interest_proxy, rule_execution_gap)"
+  AT:
+    name: "@(t)"
+    role: "Signal d'amplification (ratio)"
+    formula: "@(t) = P_level(t) / (O_level(t) + ε)"
+    output: "AT"
+  DELTA_D:
+    name: "Δd(t)"
+    role: "Dérive différentielle (proxy de divergence)"
+    formula: "Δd(t) = dP_level/dt - dO_level/dt (avec lissage fenêtre)"
+    output: "DELTA_D"
+  L_cap:
+    name: "L_cap(t)"
+    role: "Capacité testée sous stress (bench), sans circularité"
+    formula: "L_cap_bench = performance(L en activation idéale) sur stress suite standardisée"
+    output: "L_cap_bench_score + métriques (prevented_exceedance_rel, E_reduction_rel, recovery_rate)"
+  L_act:
+    name: "L_act(t)"
+    role: "Activation observée (enforcement effectif)"
+    formula: "L_act(t) = 1 - (0.25 exemption_rate + 0.20 sanction_delay_norm + 0.20 control_turnover + 0.15 conflict_interest + 0.20 rule_execution_gap)"
+    output: "L_act (time series) + métriques (activation_delay_steps, activation_stability)"
+  L:
+    name: "L(t)"
+    role: "Opérateur de limite (capacité x activation)"
+    formula: "desired = persist(risk > thr); activated = delay(desired, L_act); action = apply(df, activated, L_cap)"
+    output: "Performance testée: prevented_exceedance_rel, prevented_topk_excess_rel, activation_delay_steps, E_reduction_rel"
+
+risk_signature:
+  name: "Risk(t)"
+  definition: "Signature de risque combinant @(t) et Δd(t), normalisée sur baseline stable"
+  formula: "Risk(t) = z_baseline(AT(t)) + z_baseline(DELTA_D(t))"
+  baseline_rule: "Si une baseline est fournie, interdire toute renormalisation par dataset."
+
+maturity:
+  labels:
+    Mature:
+      rule: "L_cap_bench élevé ET L_act stable, plus cibles gouvernance et performance atteintes"
+    Immature:
+      rule: "L_cap_bench faible"
+    Dissonant:
+      rule: "L_cap_bench élevé mais L_act bas ou gouvernance sous cibles (capture, exemptions)"
+  criteria:
+    recovery_rate_post_stress_min: 0.90
+    activation_delay_steps_max: 5
+    E_reduction_rel_min: 0.20
+    prevented_exceedance_rel_min: 0.10
+    rule_execution_gap_target_max: 0.05
+    control_turnover_target_max: 0.05

@@ -1,33 +1,50 @@
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 
-from .proxy_protocol import PROXY_PROTOCOL
+from .proxy_protocol import DEFAULT_PROTOCOL, PROXY_PROTOCOL, ProxyProtocol
 
 
 def _mad(x: np.ndarray) -> float:
-    x = np.asarray(x, dtype=float)
-    med = np.median(x)
-    return float(np.median(np.abs(x - med)) + 1e-12)
+    arr = np.asarray(x, dtype=float)
+    med = float(np.nanmedian(arr))
+    return float(np.nanmedian(np.abs(arr - med)) + 1e-12)
 
 
-def validate_proxy_ranges(df: pd.DataFrame, *, protocol: Mapping[str, Mapping[str, Any]] = PROXY_PROTOCOL) -> Dict[str, Dict[str, float]]:
-    """Checks basic measurability constraints: range compliance and missingness.
+def _as_mapping(protocol: ProxyProtocol | Mapping[str, Mapping[str, Any]]) -> Mapping[str, Mapping[str, Any]]:
+    if isinstance(protocol, ProxyProtocol):
+        return protocol.as_mapping()
+    return protocol
 
-    Returns per-proxy stats that are easy to audit and aggregate.
-    """
+
+def _defaults(protocol: ProxyProtocol | Mapping[str, Mapping[str, Any]]) -> Dict[str, float]:
+    if isinstance(protocol, ProxyProtocol):
+        return dict(protocol.falsification_defaults)
+    return {"jump_mad_mult": 8.0, "shift_mad_mult": 1.8, "range_violation_rate": 0.01, "clamp_quantile_width": 0.10}
+
+
+def validate_proxy_ranges(
+    df: pd.DataFrame,
+    *,
+    protocol: ProxyProtocol | Mapping[str, Mapping[str, Any]] = DEFAULT_PROTOCOL,
+) -> Dict[str, Dict[str, float]]:
+    """Basic measurability checks: presence, missingness, range compliance."""
+    proto = _as_mapping(protocol)
     out: Dict[str, Dict[str, float]] = {}
-    for proxy, meta in protocol.items():
+    for proxy, meta in proto.items():
         if proxy not in df.columns:
             out[proxy] = {"present": 0.0, "missing_rate": 1.0, "out_of_range_rate": 1.0}
             continue
         s = pd.to_numeric(df[proxy], errors="coerce")
         miss = float(s.isna().mean())
-        lo, hi = meta["expected_range"]
+        lo, hi = meta.get("expected_range", (0.0, 1.0))
+        lo = float(lo)
+        hi = float(hi)
         oor = float(((s < lo) | (s > hi)).mean())
         out[proxy] = {
             "present": 1.0,
@@ -51,9 +68,9 @@ def inject_falsification(
     """Simulates a simple falsification attempt on a proxy.
 
     kind:
-    - shift: adds a constant delta from start point
-    - spike: injects rare large spikes after start
-    - clamp: clamps values to a narrow range to reduce apparent volatility
+      - shift: adds a constant delta from start point
+      - spike: injects rare large spikes after start
+      - clamp: clamps values to a narrow quantile band to reduce apparent volatility
     """
     if proxy not in df.columns:
         raise ValueError(f"Proxy absent: {proxy}")
@@ -66,7 +83,6 @@ def inject_falsification(
     if kind == "shift":
         s[start:] = s[start:] + float(magnitude)
     elif kind == "spike":
-        # 3 spikes on average
         k = max(1, n // 40)
         idx = rng.choice(np.arange(start, n), size=k, replace=False)
         s[idx] = s[idx] + float(magnitude) * 5.0
@@ -81,8 +97,7 @@ def inject_falsification(
     return out
 
 
-
-# Ciblage O(t): manipulation de l'orientation pour faire baisser @(t)
+# Targeting O(t): gaming orientation proxies to lower AT
 O_PROXIES: Tuple[str, ...] = ("stop_proxy", "threshold_proxy", "decision_proxy", "execution_proxy", "coherence_proxy")
 
 
@@ -94,14 +109,6 @@ def inject_bias_o(
     clamp_volatility: bool = False,
     seed: int = 7,
 ) -> pd.DataFrame:
-    """Injecte un biais artificiel sur les proxys de O(t).
-
-    But: simuler une tentative de gaming où l'acteur "fait monter" les indicateurs
-    d'orientation (arrêt, seuils, exécution) pour faire baisser @(t).
-
-    Options:
-    - clamp_volatility: réduit artificiellement la variance après start (cas de "reporting" lissé)
-    """
     out = df.copy()
     n = len(out)
     start = int(n * float(start_frac))
@@ -117,12 +124,11 @@ def inject_bias_o(
             noise = rng.normal(0.0, 0.02 * (np.nanstd(s[:start]) + 1e-12), size=n - start)
             s[start:] = base + noise
 
-        # gonflement "positif" (conserve l'ordre de grandeur)
         s[start:] = s[start:] * (1.0 + float(magnitude))
-
         out[proxy] = s
 
     return out
+
 
 @dataclass(frozen=True)
 class DetectionResult:
@@ -137,100 +143,59 @@ def detect_falsification(
     df: pd.DataFrame,
     *,
     proxy: str,
-    protocol: Mapping[str, Mapping[str, Any]] = PROXY_PROTOCOL,
+    protocol: ProxyProtocol | Mapping[str, Mapping[str, Any]] = DEFAULT_PROTOCOL,
     jump_mad_mult: Optional[float] = None,
-    shift_mad_mult: float = 6.0,
+    shift_mad_mult: Optional[float] = None,
 ) -> DetectionResult:
-    """Detects basic falsification patterns with transparent heuristics.
+    proto = _as_mapping(protocol)
+    defaults = _defaults(protocol)
+    jump_mad_mult = float(jump_mad_mult if jump_mad_mult is not None else defaults["jump_mad_mult"])
+    shift_mad_mult = float(shift_mad_mult if shift_mad_mult is not None else defaults["shift_mad_mult"])
 
-    This is a demonstrator. Real deployments should replace these heuristics
-    with sector-specific detectors and independent data sources.
-    """
-    if proxy not in protocol:
-        raise ValueError(f"Unknown proxy in protocol: {proxy}")
-    meta = protocol[proxy]
     if proxy not in df.columns:
-        return DetectionResult(detected=True, out_of_range_rate=1.0, jump_rate=1.0, shift_score=1e9, notes={"missing": 1.0})
+        return DetectionResult(detected=False, out_of_range_rate=1.0, jump_rate=0.0, shift_score=0.0, notes={"reason": -1.0})
 
-    s = pd.to_numeric(df[proxy], errors="coerce").to_numpy(dtype=float, copy=False)
-    lo, hi = meta["expected_range"]
-    oor = float(np.mean((s < lo) | (s > hi)))
+    s = pd.to_numeric(df[proxy], errors="coerce")
+    arr = s.to_numpy(dtype=float)
+    arr = np.where(np.isfinite(arr), arr, np.nanmedian(arr))
 
-    ds = np.diff(s)
-    mad_ds = _mad(ds)
-    if jump_mad_mult is None:
-        jump_mad_mult = float(meta.get("falsification_flags", {}).get("jump_mad_mult", 8.0))
-    jump_rate = float(np.mean(np.abs(ds) > jump_mad_mult * mad_ds))
+    meta = proto.get(proxy, {})
+    lo, hi = meta.get("expected_range", (float(np.nanmin(arr)), float(np.nanmax(arr))))
+    lo = float(lo)
+    hi = float(hi)
 
-    # shift detection: compare medians pre/post mid point
-    mid = len(s) // 2
-    pre = s[:mid]
-    post = s[mid:]
-    mad_pre = _mad(pre)
-    shift = float(np.median(post) - np.median(pre))
-    shift_score = float(np.abs(shift) / mad_pre)
+    oor = float(np.mean((arr < lo) | (arr > hi)))
 
-    range_flag = oor > float(meta.get("falsification_flags", {}).get("range_violation_rate", 0.01))
-    jump_flag = jump_rate > 0.02
-    shift_flag = shift_score > float(shift_mad_mult)
+    dif = np.diff(arr)
+    mad_d = _mad(dif) if dif.size else 1.0
+    jump_rate = float(np.mean(np.abs(dif) > jump_mad_mult * mad_d)) if dif.size else 0.0
 
-    detected = bool(range_flag or jump_flag or shift_flag)
+    # shift: compare second half median to first half median
+    mid = len(arr) // 2
+    med1 = float(np.nanmedian(arr[:mid])) if mid > 0 else float(np.nanmedian(arr))
+    med2 = float(np.nanmedian(arr[mid:])) if mid > 0 else float(np.nanmedian(arr))
+    mad = _mad(arr)
+    shift_score = float(abs(med2 - med1) / (mad + 1e-12))
 
-    notes = {
-        "range_flag": float(range_flag),
-        "jump_flag": float(jump_flag),
-        "shift_flag": float(shift_flag),
-        "jump_mad_mult": float(jump_mad_mult),
-        "shift_mad_mult": float(shift_mad_mult),
-    }
-    return DetectionResult(detected=detected, out_of_range_rate=oor, jump_rate=jump_rate, shift_score=shift_score, notes=notes)
+    detected = bool((oor > defaults["range_violation_rate"]) or (jump_rate > 0.02) or (shift_score >= shift_mad_mult))
+
+    return DetectionResult(
+        detected=detected,
+        out_of_range_rate=oor,
+        jump_rate=jump_rate,
+        shift_score=shift_score,
+        notes={"lo": lo, "hi": hi, "mad": float(mad), "mid": float(mid)},
+    )
 
 
 def run_manipulability_suite(
     df: pd.DataFrame,
     *,
-    proxies: Optional[Sequence[str]] = None,
-    kinds: Sequence[str] = ("shift", "spike", "clamp"),
-    magnitude: float = 0.2,
-    seed: int = 7,
+    protocol: ProxyProtocol | Mapping[str, Mapping[str, Any]] = DEFAULT_PROTOCOL,
+    proxies: Sequence[str] = ("exemption_rate", "rule_execution_gap"),
 ) -> Dict[str, Any]:
-    """Runs a reproducible anti-gaming suite over proxies.
-
-    For each proxy and falsification kind:
-    - inject falsification
-    - run detection on the modified series
-    The output is JSON-friendly.
-    """
-    if proxies is None:
-        proxies = list(PROXY_PROTOCOL.keys())
-
-    out: Dict[str, Any] = {
-        "range_checks": validate_proxy_ranges(df),
-        "falsification": {},
-    }
-
-    for proxy in proxies:
-        if proxy not in df.columns:
-            continue
-        out["falsification"][proxy] = {}
-        for kind in kinds:
-            df_f = inject_falsification(df, proxy=proxy, kind=kind, magnitude=magnitude, seed=seed)
-            det = detect_falsification(df_f, proxy=proxy)
-            out["falsification"][proxy][kind] = {
-                "detected": bool(det.detected),
-                "out_of_range_rate": float(det.out_of_range_rate),
-                "jump_rate": float(det.jump_rate),
-                "shift_score": float(det.shift_score),
-                "notes": {k: float(v) for k, v in det.notes.items()},
-            }
-
-    # summary: detection rate across all injected scenarios
-    flags = []
-    for proxy, d in out["falsification"].items():
-        for kind, res in d.items():
-            flags.append(bool(res.get("detected")))
-    out["summary"] = {
-        "n_scenarios": int(len(flags)),
-        "detected_rate": float(np.mean(flags) if flags else 0.0),
-    }
-    return out
+    range_stats = validate_proxy_ranges(df, protocol=protocol)
+    det: Dict[str, Any] = {}
+    for p in proxies:
+        det[p] = detect_falsification(df, proxy=p, protocol=protocol).__dict__
+    return {"range_stats": range_stats, "detections": det}
