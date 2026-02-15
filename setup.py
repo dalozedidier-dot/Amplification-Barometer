@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="amplification-barometer",
-    version="0.2.1",
+    version="0.3.0",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[
@@ -12,6 +12,6 @@ setup(
         "matplotlib>=3.7.0",
     ],
     author="Votre Nom",
-    description="Amplification Barometer: auditable composites, score stability audit, stress tests, and demo ODE",
+    description="Auditable amplification barometer: composites, stability audits, stress tests, anti-gaming suite, and L(t) performance checks",
     python_requires=">=3.10",
 )

@@ -223,7 +223,7 @@ def run_stress_suite(
     df: pd.DataFrame,
     *,
     intensity: float = 1.0,
-    scenarios: Sequence[str] = ("Shock-P", "Automation", "Coupling", "Lag-O", "Exception", "SanctionDelay", "Overload"),
+    scenarios: Sequence[str] = ("Shock-P", "Automation", "Coupling", "Lag-O", "Exception", "SanctionDelay", "Capture", "Overload"),
     window: int = 5,
 ) -> Mapping[str, StressResult]:
     """Exécute une suite de stress tests standardisés."""

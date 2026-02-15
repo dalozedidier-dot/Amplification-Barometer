@@ -29,9 +29,7 @@ jobs:
         if: ${{ matrix.python-version == '3.12' }}
         run: |
           mkdir -p _ci_out
-          python tools/run_audit.py --dataset data/synthetic/stable_regime.csv --name stable --out-dir _ci_out --plot
-          python tools/run_audit.py --dataset data/synthetic/oscillating_regime.csv --name oscillating --out-dir _ci_out --plot
-          python tools/run_audit.py --dataset data/synthetic/bifurcation_regime.csv --name bifurcation --out-dir _ci_out --plot
+          python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out --plot
 
       - name: Upload audit artefacts
         if: ${{ matrix.python-version == '3.12' }}

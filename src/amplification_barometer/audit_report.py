@@ -9,9 +9,21 @@ from typing import Any, Dict, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from .audit_tools import StressResult, audit_score_stability, run_stress_suite
-from .composites import WEIGHTS_VERSION, compute_at, compute_delta_d, compute_e, compute_g, compute_o, compute_p, compute_r, robust_zscore, standard_zscore
-from .l_operator import MaturityAssessment, assess_maturity
+from .audit_tools import audit_score_stability, run_stress_suite
+from .composites import (
+    WEIGHTS_VERSION,
+    compute_at,
+    compute_delta_d,
+    compute_e,
+    compute_g,
+    compute_o,
+    compute_p,
+    compute_r,
+    robust_zscore,
+    standard_zscore,
+)
+from .l_operator import MaturityAssessment, assess_maturity, evaluate_l_performance
+from .manipulability import run_manipulability_suite
 
 
 @dataclass(frozen=True)
@@ -24,6 +36,8 @@ class AuditReport:
     stability: Dict[str, Any]
     stress_suite: Dict[str, Any]
     maturity: Dict[str, Any]
+    l_performance: Dict[str, Any]
+    manipulability: Dict[str, Any]
 
 
 def _series_stats(x: pd.Series) -> Dict[str, float]:
@@ -48,37 +62,24 @@ def _risk_series(df: pd.DataFrame, *, window: int = 5) -> pd.Series:
 def _topk_indices(x: pd.Series, k: int) -> Sequence[int]:
     if k <= 0:
         return []
-    # np.argsort returns NumPy integer dtypes (e.g. int64) which are not JSON-serialisable.
-    # Cast eagerly to built-in int to keep audit artefacts fully portable.
     return [int(i) for i in np.argsort(x.to_numpy(dtype=float))[-k:]]
 
 
 def _json_default(obj: Any) -> Any:
-    """Best-effort conversion for NumPy / pandas scalars inside audit artefacts.
-
-    The audit report is an artefact: it must be trivially serialisable and readable
-    without a Python runtime. We therefore coerce common scientific dtypes to
-    plain JSON-compatible values.
-    """
-    # NumPy scalar types
     if isinstance(obj, np.integer):
         return int(obj)
     if isinstance(obj, np.floating):
         return float(obj)
     if isinstance(obj, np.bool_):
         return bool(obj)
-    # NumPy arrays
     if isinstance(obj, np.ndarray):
         return obj.tolist()
-    # pandas scalars
     if isinstance(obj, pd.Timestamp):
         return obj.isoformat()
     if isinstance(obj, pd.Timedelta):
         return obj.total_seconds()
-    # pathlib
     if isinstance(obj, Path):
         return str(obj)
-    # Fallback: let json raise TypeError with a clear message.
     raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serialisable")
 
 
@@ -90,15 +91,19 @@ def build_audit_report(
     stability_windows: Sequence[int] = (3, 5, 8),
     topk_frac: float = 0.10,
     stress_intensity: float = 1.0,
+    manipulability_magnitude: float = 0.2,
 ) -> AuditReport:
-    """Construit un rapport d'audit minimal, reproductible et orienté démonstration.
+    """Builds a reproducible audit report for a single dataset.
 
-    Ce rapport vise explicitement la "preuve de vie" et les correctifs d'auditabilité:
-    stabilité du score, stress tests standardisés, séparation L_cap / L_act.
+    Scope:
+    - measurability: statistics for P,O,E,R,G,@,Δd
+    - stability: rank-based stability and Top-K consistency under small perturbations
+    - stress suite: standard scenarios including adversarial cases
+    - anti-gaming: proxy range checks and falsification detection suite
+    - limit operator: L_cap/L_act maturity label and tested performance on the series
     """
     created = datetime.now(timezone.utc).isoformat()
 
-    # Composites
     p = compute_p(df)
     o = compute_o(df)
     e = compute_e(df)
@@ -125,23 +130,24 @@ def build_audit_report(
         "topk_indices": topk,
     }
 
-    # Stabilité du score (fenêtre + perturbations)
     stability = audit_score_stability(df, windows=stability_windows, topk_frac=topk_frac)
 
-    # Variation de normalisation: compare risque robust vs standard sur la même signature brute
+    # Compare robust vs standard normalization on the same raw risk series
     risk_std = pd.Series(standard_zscore(risk.to_numpy(dtype=float)), index=risk.index, name="RISK_STD")
     stability["risk_norm_spearman_robust_vs_standard"] = float(
         np.corrcoef(pd.Series(risk).rank().to_numpy(), pd.Series(risk_std).rank().to_numpy())[0, 1]
     )
 
-    # Suite de stress tests (Q2 + adversarial)
     suite = run_stress_suite(df, intensity=stress_intensity)
-    stress_suite: Dict[str, Any] = {name: {"status": r.status, "degradation": r.degradation, "details": r.details} for name, r in suite.items()}
+    stress_suite: Dict[str, Any] = {
+        name: {"status": r.status, "degradation": r.degradation, "details": r.details} for name, r in suite.items()
+    }
 
-    # Maturité (L_cap / L_act) avec évaluation sous surcharge organisationnelle si possible
-    df_over = df.copy()
+    # Maturity label with overload stress
+    df_over = None
     try:
         from .audit_tools import _apply_scenario  # type: ignore
+
         df_over = _apply_scenario(df, "Overload", stress_intensity)
     except Exception:
         df_over = None
@@ -151,17 +157,14 @@ def build_audit_report(
         maturity_assessment = assess_maturity(df, df_stressed=df_over)
     else:
         maturity_assessment = assess_maturity(df)
-
     maturity = asdict(maturity_assessment)
 
-    # Verdict simple: score stable ou non selon seuils conservateurs
-    stable_flag = (stability["spearman_worst_risk"] >= 0.90) and (stability["topk_jaccard_worst_risk"] >= 0.80)
+    l_perf = evaluate_l_performance(df, window=delta_d_window, topk_frac=topk_frac, intensity=stress_intensity)
 
-    stability["stable_flag"] = bool(stable_flag)
-    stability["stability_thresholds"] = {"spearman_worst_risk": 0.90, "topk_jaccard_worst_risk": 0.80}
+    manipulability = run_manipulability_suite(df, magnitude=manipulability_magnitude)
 
     return AuditReport(
-        version="0.2.1",
+        version="0.3.0",
         weights_version=WEIGHTS_VERSION,
         dataset_name=dataset_name,
         created_utc=created,
@@ -169,6 +172,8 @@ def build_audit_report(
         stability=stability,
         stress_suite=stress_suite,
         maturity=maturity,
+        l_performance=l_perf,
+        manipulability=manipulability,
     )
 
 
@@ -184,6 +189,8 @@ def write_audit_report(report: AuditReport, out_path: str | Path) -> None:
         "stability": report.stability,
         "stress_suite": report.stress_suite,
         "maturity": report.maturity,
+        "l_performance": report.l_performance,
+        "manipulability": report.manipulability,
     }
     out_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False, default=_json_default),

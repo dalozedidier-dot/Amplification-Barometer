@@ -28,3 +28,16 @@ Ce document résume comment les exigences de mise en pratique et d'auditabilité
 
 1. `run_stress_suite` exécute des scénarios Shock P, Automation, Coupling, Lag O, plus des scénarios adversariaux.
 2. Les sorties sont intégrées au `audit_report.json`.
+
+
+## 6. Anti-gaming (manipulabilité)
+
+1. `amplification_barometer.proxy_protocol.PROXY_PROTOCOL` documente plage, sens de risque et conditions minimales de falsification.
+2. `amplification_barometer.manipulability.run_manipulability_suite` exécute une suite reproductible: injections (shift, spike, clamp) puis détection (plage, sauts, ruptures de médiane).
+3. Le rapport d'audit inclut un taux de détection global et les métriques par proxy.
+
+## 7. Performance testée de L(t)
+
+1. `amplification_barometer.l_operator.evaluate_l_performance` construit un signal d'activation désirée à partir d'un dépassement persistant d'un seuil de risque.
+2. L'activation effective est retardée selon L_act, et l'effet appliqué aux proxys est modulé par L_cap.
+3. Les métriques mesurées: dépassement évité, délai de première activation, chute de risque autour de l'activation, verdict simple Mature/Immature/Dissonant.
