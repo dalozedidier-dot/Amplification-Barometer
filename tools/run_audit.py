@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import matplotlib
@@ -220,23 +221,29 @@ def main() -> int:
             raise SystemExit("--dataset is required unless --all-synthetic is set")
         datasets = [(Path(args.dataset), args.name or Path(args.dataset).stem)]
 
+
+    # Calibration discrimination summary (synthetic only): derived once from stable regime
+    if args.all_synthetic:
+        syn = Path(args.synthetic_dir)
+        disc = discriminate_regimes(
+            {
+                "stable": _read_csv(syn / "stable_regime.csv"),
+                "oscillating": _read_csv(syn / "oscillating_regime.csv"),
+                "bifurcation": _read_csv(syn / "bifurcation_regime.csv"),
+            },
+            stable_name="stable",
+            window=args.window,
+        )
+        (out_dir / "calibration_report.json").write_text(
+            json.dumps(disc, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
     for path, name in datasets:
         df = _read_csv(path)
         report = build_audit_report(df, dataset_name=name)
         write_audit_report(report, out_dir / f"audit_report_{name}.json")
 
         _write_md_summary(report, out_dir / f"audit_report_{name}.md")
-
-        # calibration discrimination summary for synthetic runs
-        if args.all_synthetic:
-            disc = discriminate_regimes(
-                stable=_read_csv(Path(args.synthetic_dir) / "stable_regime.csv"),
-                oscillating=_read_csv(Path(args.synthetic_dir) / "oscillating_regime.csv"),
-                bifurcation=_read_csv(Path(args.synthetic_dir) / "bifurcation_regime.csv"),
-            )
-            (out_dir / "calibration_report.json").write_text(
-                disc.model_dump_json(indent=2), encoding="utf-8"
-            )
 
         if args.plot:
             _plot_series_matplotlib(df, out_dir, window=args.window, prefix=name)
