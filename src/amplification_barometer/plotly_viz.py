@@ -19,18 +19,12 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import gaussian_filter1d
 
-try:
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
-except Exception as e:  # pragma: no cover
-    raise ImportError(
-        "Plotly is required for amplification_barometer.plotly_viz. "
-        "Install it with: pip install plotly"
-    ) from e
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 @dataclass(frozen=True)
-class PlotlyExport:
+class PlotlyOutputs:
     at_html: Path
     dd_html: Path
     l_html: Path
@@ -138,14 +132,18 @@ def plot_oscillating(
     title: str,
     y_label: str,
     out_html: Path,
-    baseline: Optional[float] = 1.0,
-    smooth_sigma: float = 4.0,
+    baseline: float = 1.0,
     y_range: Optional[Tuple[float, float]] = None,
+    raw_color: str = "lightgray",
+    smooth_color: str = "#d62728",
+    smooth_sigma: float = 4.0,
+    raw_opacity: float = 0.7,
     width: int = 1000,
     height: int = 450,
 ) -> Path:
     dates = pd.to_datetime(pd.Index(dates))
     y = np.asarray(y, dtype=float)
+
     fig = go.Figure()
 
     fig.add_trace(
@@ -153,9 +151,9 @@ def plot_oscillating(
             x=dates,
             y=y,
             mode="lines",
-            line=dict(color="lightgray", width=1),
+            line=dict(color=raw_color, width=1.0),
             name="raw",
-            opacity=0.7,
+            opacity=raw_opacity,
         )
     )
 
@@ -165,29 +163,30 @@ def plot_oscillating(
             x=dates,
             y=y_sm,
             mode="lines",
-            line=dict(color="#d62728", width=2.5),
+            line=dict(color=smooth_color, width=2.5),
             name=f"smoothed (σ={smooth_sigma:g})",
         )
     )
 
-    if y_range is None:
-        # zoom heuristics: baseline ± 3*std around smoothed, with safe fallback
-        y0 = float(np.nanmedian(y_sm))
-        s = float(np.nanstd(y_sm))
-        if np.isfinite(s) and s > 0:
-            y_range = (y0 - 3.0 * s, y0 + 3.0 * s)
+    fig.add_hline(
+        y=float(baseline),
+        line_dash="dash",
+        line_color="gray",
+        annotation_text=f"baseline ~{baseline:g}",
+        annotation_position="top right",
+    )
 
-    if baseline is not None and np.isfinite(baseline):
-        fig.add_hline(
-            y=float(baseline),
-            line_dash="dash",
-            line_color="gray",
-            annotation_text=f"baseline ≈ {baseline:g}",
-            annotation_position="top right",
-        )
+    if y_range is None:
+        # Zoom automatically based on robust spread
+        y_fin = y[np.isfinite(y)]
+        if y_fin.size:
+            med = float(np.median(y_fin))
+            mad = float(np.median(np.abs(y_fin - med))) or 1e-9
+            spread = 6.0 * mad
+            y_range = (med - spread, med + spread)
 
     fig.update_layout(
-        title=title,
+        title_text=title,
         xaxis_title="Date",
         yaxis_title=y_label,
         yaxis_range=list(y_range) if y_range is not None else None,
@@ -196,7 +195,7 @@ def plot_oscillating(
         height=height,
         width=width,
         hovermode="x unified",
-        legend=dict(orientation="h", y=1.02, x=0, xanchor="left"),
+        legend=dict(orientation="h", y=1.02, x=0.5, xanchor="center"),
     )
     out_html.parent.mkdir(parents=True, exist_ok=True)
     fig.write_html(out_html, include_plotlyjs="cdn")
@@ -210,6 +209,8 @@ def plot_lcap_lact(
     *,
     title: str,
     out_html: Path,
+    cap_color: str = "royalblue",
+    act_color: str = "darkorange",
     width: int = 1100,
     height: int = 550,
 ) -> Path:
@@ -220,24 +221,11 @@ def plot_lcap_lact(
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=l_cap,
-            mode="lines",
-            line=dict(color="royalblue", width=2.2),
-            name="L_cap",
-        ),
+        go.Scatter(x=dates, y=l_cap, mode="lines", line=dict(color=cap_color, width=2.2), name="L_cap"),
         secondary_y=False,
     )
-
     fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=l_act,
-            mode="lines",
-            line=dict(color="darkorange", width=2.2),
-            name="L_act",
-        ),
+        go.Scatter(x=dates, y=l_act, mode="lines", line=dict(color=act_color, width=2.2), name="L_act"),
         secondary_y=True,
     )
 
@@ -252,16 +240,17 @@ def plot_lcap_lact(
         xaxis_rangeslider_visible=True,
     )
 
+    # NOTE: plotly uses 'title_font' and 'tickfont' objects (not titlefont_color/tickfont_color)
     fig.update_yaxes(
         title_text="L_cap",
-        titlefont_color="royalblue",
-        tickfont_color="royalblue",
+        title_font=dict(color=cap_color),
+        tickfont=dict(color=cap_color),
         secondary_y=False,
     )
     fig.update_yaxes(
         title_text="L_act",
-        titlefont_color="darkorange",
-        tickfont_color="darkorange",
+        title_font=dict(color=act_color),
+        tickfont=dict(color=act_color),
         secondary_y=True,
     )
 
@@ -270,7 +259,7 @@ def plot_lcap_lact(
     return out_html
 
 
-def build_dashboard(
+def plot_dashboard(
     dates: pd.Series | pd.Index,
     at: np.ndarray,
     dd: np.ndarray,
@@ -279,7 +268,8 @@ def build_dashboard(
     *,
     title: str,
     out_html: Path,
-    at_log_ratio_thr: float = 50.0,
+    width: int = 1100,
+    height: int = 900,
 ) -> Path:
     dates = pd.to_datetime(pd.Index(dates))
     at = np.asarray(at, dtype=float)
@@ -287,83 +277,82 @@ def build_dashboard(
     l_cap = np.asarray(l_cap, dtype=float)
     l_act = np.asarray(l_act, dtype=float)
 
-    specs = [
-        [{"secondary_y": False}],
-        [{"secondary_y": False}],
-        [{"secondary_y": True}],
-    ]
     fig = make_subplots(
         rows=3,
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.08,
-        specs=specs,
-        subplot_titles=("@(t)", "Δd(t)", "L_cap vs L_act"),
+        specs=[[{}], [{}], [{"secondary_y": True}]],
+        row_heights=[0.34, 0.33, 0.33],
     )
 
     # @(t)
     at_sm = _safe_smooth(at, 3.0)
+    use_log = _maybe_log_y(at_sm)
     fig.add_trace(
-        go.Scatter(
-            x=dates, y=at, mode="lines", line=dict(color="lightgray", width=1), name="@(t) raw", opacity=0.6
-        ),
-        row=1, col=1
+        go.Scatter(x=dates, y=at, mode="lines", line=dict(color="lightgray", width=1), name="@(t) raw", opacity=0.6),
+        row=1,
+        col=1,
     )
     fig.add_trace(
-        go.Scatter(
-            x=dates, y=at_sm, mode="lines", line=dict(color="#1f77b4", width=2.6), name="@(t) smoothed"
-        ),
-        row=1, col=1
+        go.Scatter(x=dates, y=at_sm, mode="lines", line=dict(color="#1f77b4", width=2.4), name="@(t) smoothed"),
+        row=1,
+        col=1,
     )
-
-    use_log = _maybe_log_y(at_sm, ratio_thr=at_log_ratio_thr)
-    fig.update_yaxes(type="log" if use_log else "linear", row=1, col=1)
+    fig.update_yaxes(title_text="@(t)" + (" (log)" if use_log else ""), type="log" if use_log else "linear", row=1, col=1)
 
     # Δd(t)
     dd_sm = _safe_smooth(dd, 3.0)
     fig.add_trace(
-        go.Scatter(
-            x=dates, y=dd, mode="lines", line=dict(color="lightgray", width=1), name="Δd raw", opacity=0.6
-        ),
-        row=2, col=1
+        go.Scatter(x=dates, y=dd, mode="lines", line=dict(color="lightgray", width=1), name="Δd raw", opacity=0.6),
+        row=2,
+        col=1,
     )
     fig.add_trace(
-        go.Scatter(
-            x=dates, y=dd_sm, mode="lines", line=dict(color="#1f77b4", width=2.2), name="Δd smoothed"
-        ),
-        row=2, col=1
+        go.Scatter(x=dates, y=dd_sm, mode="lines", line=dict(color="#1f77b4", width=2.4), name="Δd smoothed"),
+        row=2,
+        col=1,
     )
+    fig.update_yaxes(title_text="Δd(t)", row=2, col=1)
 
-    # L_cap/L_act with secondary y
+    # L_cap / L_act
     fig.add_trace(
-        go.Scatter(x=dates, y=l_cap, mode="lines", line=dict(color="royalblue", width=2.0), name="L_cap"),
-        row=3, col=1, secondary_y=False
+        go.Scatter(x=dates, y=l_cap, mode="lines", line=dict(color="royalblue", width=2.2), name="L_cap"),
+        row=3,
+        col=1,
+        secondary_y=False,
     )
     fig.add_trace(
-        go.Scatter(x=dates, y=l_act, mode="lines", line=dict(color="darkorange", width=2.0), name="L_act"),
-        row=3, col=1, secondary_y=True
+        go.Scatter(x=dates, y=l_act, mode="lines", line=dict(color="darkorange", width=2.2), name="L_act"),
+        row=3,
+        col=1,
+        secondary_y=True,
     )
     fig.update_yaxes(
         title_text="L_cap",
-        titlefont_color="royalblue",
-        tickfont_color="royalblue",
-        row=3, col=1, secondary_y=False
+        title_font=dict(color="royalblue"),
+        tickfont=dict(color="royalblue"),
+        row=3,
+        col=1,
+        secondary_y=False,
     )
     fig.update_yaxes(
         title_text="L_act",
-        titlefont_color="darkorange",
-        tickfont_color="darkorange",
-        row=3, col=1, secondary_y=True
+        title_font=dict(color="darkorange"),
+        tickfont=dict(color="darkorange"),
+        row=3,
+        col=1,
+        secondary_y=True,
     )
 
     fig.update_layout(
         title_text=title,
         template="plotly_white",
-        height=900,
-        width=1100,
+        width=width,
+        height=height,
         hovermode="x unified",
-        xaxis_rangeslider_visible=True,
         legend=dict(orientation="h", y=1.02, x=0.5, xanchor="center"),
+        xaxis_rangeslider_visible=True,
     )
 
     out_html.parent.mkdir(parents=True, exist_ok=True)
@@ -371,73 +360,61 @@ def build_dashboard(
     return out_html
 
 
-def export_audit_viz(
+def build_plotly_outputs(
     df: pd.DataFrame,
     *,
+    date_col: str = "date",
+    at_col: str = "at",
+    dd_col: str = "delta_d",
+    lcap_col: str = "l_cap",
+    lact_col: str = "l_act",
     out_dir: Path,
-    prefix: str = "",
-    oscillating_hint: bool = False,
-) -> PlotlyExport:
-    """Produce the three core interactive HTML files + optional dashboard."""
-    pfx = f"{prefix}_" if prefix else ""
-    dates = df.index
+    prefix: str,
+    title_prefix: Optional[str] = None,
+) -> PlotlyOutputs:
+    title_prefix = title_prefix or prefix
 
-    # Expect columns if already computed; otherwise caller computes series and passes them.
-    at = df["at"].to_numpy(dtype=float) if "at" in df.columns else df["@(t)"].to_numpy(dtype=float)
-    dd = df["delta_d"].to_numpy(dtype=float) if "delta_d" in df.columns else df["Δd(t)"].to_numpy(dtype=float)
-    l_cap = df["l_cap"].to_numpy(dtype=float)
-    l_act = df["l_act"].to_numpy(dtype=float)
+    dates = pd.to_datetime(df[date_col])
 
-    at_html = out_dir / f"{pfx}at.html"
-    dd_html = out_dir / f"{pfx}delta_d.html"
-    l_html = out_dir / f"{pfx}l_cap_l_act.html"
-    dash_html = out_dir / f"{pfx}dashboard.html"
+    at_html = out_dir / f"{prefix}_at.html"
+    dd_html = out_dir / f"{prefix}_delta_d.html"
+    l_html = out_dir / f"{prefix}_l_cap_l_act.html"
+    dash_html = out_dir / f"{prefix}_dashboard.html"
 
-    if oscillating_hint:
-        plot_oscillating(
-            dates,
-            at,
-            title=f"@(t) – Oscillating view {prefix}".strip(),
-            y_label="@(t)",
-            out_html=at_html,
-            baseline=1.0,
-        )
-    else:
-        plot_exponential_or_bifurcation(
-            dates,
-            at,
-            title=f"@(t) – {prefix}".strip(),
-            y_label="@(t)",
-            out_html=at_html,
-        )
-
-    # Δd: keep linear with smoothing; users can zoom with rangeslider
     plot_exponential_or_bifurcation(
         dates,
-        dd,
-        title=f"Δd(t) – {prefix}".strip(),
+        df[at_col].to_numpy(dtype=float),
+        title=f"{title_prefix} @(t)",
+        y_label="@(t)",
+        out_html=at_html,
+        allow_log=True,
+    )
+
+    # Δd(t): keep linear scale, use oscillating style (raw + smoothed) for readability
+    plot_oscillating(
+        dates,
+        df[dd_col].to_numpy(dtype=float),
+        title=f"{title_prefix} Δd(t)",
         y_label="Δd(t)",
         out_html=dd_html,
-        smooth_sigma=3.0,
-        raw_opacity=0.5,
     )
 
     plot_lcap_lact(
         dates,
-        l_cap,
-        l_act,
-        title=f"L_cap vs L_act – {prefix}".strip(),
+        df[lcap_col].to_numpy(dtype=float),
+        df[lact_col].to_numpy(dtype=float),
+        title=f"{title_prefix} L_cap vs L_act",
         out_html=l_html,
     )
 
-    build_dashboard(
+    plot_dashboard(
         dates,
-        at,
-        dd,
-        l_cap,
-        l_act,
-        title=f"Audit dashboard – {prefix}".strip(),
+        df[at_col].to_numpy(dtype=float),
+        df[dd_col].to_numpy(dtype=float),
+        df[lcap_col].to_numpy(dtype=float),
+        df[lact_col].to_numpy(dtype=float),
+        title=f"{title_prefix} dashboard",
         out_html=dash_html,
     )
 
-    return PlotlyExport(at_html=at_html, dd_html=dd_html, l_html=l_html, dashboard_html=dash_html)
+    return PlotlyOutputs(at_html=at_html, dd_html=dd_html, l_html=l_html, dashboard_html=dash_html)
