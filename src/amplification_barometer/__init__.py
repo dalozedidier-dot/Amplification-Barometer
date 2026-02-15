@@ -25,7 +25,7 @@ from .audit_tools import audit_score_stability, run_stress_suite, run_stress_tes
 from .audit_report import build_audit_report, write_audit_report
 from .ode_model import simulate_barometer_ode, simulate_minimal_po
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "WEIGHTS_VERSION",

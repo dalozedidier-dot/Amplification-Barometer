@@ -48,7 +48,38 @@ def _risk_series(df: pd.DataFrame, *, window: int = 5) -> pd.Series:
 def _topk_indices(x: pd.Series, k: int) -> Sequence[int]:
     if k <= 0:
         return []
-    return list(np.argsort(x.to_numpy(dtype=float))[-k:])
+    # np.argsort returns NumPy integer dtypes (e.g. int64) which are not JSON-serialisable.
+    # Cast eagerly to built-in int to keep audit artefacts fully portable.
+    return [int(i) for i in np.argsort(x.to_numpy(dtype=float))[-k:]]
+
+
+def _json_default(obj: Any) -> Any:
+    """Best-effort conversion for NumPy / pandas scalars inside audit artefacts.
+
+    The audit report is an artefact: it must be trivially serialisable and readable
+    without a Python runtime. We therefore coerce common scientific dtypes to
+    plain JSON-compatible values.
+    """
+    # NumPy scalar types
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    # NumPy arrays
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    # pandas scalars
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    if isinstance(obj, pd.Timedelta):
+        return obj.total_seconds()
+    # pathlib
+    if isinstance(obj, Path):
+        return str(obj)
+    # Fallback: let json raise TypeError with a clear message.
+    raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serialisable")
 
 
 def build_audit_report(
@@ -130,7 +161,7 @@ def build_audit_report(
     stability["stability_thresholds"] = {"spearman_worst_risk": 0.90, "topk_jaccard_worst_risk": 0.80}
 
     return AuditReport(
-        version="0.2.0",
+        version="0.2.1",
         weights_version=WEIGHTS_VERSION,
         dataset_name=dataset_name,
         created_utc=created,
@@ -154,4 +185,7 @@ def write_audit_report(report: AuditReport, out_path: str | Path) -> None:
         "stress_suite": report.stress_suite,
         "maturity": report.maturity,
     }
-    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    out_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False, default=_json_default),
+        encoding="utf-8",
+    )
