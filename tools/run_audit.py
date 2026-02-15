@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Dict
 
 import matplotlib
 
@@ -17,7 +16,13 @@ from amplification_barometer.composites import compute_at, compute_delta_d  # no
 from amplification_barometer.l_operator import compute_l_act, compute_l_cap  # noqa: E402
 
 
-def _plot_series(df: pd.DataFrame, out_dir: Path, *, window: int = 5, prefix: str = "") -> None:
+def _plot_series_matplotlib(
+    df: pd.DataFrame, out_dir: Path, *, window: int = 5, prefix: str = ""
+) -> None:
+    """Legacy PNG plots (matplotlib).
+
+    Keep this as a fallback (CI-friendly). For modern interactive plots, use --plotly.
+    """
     at = compute_at(df)
     dd = compute_delta_d(df, window=window)
     lcap = compute_l_cap(df)
@@ -25,31 +30,109 @@ def _plot_series(df: pd.DataFrame, out_dir: Path, *, window: int = 5, prefix: st
 
     pfx = f"{prefix}_" if prefix else ""
 
-    fig1 = plt.figure()
-    plt.plot(at.index, at.to_numpy())
-    plt.title("@(t)")
+    fig1 = plt.figure(figsize=(11, 5.5))
+    plt.plot(at.index, at.to_numpy(), linewidth=2.0)
+    plt.title("@(t)", fontsize=14, pad=15)
+    plt.xlabel("Date", fontsize=12)
+    plt.ylabel("@(t)", fontsize=12)
+    plt.grid(True, alpha=0.3, linestyle="--")
     plt.xticks(rotation=45)
-    plt.tight_layout()
+    plt.tight_layout(pad=1.5)
     fig1.savefig(out_dir / f"{pfx}at.png", dpi=150)
     plt.close(fig1)
 
-    fig2 = plt.figure()
-    plt.plot(dd.index, dd.to_numpy())
-    plt.title("Δd(t)")
+    fig2 = plt.figure(figsize=(11, 5.5))
+    plt.plot(dd.index, dd.to_numpy(), linewidth=2.0)
+    plt.title("Δd(t)", fontsize=14, pad=15)
+    plt.xlabel("Date", fontsize=12)
+    plt.ylabel("Δd(t)", fontsize=12)
+    plt.grid(True, alpha=0.3, linestyle="--")
     plt.xticks(rotation=45)
-    plt.tight_layout()
+    plt.tight_layout(pad=1.5)
     fig2.savefig(out_dir / f"{pfx}delta_d.png", dpi=150)
     plt.close(fig2)
 
-    fig3 = plt.figure()
-    plt.plot(lcap.index, lcap.to_numpy(), label="L_cap")
-    plt.plot(lact.index, lact.to_numpy(), label="L_act")
-    plt.title("L_cap / L_act")
+    fig3 = plt.figure(figsize=(11, 6.0))
+    plt.plot(lcap.index, lcap.to_numpy(), label="L_cap", linewidth=2.0)
+    plt.plot(lact.index, lact.to_numpy(), label="L_act", linewidth=2.0)
+    plt.title("L_cap vs L_act", fontsize=14, pad=15)
+    plt.xlabel("Date", fontsize=12)
+    plt.grid(True, alpha=0.3, linestyle="--")
     plt.legend()
     plt.xticks(rotation=45)
-    plt.tight_layout()
+    plt.tight_layout(pad=1.5)
     fig3.savefig(out_dir / f"{pfx}l_cap_l_act.png", dpi=150)
     plt.close(fig3)
+
+
+def _plot_series_plotly(
+    df: pd.DataFrame, out_dir: Path, *, window: int = 5, prefix: str = ""
+) -> None:
+    """Interactive HTML plots (Plotly)."""
+    from amplification_barometer.plotly_viz import (
+        build_dashboard,
+        plot_exponential_or_bifurcation,
+        plot_lcap_lact,
+        plot_oscillating,
+    )
+
+    at = compute_at(df)
+    dd = compute_delta_d(df, window=window)
+    lcap = compute_l_cap(df)
+    lact = compute_l_act(df)
+
+    pfx = f"{prefix}_" if prefix else ""
+    name = prefix or "series"
+
+    # Heuristic: oscillating-like if name contains 'oscill' or if variability is small
+    oscill_hint = ("oscill" in name.lower()) or (float(at.std()) < 0.8 and float(at.abs().max()) < 6.0)
+
+    if oscill_hint:
+        plot_oscillating(
+            at.index,
+            at.to_numpy(),
+            title=f"@(t) – {name}",
+            y_label="@(t)",
+            out_html=out_dir / f"{pfx}at.html",
+            baseline=1.0,
+        )
+    else:
+        plot_exponential_or_bifurcation(
+            at.index,
+            at.to_numpy(),
+            title=f"@(t) – {name}",
+            y_label="@(t)",
+            out_html=out_dir / f"{pfx}at.html",
+        )
+
+    # Δd(t): keep linear (no log), smoothing + rangeslider does the job
+    plot_exponential_or_bifurcation(
+        dd.index,
+        dd.to_numpy(),
+        title=f"Δd(t) – {name}",
+        y_label="Δd(t)",
+        out_html=out_dir / f"{pfx}delta_d.html",
+        smooth_sigma=3.0,
+        raw_opacity=0.5,
+    )
+
+    plot_lcap_lact(
+        lcap.index,
+        lcap.to_numpy(),
+        lact.to_numpy(),
+        title=f"L_cap vs L_act – {name}",
+        out_html=out_dir / f"{pfx}l_cap_l_act.html",
+    )
+
+    build_dashboard(
+        at.index,
+        at.to_numpy(),
+        dd.to_numpy(),
+        lcap.to_numpy(),
+        lact.to_numpy(),
+        title=f"Audit dashboard – {name}",
+        out_html=out_dir / f"{pfx}dashboard.html",
+    )
 
 
 def _read_csv(path: Path) -> pd.DataFrame:
@@ -57,7 +140,6 @@ def _read_csv(path: Path) -> pd.DataFrame:
 
 
 def _write_md_summary(report, out_path: Path) -> None:
-    # keep this markdown minimal and audit-friendly
     lines = [
         f"# Audit report: {report.dataset_name}",
         "",
@@ -111,83 +193,55 @@ def _write_md_summary(report, out_path: Path) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Run Amplification Barometer audit reports (demo).")
-    ap.add_argument("--dataset", type=str, help="Path to CSV dataset (single run)")
-    ap.add_argument("--name", type=str, default="dataset", help="Dataset name for the report")
-    ap.add_argument("--synthetic-dir", type=str, default="data/synthetic", help="Directory containing synthetic regimes")
-    ap.add_argument("--all-synthetic", action="store_true", help="Run on stable/oscillating/bifurcation and build calibration report")
-    ap.add_argument("--out-dir", type=str, default="_ci_out", help="Output directory")
-    ap.add_argument("--plot", action="store_true", help="Generate simple plots (PNG)")
-    ap.add_argument("--window", type=int, default=5, help="Window for Δd(t)")
-    args = ap.parse_args()
+    ap = argparse.ArgumentParser(description="Build audit reports + optional visualizations.")
+    ap.add_argument("--dataset", type=str, help="CSV dataset with a 'date' column.")
+    ap.add_argument("--name", type=str, default="", help="Dataset name for outputs.")
+    ap.add_argument("--out-dir", type=str, default="_ci_out", help="Output directory.")
+    ap.add_argument("--window", type=int, default=5, help="Smoothing window for Δd(t).")
+    ap.add_argument("--plot", action="store_true", help="Write PNG plots with matplotlib.")
+    ap.add_argument("--plotly", action="store_true", help="Write interactive HTML plots with Plotly.")
+    ap.add_argument("--all-synthetic", action="store_true", help="Run on all synthetic datasets.")
+    ap.add_argument("--synthetic-dir", type=str, default="data/synthetic", help="Synthetic data directory.")
 
+    args = ap.parse_args()
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    datasets = []
     if args.all_synthetic:
-        sdir = Path(args.synthetic_dir)
-        paths = {
-            "stable": sdir / "stable_regime.csv",
-            "oscillating": sdir / "oscillating_regime.csv",
-            "bifurcation": sdir / "bifurcation_regime.csv",
-        }
-        for name, p in paths.items():
-            if not p.exists():
-                raise SystemExit(f"Missing synthetic dataset: {p}")
-
-        dfs: Dict[str, pd.DataFrame] = {k: _read_csv(p) for k, p in paths.items()}
-
-        # per-dataset audit reports
-        for name, df in dfs.items():
-            rep = build_audit_report(df, dataset_name=name, delta_d_window=args.window)
-            write_audit_report(rep, out_dir / f"audit_report_{name}.json")
-            _write_md_summary(rep, out_dir / f"audit_report_{name}.md")
-            if args.plot:
-                _plot_series(df, out_dir, window=args.window, prefix=name)
-
-        # calibration / discrimination report
-        calib = discriminate_regimes(dfs, stable_name="stable", window=args.window)
-
-        # expected qualitative ordering: stable lowest risk, bifurcation highest risk
-        ordering = calib.get("ordering_by_severity", calib.get("ordering_by_mean_risk", []))
-        ok = (ordering[-1] == "bifurcation") if ordering else False
-        calib["expected_ordering_ok"] = bool(ok)
-
-        (out_dir / "calibration_report.json").write_text(
-            __import__("json").dumps(calib, indent=2, sort_keys=True, ensure_ascii=False),
-            encoding="utf-8",
-        )
-
-        portfolio_lines = [
-            "# Portfolio calibration report",
-            "",
-            f"Expected ordering ok: {ok}",
-            f"Ordering by severity: {ordering}",
-            "",
-            "Thresholds derived from stable:",
+        syn = Path(args.synthetic_dir)
+        datasets = [
+            (syn / "stable_regime.csv", "stable"),
+            (syn / "oscillating_regime.csv", "oscillating"),
+            (syn / "bifurcation_regime.csv", "bifurcation"),
         ]
-        thr = calib.get("thresholds", {})
-        for k, v in thr.items():
-            portfolio_lines.append(f"- {k}: {v}")
-        portfolio_lines.append("")
-        out_dir.joinpath("portfolio_summary.md").write_text("\n".join(portfolio_lines), encoding="utf-8")
-        return 0
+    else:
+        if not args.dataset:
+            raise SystemExit("--dataset is required unless --all-synthetic is set")
+        datasets = [(Path(args.dataset), args.name or Path(args.dataset).stem)]
 
-    # single dataset mode
-    if not args.dataset:
-        raise SystemExit("Either provide --dataset or use --all-synthetic")
+    for path, name in datasets:
+        df = _read_csv(path)
+        report = build_audit_report(df, dataset_name=name)
+        write_audit_report(report, out_dir / f"audit_report_{name}.json")
 
-    path = Path(args.dataset)
-    if not path.exists():
-        raise SystemExit(f"Dataset not found: {path}")
+        _write_md_summary(report, out_dir / f"audit_report_{name}.md")
 
-    df = _read_csv(path)
-    report = build_audit_report(df, dataset_name=args.name, delta_d_window=args.window)
-    write_audit_report(report, out_dir / "audit_report.json")
-    _write_md_summary(report, out_dir / "audit_report.md")
+        # calibration discrimination summary for synthetic runs
+        if args.all_synthetic:
+            disc = discriminate_regimes(
+                stable=_read_csv(Path(args.synthetic_dir) / "stable_regime.csv"),
+                oscillating=_read_csv(Path(args.synthetic_dir) / "oscillating_regime.csv"),
+                bifurcation=_read_csv(Path(args.synthetic_dir) / "bifurcation_regime.csv"),
+            )
+            (out_dir / "calibration_report.json").write_text(
+                disc.model_dump_json(indent=2), encoding="utf-8"
+            )
 
-    if args.plot:
-        _plot_series(df, out_dir, window=args.window)
+        if args.plot:
+            _plot_series_matplotlib(df, out_dir, window=args.window, prefix=name)
+        if args.plotly:
+            _plot_series_plotly(df, out_dir, window=args.window, prefix=name)
 
     return 0
 

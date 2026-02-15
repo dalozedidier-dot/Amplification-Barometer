@@ -8,7 +8,7 @@ import pandas as pd
 
 
 # Version des pondérations et conventions (auditabilité)
-WEIGHTS_VERSION = "v0.4.1"
+WEIGHTS_VERSION = "v0.4.2"
 
 
 @dataclass(frozen=True)

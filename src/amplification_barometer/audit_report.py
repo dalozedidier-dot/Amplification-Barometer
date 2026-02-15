@@ -195,7 +195,7 @@ def build_audit_report(
     }
 
     return AuditReport(
-        version="0.4.1",
+        version="0.4.2",
         weights_version=WEIGHTS_VERSION,
         dataset_name=dataset_name,
         created_utc=created,

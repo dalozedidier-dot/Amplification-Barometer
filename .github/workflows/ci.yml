@@ -3,6 +3,7 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -29,7 +30,7 @@ jobs:
         if: ${{ matrix.python-version == '3.12' }}
         run: |
           mkdir -p _ci_out
-          python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out --plot
+          python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out --plot --plotly
           python tools/run_sector_suite.py --sector-dir data/sector_2026 --out-dir _ci_out
 
       - name: Upload audit artefacts

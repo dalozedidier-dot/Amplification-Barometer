@@ -48,12 +48,22 @@ Générer un rapport d'audit:
 
 ```bash
 python tools/run_audit.py --dataset data/synthetic/stable_regime.csv --name stable --out-dir _ci_out --plot
+
+# Version interactive Plotly
+python tools/run_audit.py --dataset data/synthetic/stable_regime.csv --name stable --out-dir _ci_out --plotly
 ```
 
 Exécuter l'ensemble des régimes synthétiques et produire un rapport de calibration:
 
 ```bash
 python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out --plot
+```
+
+Version interactive (Plotly, export HTML):
+
+```bash
+python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out --plotly
+```
 
 Générer des datasets sectoriels 2026 (synthétiques, sans données sensibles):
 
@@ -65,7 +75,6 @@ Lancer un audit sur un dataset sectoriel 2026:
 
 ```bash
 python tools/run_audit.py --dataset data/sector_2026/ia_2026_synth.csv --name ia_2026 --out-dir _ci_out --plot
-```
 ```
 
 ## Structure
