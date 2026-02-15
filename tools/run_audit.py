@@ -106,26 +106,59 @@ def _plot_series_plotly(df: pd.DataFrame, out_dir: Path, *, window: int = 5, pre
 
     pfx = f"{prefix}_" if prefix else ""
 
+    # Plotly helpers expect a date-like index. If the CSV has no 'date' column,
+    # we synthesize a stable daily timeline for display purposes.
+    idx = df.index
+    if not isinstance(idx, pd.DatetimeIndex):
+        if "t" in df.columns:
+            try:
+                base = pd.Timestamp("2000-01-01")
+                dates = base + pd.to_timedelta(pd.to_numeric(df["t"], errors="coerce").fillna(0).to_numpy(), unit="D")
+                dates = pd.to_datetime(dates)
+            except Exception:
+                dates = pd.date_range("2000-01-01", periods=len(df), freq="D")
+        else:
+            dates = pd.date_range("2000-01-01", periods=len(df), freq="D")
+    else:
+        dates = idx
+
     at = compute_at(df)
     dd = compute_delta_d(df, window=window)
     lcap = compute_l_cap(df)
     lact = compute_l_act(df)
 
-    plot_oscillating(at.to_numpy(dtype=float), out_dir / f"{pfx}at.html", title="@ (oscillations)", baseline=float(at.median()))
-    plot_exponential_or_bifurcation(dd.to_numpy(dtype=float), out_dir / f"{pfx}delta_d.html", title="Δd (bifurcation?)")
-    plot_lcap_lact(lcap.to_numpy(dtype=float), lact.to_numpy(dtype=float), out_dir / f"{pfx}l_cap_l_act.html")
-
-    build_dashboard(
-        at=at.to_numpy(dtype=float),
-        dd=dd.to_numpy(dtype=float),
-        lcap=lcap.to_numpy(dtype=float),
-        lact=lact.to_numpy(dtype=float),
-        out_path=out_dir / f"{pfx}dashboard.html",
-        title=f"Dashboard {prefix or 'dataset'}",
+    plot_oscillating(
+        dates,
+        at.to_numpy(dtype=float),
+        title="@ (oscillations)",
+        y_label="@",
+        out_html=out_dir / f"{pfx}at.html",
+        baseline=float(at.median()),
+    )
+    plot_exponential_or_bifurcation(
+        dates,
+        dd.to_numpy(dtype=float),
+        title="Δd (bifurcation?)",
+        y_label="Δd",
+        out_html=out_dir / f"{pfx}delta_d.html",
+    )
+    plot_lcap_lact(
+        dates,
+        lcap.to_numpy(dtype=float),
+        lact.to_numpy(dtype=float),
+        title="L_cap et L_act",
+        out_html=out_dir / f"{pfx}l_cap_l_act.html",
     )
 
-
-
+    build_dashboard(
+        dates,
+        at=at.to_numpy(dtype=float),
+        dd=dd.to_numpy(dtype=float),
+        l_cap=lcap.to_numpy(dtype=float),
+        l_act=lact.to_numpy(dtype=float),
+        out_html=out_dir / f"{pfx}dashboard.html",
+        title=f"Dashboard {prefix or 'dataset'}",
+    )
 def _collect_synthetic(synth_dir: Path) -> List[Tuple[Path, str]]:
     csvs = sorted([p for p in synth_dir.glob("*.csv") if p.is_file()])
     out: List[Tuple[Path, str]] = []
