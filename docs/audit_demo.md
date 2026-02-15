@@ -1,26 +1,40 @@
-# Démonstration audit Baromètre d’amplification (proof of life)
+# Proof of life (audit demo)
 
-Ce dépôt propose un minimum reproductible pour:
+Objectif: démontrer que le baromètre est calculable et auditable sur trois régimes synthétiques.
 
-- calculer P(t), O(t), E(t), R(t) et G(t) à partir de proxys explicites
-- produire @(t) et Δd(t)
-- discriminer trois régimes synthétiques: stable, oscillant, bifurcation
-- exécuter un stress test et un audit de stabilité des signatures
+## 1. Génération des données
 
-## Parcours recommandé
+```bash
+python tools/generate_synthetic.py --out-dir data/synthetic --n 120
+```
 
-1. Installer
-   - `pip install -r requirements.txt`
-   - `pip install -e .`
+Les fichiers attendus:
 
-2. Ouvrir le notebook `notebooks/demo_synthetic.ipynb`
-3. Ouvrir le notebook `notebooks/stress_test.ipynb`
-4. Lancer les tests
-   - `pytest -q`
+1. `data/synthetic/stable_regime.csv`
+2. `data/synthetic/oscillating_regime.csv`
+3. `data/synthetic/bifurcation_regime.csv`
 
-## Note sur le modèle ODE
+## 2. Exécution du rapport d'audit
 
-Le module `amplification_barometer.ode_model` implémente:
-- un système minimal P/O pour la démo
-- un système 4D (P,O,E,R) inspiré du manuscrit, utilisé pour illustrer des régimes
-Ces modèles ne sont pas des jumeaux numériques. Ils servent à rendre les signatures calculables et comparables.
+Exemple sur le régime de bifurcation:
+
+```bash
+python tools/run_audit.py --dataset data/synthetic/bifurcation_regime.csv --name bifurcation --out-dir _ci_out --plot
+```
+
+Sorties:
+
+1. `_ci_out/audit_report.json`
+2. `_ci_out/audit_report.md`
+3. Optionnel: `_ci_out/at.png`, `_ci_out/delta_d.png`, `_ci_out/l_cap_l_act.png`
+
+## 3. Notebooks
+
+1. `notebooks/demo_synthetic.ipynb` pour visualiser @(t), Δd(t), E(t), R(t), G(t)
+2. `notebooks/stress_test.ipynb` pour exécuter une suite de stress tests
+
+## 4. Auditabilité
+
+1. Version des pondérations: `v0.2.0` (`amplification_barometer.composites.WEIGHTS_VERSION`)
+2. Protocole des proxys: `docs/proxy_protocol.md`
+3. Template de rapport: `docs/audit_report.md`

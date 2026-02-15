@@ -1,8 +1,8 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="amplification-barometer",
-    version="0.1.0",
+    version="0.2.0",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[
@@ -12,6 +12,6 @@ setup(
         "matplotlib>=3.7.0",
     ],
     author="Votre Nom",
-    description="Baromètre d’amplification: mesures composites, stress tests et démo reproductible",
+    description="Amplification Barometer: auditable composites, score stability audit, stress tests, and demo ODE",
     python_requires=">=3.10",
 )

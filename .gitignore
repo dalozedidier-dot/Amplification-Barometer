@@ -35,3 +35,11 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Pytest
+.pytest_cache/
+
+# CI outputs
+_ci_out/
+.coverage
+htmlcov/

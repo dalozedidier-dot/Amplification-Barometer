@@ -12,7 +12,8 @@ def test_audit_tools_on_synthetic():
 
     res = run_stress_test(df, shock_magnitude=1.5)
     assert res.status in {"Résilient", "Instable sous stress"}
+    assert res.degradation >= 0.0
 
     stab = audit_score_stability(df, windows=(3, 5, 8))
-    assert 0.0 <= stab["rank_consistency_at"] <= 1.0
-    assert 0.0 <= stab["rank_consistency_delta_d"] <= 1.0
+    assert 0.0 <= stab["spearman_mean_risk"] <= 1.0
+    assert 0.0 <= stab["topk_jaccard_mean_risk"] <= 1.0
