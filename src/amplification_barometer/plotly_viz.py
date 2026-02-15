@@ -78,6 +78,7 @@ def plot_exponential_or_bifurcation(
     raw_opacity: float = 0.4,
     width: int = 1000,
     height: int = 500,
+    allow_log: bool = True,
 ) -> Path:
     dates = pd.to_datetime(pd.Index(dates))
     y = np.asarray(y, dtype=float)
