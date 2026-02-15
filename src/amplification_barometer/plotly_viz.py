@@ -7,6 +7,7 @@ Patterns implemented:
 - Exponential/bifurcation: optional log scale + rangeslider + smoothing overlay
 - Oscillating: raw + smoothed + baseline line + y-range zoom
 - L_cap/L_act: secondary_y twin axis (interactive)
+- Dashboard: 3 stacked panels aligned on the same timeline
 """
 
 from __future__ import annotations
@@ -74,11 +75,17 @@ def plot_exponential_or_bifurcation(
     height: int = 500,
     allow_log: bool = True,
 ) -> Path:
+    """Plot a time series that may become exponential (bifurcation-like).
+
+    If allow_log=True and values are strictly positive and span enough
+    dynamic range, the y-axis switches to log to keep early phase readable.
+    """
     dates = pd.to_datetime(pd.Index(dates))
     y = np.asarray(y, dtype=float)
 
     fig = go.Figure()
 
+    # raw
     fig.add_trace(
         go.Scatter(
             x=dates,
@@ -90,6 +97,7 @@ def plot_exponential_or_bifurcation(
         )
     )
 
+    # smoothed overlay
     y_sm = _safe_smooth(y, smooth_sigma)
     fig.add_trace(
         go.Scatter(
@@ -102,6 +110,7 @@ def plot_exponential_or_bifurcation(
     )
 
     use_log = bool(allow_log) and _maybe_log_y(y_sm)
+
     fig.update_layout(
         title_text=title + (" (log scale)" if use_log else ""),
         xaxis_title="Date",
@@ -141,6 +150,7 @@ def plot_oscillating(
     width: int = 1000,
     height: int = 450,
 ) -> Path:
+    """Plot an oscillating series: raw + smoothed + baseline line."""
     dates = pd.to_datetime(pd.Index(dates))
     y = np.asarray(y, dtype=float)
 
@@ -214,6 +224,7 @@ def plot_lcap_lact(
     width: int = 1100,
     height: int = 550,
 ) -> Path:
+    """Plot L_cap vs L_act with twin axes (secondary_y)."""
     dates = pd.to_datetime(pd.Index(dates))
     l_cap = np.asarray(l_cap, dtype=float)
     l_act = np.asarray(l_act, dtype=float)
@@ -240,7 +251,7 @@ def plot_lcap_lact(
         xaxis_rangeslider_visible=True,
     )
 
-    # NOTE: plotly uses 'title_font' and 'tickfont' objects (not titlefont_color/tickfont_color)
+    # Compatible with older Plotly: use title_font / tickfont objects (not *_color kwargs).
     fig.update_yaxes(
         title_text="L_cap",
         title_font=dict(color=cap_color),
@@ -271,6 +282,7 @@ def plot_dashboard(
     width: int = 1100,
     height: int = 900,
 ) -> Path:
+    """Dashboard with aligned time axis: @(t), Δd(t), and L_cap/L_act."""
     dates = pd.to_datetime(pd.Index(dates))
     at = np.asarray(at, dtype=float)
     dd = np.asarray(dd, dtype=float)
@@ -372,8 +384,8 @@ def build_plotly_outputs(
     prefix: str,
     title_prefix: Optional[str] = None,
 ) -> PlotlyOutputs:
+    """Convenience wrapper used by tools/run_audit.py to write all HTML outputs."""
     title_prefix = title_prefix or prefix
-
     dates = pd.to_datetime(df[date_col])
 
     at_html = out_dir / f"{prefix}_at.html"
@@ -418,3 +430,14 @@ def build_plotly_outputs(
     )
 
     return PlotlyOutputs(at_html=at_html, dd_html=dd_html, l_html=l_html, dashboard_html=dash_html)
+
+
+# ---------------------------------------------------------------------------
+# Backwards-compatible aliases
+# ---------------------------------------------------------------------------
+# tools/run_audit.py previously imported build_* names; keep them as aliases so
+# small refactors don't break CI demo runs.
+build_exponential_or_bifurcation = plot_exponential_or_bifurcation
+build_oscillating = plot_oscillating
+build_lcap_lact = plot_lcap_lact
+build_dashboard = plot_dashboard
