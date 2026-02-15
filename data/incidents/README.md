@@ -31,3 +31,7 @@ The tool writes a JSON file containing:
 - provenance metadata (timestamp, method, input file name)
 
 This JSON can be versioned in docs/ and reviewed in PRs.
+
+
+Optional column:
+- u_exog: exogenous shock intensity for the incident window (used to anchor weights on u(t) when available).

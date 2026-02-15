@@ -1,30 +1,41 @@
 # Recommendations for passage to a real audit
 
 This repository demonstrates partial auditability on synthetic data:
-reproducible regime discrimination, stability checks, stress tests, and anti-gaming heuristics.
+reproducible regime discrimination, stability checks, stress tests, anti-gaming heuristics, and L(t) performance metrics.
 
 ## Immediate improvements
 
-1. Recalibrate weights on anonymized incidents
-- Collect a small number of incident windows with a single damage_weight target
-- Run tools/recalibrate_weights.py to generate a versioned JSON proposal
+1. Boost prevented_exceedance > 10% with proactive L activation
+- Use a proactive trigger: activate L when risk is high OR when O(t) is degraded (low O_level)
+- Track prevention using both:
+  - prevented_exceedance_rel (count-based)
+  - prevented_topk_excess_rel (tail severity reduction, more stable)
+- Keep persistence and max_delay explicit to limit false positives
+
+2. Recalibrate weights on anonymized incidents (and exogenous shocks when available)
+- Collect incident windows with damage_weight and, if possible, u_exog (shock intensity)
+- Run tools/recalibrate_weights.py to generate a versioned JSON proposal (audit-friendly)
 - Review and pin any change in a pull request
 
-2. Add targeted anti-gaming tests on O(t)
-- Simulate explicit bias injection on O proxies
-- Require that at least one detector triggers when the risk reduction is significant
+3. Calibrate AI on real E(t) shocks (anonymized)
+- For AI-like systems, externalities E(t) are often driven by network waves
+- Provide a u_exog series derived from audit logs (rate-limits, incident bursts, propagation anomalies)
+- Validate that E proxies (propagation/hysteresis/impact) respond in the expected direction and latency
 
-3. Validate L(t) empirically with enforcement constraints
-- Use a clear rule: control_turnover mean < 5% is required for high L_cap credibility
-- Report both cap_score_raw and cap_score_enforced, and track the enforcement factor
+## Extensions
 
-## Theoretical extensions
-
-- Integrate non-linear feedback loops where G(t) is endogenous, not only a measured proxy
-- Instantiate the barometer on real sectors (AI, finance) with anonymized 2026 data
+- Dataset 2027+ and biotech instantiation
+  - finance: shocks primarily on P(t)
+  - AI: shocks primarily on E(t) network propagation
+  - biotech: shocks on E(t) with stronger hysteresis and recovery costs
+- Fully endogenize G(t)
+  - governance proxies are derived from P/O/E pressure (rule_execution_gap target < 5% in mature regimes)
+  - avoid injecting G as an independent synthetic time series
 
 ## Global validity statement (demo)
 
 - This demo shows reproducible tests and audit-friendly artefacts, but it is not an empirical proof
-- Current scoring target for the demo narrative: ~62% overall (maturity ~70%, stability ~55%)
-- Next iteration should focus on better synthetic diversity and real-incident anchoring
+- Main residual risks:
+  - absence of real quantified cases
+  - remaining arbitrariness in weights without enough incidents (mitigate via incident + u_exog anchoring)
+- Next iteration should expand sector coverage and integrate real-anonymized incident windows

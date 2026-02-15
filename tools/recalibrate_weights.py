@@ -1,121 +1,150 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
-from amplification_barometer.composites import E_SPEC, G_SPEC, O_SPEC, P_SPEC
+from amplification_barometer.composites import E_SPEC, G_SPEC, O_SPEC, P_SPEC, CompositeSpec
 
 
-def _spearman(a: np.ndarray, b: np.ndarray) -> float:
-    ra = pd.Series(a).rank(method="average").to_numpy(dtype=float)
-    rb = pd.Series(b).rank(method="average").to_numpy(dtype=float)
-    if np.std(ra) == 0 or np.std(rb) == 0:
-        return 0.0
-    return float(np.corrcoef(ra, rb)[0, 1])
+def _spearman(x: pd.Series, y: pd.Series) -> float:
+    s = pd.concat([x, y], axis=1).dropna()
+    if len(s) < 8:
+        return float("nan")
+    return float(s.iloc[:, 0].corr(s.iloc[:, 1], method="spearman"))
 
 
-def _normalize_nonneg(x: np.ndarray, eps: float = 1e-12) -> np.ndarray:
-    x = np.asarray(x, dtype=float)
-    x = np.clip(x, 0.0, None)
-    s = float(np.sum(x))
-    if s <= eps:
-        return np.ones_like(x) / float(len(x))
-    return x / s
+def _normalize_nonneg(scores: np.ndarray) -> np.ndarray:
+    scores = np.asarray(scores, dtype=float)
+    scores = np.where(np.isfinite(scores), scores, 0.0)
+    scores = np.clip(scores, 0.0, None)
+    if scores.sum() <= 0:
+        return np.ones_like(scores) / len(scores)
+    return scores / scores.sum()
 
 
-@dataclass(frozen=True)
-class GroupWeights:
-    proxies: List[str]
-    weights: List[float]
-    spearman_abs: List[float]
-    n_used: int
+def propose_weights_from_incidents(
+    incidents: pd.DataFrame,
+    *,
+    specs: List[CompositeSpec],
+    prior_strength: float = 0.60,
+    exog_weight: float = 0.50,
+    damage_col: str = "damage_weight",
+    exog_col: str = "u_exog",
+) -> Dict[str, Any]:
+    """Compute an audit-friendly weight proposal from anonymized incident windows.
 
+    Principle:
+    - Use rank correlations (Spearman) to reduce sensitivity to scale choices.
+    - Blend with prior weights (prior_strength) to avoid overfitting small datasets.
+    - Optionally anchor on an exogenous shock intensity series (u_exog) when available.
 
-def _compute_group(df: pd.DataFrame, target: np.ndarray, proxies: List[str], *, prior_strength: float = 0.50) -> GroupWeights:
-    used = []
-    corrs = []
-    for p in proxies:
-        if p not in df.columns:
+    Required columns:
+    - damage_weight (0..1 or any nonnegative scalar)
+
+    Optional column:
+    - u_exog (shock intensity) to reduce arbitrariness and align with u(t) calibration.
+    """
+    if damage_col not in incidents.columns:
+        raise ValueError(f"Missing required column: {damage_col}")
+
+    has_exog = exog_col in incidents.columns
+
+    report: Dict[str, Any] = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "damage_col": damage_col,
+        "exog_col": exog_col if has_exog else None,
+        "prior_strength": float(prior_strength),
+        "exog_weight": float(exog_weight) if has_exog else 0.0,
+        "groups": {},
+        "notes": [],
+    }
+
+    if not has_exog:
+        report["notes"].append("u_exog column not present: weights use damage_weight only.")
+
+    y_damage = incidents[damage_col].astype(float)
+
+    for spec in specs:
+        missing = [p for p in spec.proxies if p not in incidents.columns]
+        if missing:
+            report["groups"][spec.name] = {
+                "status": "skipped_missing_proxies",
+                "missing_proxies": missing,
+            }
             continue
-        s = pd.to_numeric(df[p], errors="coerce")
-        mask = np.isfinite(s.to_numpy()) & np.isfinite(target)
-        if int(np.sum(mask)) < 4:
-            continue
-        rho = _spearman(s.to_numpy(dtype=float)[mask], target[mask])
-        used.append(p)
-        corrs.append(abs(float(rho)))
 
-    if not used:
-        # no data: equal weights on the declared proxies
-        w = (np.ones(len(proxies)) / float(len(proxies))).tolist()
-        return GroupWeights(proxies=list(proxies), weights=w, spearman_abs=[0.0] * len(proxies), n_used=0)
+        cor_damage = []
+        cor_exog = []
+        for p in spec.proxies:
+            cor_damage.append(_spearman(incidents[p].astype(float), y_damage))
+            if has_exog:
+                cor_exog.append(_spearman(incidents[p].astype(float), incidents[exog_col].astype(float)))
 
-    corrs_arr = np.asarray(corrs, dtype=float)
-    w_data = _normalize_nonneg(corrs_arr)
+        cor_damage = np.asarray(cor_damage, dtype=float)
+        cor_exog = np.asarray(cor_exog, dtype=float) if has_exog else np.zeros_like(cor_damage)
 
-    # conservative blend: prior equal weights + data suggestion
-    w_prior = np.ones(len(w_data), dtype=float) / float(len(w_data))
-    w = (1.0 - float(prior_strength)) * w_prior + float(prior_strength) * w_data
-    w = (w / float(np.sum(w))).tolist()
+        # combined nonnegative importance score
+        score = np.abs(cor_damage) + (float(exog_weight) * np.abs(cor_exog) if has_exog else 0.0)
+        score_norm = _normalize_nonneg(score)
 
-    return GroupWeights(
-        proxies=list(used),
-        weights=[float(x) for x in w],
-        spearman_abs=[float(x) for x in corrs_arr.tolist()],
-        n_used=int(len(target)),
-    )
+        prior = np.asarray(spec.weights, dtype=float)
+        prior = prior / prior.sum()
+
+        alpha = float(np.clip(prior_strength, 0.0, 1.0))
+        proposed = alpha * prior + (1.0 - alpha) * score_norm
+        proposed = proposed / proposed.sum()
+
+        report["groups"][spec.name] = {
+            "status": "ok",
+            "spec": {
+                "name": spec.name,
+                "proxies": list(spec.proxies),
+                "invert": bool(spec.invert),
+            },
+            "prior_weights": prior.tolist(),
+            "corr_damage_spearman": [float(x) if np.isfinite(x) else None for x in cor_damage],
+            "corr_exog_spearman": [float(x) if np.isfinite(x) else None for x in cor_exog] if has_exog else None,
+            "score": score.tolist(),
+            "score_norm": score_norm.tolist(),
+            "proposed_weights": proposed.tolist(),
+        }
+
+    return report
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Recalibrate proxy weights from anonymized incidents (audit-friendly).")
-    ap.add_argument("--incidents", type=str, required=True, help="CSV file with damage_weight and optional proxies.")
-    ap.add_argument("--out", type=str, default="docs/recalibrated_weights.json", help="Output JSON path.")
-    ap.add_argument("--prior-strength", type=float, default=0.50, help="Blend between equal weights and data-driven weights.")
+    ap = argparse.ArgumentParser(description="Recalibrate composite weights from anonymized incidents (audit-friendly).")
+    ap.add_argument("--incidents", type=str, default="data/incidents/anonymized_incidents_template.csv")
+    ap.add_argument("--out", type=str, default="docs/weights_proposal.json")
+    ap.add_argument("--prior-strength", type=float, default=0.60)
+    ap.add_argument("--exog-weight", type=float, default=0.50)
+    ap.add_argument("--damage-col", type=str, default="damage_weight")
+    ap.add_argument("--exog-col", type=str, default="u_exog")
     args = ap.parse_args()
 
-    inc_path = Path(args.incidents)
-    df = pd.read_csv(inc_path)
-    if "damage_weight" not in df.columns:
-        raise SystemExit("Missing column: damage_weight")
+    inc = pd.read_csv(args.incidents)
+    specs = [P_SPEC, O_SPEC, E_SPEC, G_SPEC]
 
-    target = pd.to_numeric(df["damage_weight"], errors="coerce").to_numpy(dtype=float)
-
-    groups: Dict[str, GroupWeights] = {}
-    groups["P"] = _compute_group(df, target, list(P_SPEC.proxies), prior_strength=float(args.prior_strength))
-    groups["O"] = _compute_group(df, target, list(O_SPEC.proxies), prior_strength=float(args.prior_strength))
-    groups["E"] = _compute_group(df, target, list(E_SPEC.proxies), prior_strength=float(args.prior_strength))
-    groups["G"] = _compute_group(df, target, list(G_SPEC.proxies), prior_strength=float(args.prior_strength))
-
-    # R is a mixed-sign composite (recovery_time is inverted in code). For recalibration,
-    # we keep equal weights by default and let real deployments handle sector specifics.
-    groups["R"] = GroupWeights(
-        proxies=["margin_proxy", "redundancy_proxy", "diversity_proxy", "recovery_time_proxy"],
-        weights=[0.25, 0.25, 0.25, 0.25],
-        spearman_abs=[0.0, 0.0, 0.0, 0.0],
-        n_used=0,
+    report = propose_weights_from_incidents(
+        inc,
+        specs=specs,
+        prior_strength=float(args.prior_strength),
+        exog_weight=float(args.exog_weight),
+        damage_col=args.damage_col,
+        exog_col=args.exog_col,
     )
-
-    payload = {
-        "schema": "amplification-barometer.weights",
-        "created_utc": datetime.now(timezone.utc).isoformat(),
-        "method": "spearman_abs_blend_with_equal_prior",
-        "input_file": inc_path.name,
-        "prior_strength": float(args.prior_strength),
-        "groups": {k: asdict(v) for k, v in groups.items()},
-        "notes": "Weights are suggestions. Review in PRs. Apply only after independent validation.",
-    }
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False), encoding="utf-8")
+    out.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+
     print(f"Wrote: {out}")
     return 0
 

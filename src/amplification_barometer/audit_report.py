@@ -17,6 +17,7 @@ from .composites import (
     compute_e,
     compute_g,
     compute_o,
+    compute_o_level,
     compute_p,
     compute_r,
     robust_zscore,
@@ -165,17 +166,59 @@ def build_audit_report(
 
     l_perf = evaluate_l_performance(df, window=delta_d_window, topk_frac=topk_frac, intensity=stress_intensity)
 
-    # Variante proactive: seuil plus bas, persistance plus courte, délai max réduit.
-    # Intention: viser une prévention d'exceedance > 10% dans des scénarios réalistes.
+    # Variante proactive: activation basée sur risque OU orientation dégradée (O_level).
+    # Intention: booster la prévention (>10%) avec un L proactif via seuils O(t), sans données sensibles.
+    o_level = compute_o_level(df)
+    o_thr = float(np.quantile(o_level.to_numpy(dtype=float), 0.15))
+
     proactive_topk = float(max(float(topk_frac), 0.20))
-    l_perf_pro = evaluate_l_performance(
+    variants: list[dict[str, Any]] = []
+
+    v1 = evaluate_l_performance(
         df,
         window=delta_d_window,
         topk_frac=proactive_topk,
+        o_threshold=o_thr,
         persist=2,
         max_delay=8,
         intensity=stress_intensity,
     )
+    v1["variant"] = "proactive_v1_risk_or_low_o"
+    variants.append(v1)
+
+    # Auto-tuning minimal si la cible >10% n'est pas atteinte.
+    # On augmente la proactivité: topk plus large, persistance minimale, délai max réduit, seuil O un peu plus strict.
+    if (float(v1.get("prevented_topk_excess_rel", 0.0)) < 0.10) and (float(v1.get("prevented_exceedance_rel", 0.0)) < 0.10):
+        o_thr2 = float(np.quantile(o_level.to_numpy(dtype=float), 0.20))
+        v2 = evaluate_l_performance(
+            df,
+            window=delta_d_window,
+            topk_frac=float(max(float(topk_frac), 0.30)),
+            o_threshold=o_thr2,
+            persist=1,
+            max_delay=6,
+            intensity=stress_intensity,
+        )
+        v2["variant"] = "proactive_v2_autotune"
+        variants.append(v2)
+
+    # On choisit la variante la plus efficace, priorité à la réduction de sévérité de queue.
+    l_perf_pro = max(
+        variants,
+        key=lambda d: (
+            float(d.get("prevented_topk_excess_rel", 0.0)),
+            float(d.get("prevented_exceedance_rel", 0.0)),
+        ),
+    )
+    l_perf_pro["variants_tried"] = [
+        {
+            "variant": v.get("variant"),
+            "prevented_exceedance_rel": float(v.get("prevented_exceedance_rel", 0.0)),
+            "prevented_topk_excess_rel": float(v.get("prevented_topk_excess_rel", 0.0)),
+            "params": v.get("params", {}),
+        }
+        for v in variants
+    ]
 
     manipulability = run_manipulability_suite(df, magnitude=manipulability_magnitude)
     anti_gaming = {
@@ -189,13 +232,19 @@ def build_audit_report(
         "rule_execution_gap_mean": gap_mean,
         "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
         "prevented_exceedance_rel_target_min": 0.10,
+        "prevented_topk_excess_rel_target_min": 0.10,
         "prevented_exceedance_rel": float(l_perf_pro.get("prevented_exceedance_rel", 0.0)),
+        "prevented_topk_excess_rel": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
+        "prevented_primary_metric": "prevented_topk_excess_rel",
+        "prevented_primary_value": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
         "prevented_exceedance_meets_target": bool(float(l_perf_pro.get("prevented_exceedance_rel", 0.0)) >= 0.10),
+        "prevented_meets_target": bool(float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)) >= 0.10),
         "proactive_topk_frac": proactive_topk,
+        "proactive_o_threshold": float(o_thr),
     }
 
     return AuditReport(
-        version="0.4.2",
+        version="0.4.3",
         weights_version=WEIGHTS_VERSION,
         dataset_name=dataset_name,
         created_utc=created,

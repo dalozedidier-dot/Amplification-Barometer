@@ -14,7 +14,7 @@ def _read_csv(path: Path) -> pd.DataFrame:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Run a small sector suite (finance/IA) on 2026 datasets.")
+    ap = argparse.ArgumentParser(description="Run a small sector suite on sector datasets (2026, 2027+, etc.).")
     ap.add_argument("--sector-dir", type=str, default="data/sector_2026")
     ap.add_argument("--out-dir", type=str, default="_ci_out")
     ap.add_argument("--datasets", nargs="*", default=None, help="Override datasets to run")
@@ -27,7 +27,7 @@ def main() -> int:
         paths = [Path(p) for p in args.datasets]
     else:
         sdir = Path(args.sector_dir)
-        paths = [sdir / "finance_2026_synth.csv", sdir / "ia_2026_synth.csv"]
+        paths = sorted(sdir.glob("*.csv"))
 
     rows = []
     for p in paths:
@@ -43,7 +43,8 @@ def main() -> int:
                 "rule_execution_gap_mean": rep.targets.get("rule_execution_gap_mean"),
                 "gap_meets_target": rep.targets.get("rule_execution_gap_meets_target"),
                 "prevented_exceedance_rel": rep.targets.get("prevented_exceedance_rel"),
-                "prevented_meets_target": rep.targets.get("prevented_exceedance_meets_target"),
+                "prevented_meets_target": rep.targets.get("prevented_meets_target"),
+                "prevented_topk_excess_rel": rep.targets.get("prevented_topk_excess_rel"),
                 "proactive_topk_frac": rep.targets.get("proactive_topk_frac"),
                 "maturity_label": rep.maturity.get("label"),
                 "l_verdict": rep.l_performance.get("verdict"),
@@ -59,7 +60,7 @@ def main() -> int:
         "",
         "Targets (demo):",
         "- rule_execution_gap_mean < 0.05",
-        "- prevented_exceedance_rel > 0.10 (proactive L variant)",
+        "- prevented_topk_excess_rel > 0.10 (proactive L variant)",
         "",
         "Results:",
         "",

@@ -38,16 +38,32 @@ BASE_PROXIES = [
 ]
 
 
+P_PROXIES = ["scale_proxy","speed_proxy","leverage_proxy","autonomy_proxy","replicability_proxy"]
+O_PROXIES = ["stop_proxy","threshold_proxy","decision_proxy","execution_proxy","coherence_proxy"]
+E_PROXIES = ["impact_proxy","propagation_proxy","hysteresis_proxy"]
+
+def _sigmoid(x: np.ndarray, k: float = 2.0) -> np.ndarray:
+    return 1.0 / (1.0 + np.exp(-k * x))
+
+def _endogenize_g(df: pd.DataFrame, rng: np.random.Generator, *, base_gap: float = 0.03, pressure_scale: float = 1.0) -> pd.DataFrame:
+    """Derive governance proxies endogenously from P/O/E proxies."""
+    p = df[P_PROXIES].astype(float).mean(axis=1).to_numpy()
+    o = df[O_PROXIES].astype(float).mean(axis=1).to_numpy()
+    e = df[E_PROXIES].astype(float).mean(axis=1).to_numpy()
+    pressure_raw = (p - 1.0) + 0.9 * (1.0 - o) + 0.8 * (e - 1.0)
+    pressure = np.clip(_sigmoid(pressure_raw) * float(pressure_scale), 0.0, 1.0)
+
+    df["exemption_rate"] = np.clip(0.08 + 0.35 * pressure + rng.normal(0.0, 0.02, size=len(df)), 0.0, 1.0)
+    df["sanction_delay"] = np.clip(18.0 + 280.0 * pressure + rng.normal(0.0, 10.0, size=len(df)), 0.0, 365.0)
+    df["control_turnover"] = np.clip(0.04 + 0.08 * pressure + rng.normal(0.0, 0.01, size=len(df)), 0.0, 1.0)
+    df["conflict_interest_proxy"] = np.clip(0.10 + 0.22 * pressure + rng.normal(0.0, 0.02, size=len(df)), 0.0, 1.0)
+    df["rule_execution_gap"] = np.clip(base_gap + 0.18 * pressure + rng.normal(0.0, 0.008, size=len(df)), 0.0, 0.50)
+    return df
+
+
 def _base_frame(n: int, seed: int) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     df = pd.DataFrame(1.0 + rng.normal(0.0, 0.05, size=(n, len(BASE_PROXIES))), columns=BASE_PROXIES)
-
-    # clamp G proxies to realistic ranges
-    df["exemption_rate"] = np.clip(0.10 + rng.normal(0.0, 0.02, size=n), 0.0, 1.0)
-    df["sanction_delay"] = np.clip(25 + rng.normal(0.0, 6.0, size=n), 0.0, 365.0)
-    df["control_turnover"] = np.clip(0.045 + rng.normal(0.0, 0.012, size=n), 0.0, 1.0)
-    df["conflict_interest_proxy"] = np.clip(0.10 + rng.normal(0.0, 0.03, size=n), 0.0, 1.0)
-    df["rule_execution_gap"] = np.clip(0.035 + rng.normal(0.0, 0.01, size=n), 0.0, 0.25)
 
     # recovery time proxy is a cost
     df["recovery_time_proxy"] = np.clip(0.8 + rng.normal(0.0, 0.08, size=n), 0.0, 5.0)
@@ -130,24 +146,6 @@ def make_ia_2026(n: int, seed: int) -> pd.DataFrame:
         df.loc[df.index[s : s + dur], "margin_proxy"] *= (1.0 - 0.12 * amp)
         df.loc[df.index[s : s + dur], "redundancy_proxy"] *= (1.0 - 0.10 * amp)
         df.loc[df.index[s : s + dur], "recovery_time_proxy"] *= (1.0 + 0.20 * amp)
-
-        # governance drift episode: rule/execution gap increases and sanctions delay
-        if amp > 1.2:
-            df.loc[df.index[s : s + dur], "rule_execution_gap"] = np.clip(
-                df.loc[df.index[s : s + dur], "rule_execution_gap"].to_numpy(dtype=float) + 0.04,
-                0.0,
-                1.0,
-            )
-            df.loc[df.index[s : s + dur], "sanction_delay"] = np.clip(
-                df.loc[df.index[s : s + dur], "sanction_delay"].to_numpy(dtype=float) + 18.0,
-                0.0,
-                365.0,
-            )
-            df.loc[df.index[s : s + dur], "exemption_rate"] = np.clip(
-                df.loc[df.index[s : s + dur], "exemption_rate"].to_numpy(dtype=float) + 0.05,
-                0.0,
-                1.0,
-            )
 
     df["u_exog"] = u_exog
     df["sector_tag"] = "ia"

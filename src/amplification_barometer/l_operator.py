@@ -6,7 +6,7 @@ from typing import Any, Dict, Tuple
 import numpy as np
 import pandas as pd
 
-from .composites import compute_at, compute_delta_d, robust_zscore
+from .composites import compute_at, compute_delta_d, robust_zscore, compute_o_level
 
 
 def _require(df: pd.DataFrame, cols: Tuple[str, ...], context: str) -> None:
@@ -79,6 +79,30 @@ def desired_activation(risk: pd.Series, *, threshold: float, persist: int = 3) -
     roll = np.convolve(above, np.ones(persist, dtype=int), mode="same")
     desired = roll >= persist
     return pd.Series(desired, index=risk.index, name="L_DESIRED")
+
+def desired_activation_proactive(
+    risk: pd.Series,
+    *,
+    o_level: pd.Series,
+    risk_threshold: float,
+    o_threshold: float,
+    persist: int = 3,
+) -> pd.Series:
+    """Desired activation when risk is high OR orientation is low.
+
+    This implements the "L proactif via seuils O(t)" requirement:
+    - risk_threshold captures quantitative risk exceedance
+    - o_threshold captures degraded orientation (weak capacity to stop/steer)
+    - persistence is applied to the combined trigger to reduce false positives
+    """
+    persist = max(1, int(persist))
+    r = risk.to_numpy(dtype=float)
+    o = o_level.to_numpy(dtype=float)
+    trig = ((r > float(risk_threshold)) | (o < float(o_threshold))).astype(int)
+    roll = np.convolve(trig, np.ones(persist, dtype=int), mode="same")
+    desired = roll >= persist
+    return pd.Series(desired, index=risk.index, name="L_DESIRED_PROACTIVE")
+
 
 
 def realize_activation(
@@ -264,6 +288,7 @@ def evaluate_l_performance(
     *,
     window: int = 5,
     risk_threshold: float | None = None,
+    o_threshold: float | None = None,
     topk_frac: float = 0.10,
     persist: int = 3,
     max_delay: int = 12,
@@ -285,7 +310,17 @@ def evaluate_l_performance(
     lact = compute_l_act(df)
     lcap = compute_l_cap(df)
 
-    desired = desired_activation(risk, threshold=float(risk_threshold), persist=persist)
+    if o_threshold is None:
+        desired = desired_activation(risk, threshold=float(risk_threshold), persist=persist)
+    else:
+        o_level = compute_o_level(df)
+        desired = desired_activation_proactive(
+            risk,
+            o_level=o_level,
+            risk_threshold=float(risk_threshold),
+            o_threshold=float(o_threshold),
+            persist=persist,
+        )
     activated = realize_activation(desired, lact, max_delay=max_delay)
 
     df_limited = apply_limit_action(df, activated, lcap, intensity=intensity)
@@ -298,6 +333,19 @@ def evaluate_l_performance(
     exceed_limited = float(np.mean(lim_mask))
     prevented = float(max(0.0, exceed_base - exceed_limited))
     prevented_rel = float(prevented / exceed_base) if exceed_base > 1e-12 else 0.0
+
+    # tail severity reduction (Top-K excess above threshold), more stable than pure exceedance counts
+    eps = 1e-12
+    r_arr = risk.to_numpy(dtype=float)
+    rl_arr = risk_limited.to_numpy(dtype=float)
+    excess_base = np.clip(r_arr - float(risk_threshold), 0.0, None)
+    excess_limited = np.clip(rl_arr - float(risk_threshold), 0.0, None)
+    k_tail = max(1, int(len(r_arr) * float(topk_frac)))
+    tail_base = np.partition(excess_base, -k_tail)[-k_tail:]
+    tail_limited = np.partition(excess_limited, -k_tail)[-k_tail:]
+    mean_excess_base = float(np.mean(tail_base))
+    mean_excess_limited = float(np.mean(tail_limited))
+    prevented_topk_excess_rel = float(max(0.0, mean_excess_base - mean_excess_limited) / (mean_excess_base + eps))
 
     # delay estimate: first desired episode start vs first activation
     d = desired.to_numpy(dtype=bool)
@@ -332,6 +380,9 @@ def evaluate_l_performance(
         "exceedance_limited": exceed_limited,
         "prevented_exceedance": prevented,
         "prevented_exceedance_rel": prevented_rel,
+        "prevented_topk_excess_rel": prevented_topk_excess_rel,
+        "topk_mean_excess_base": mean_excess_base,
+        "topk_mean_excess_limited": mean_excess_limited,
         "first_activation_delay_steps": delay,
         "risk_drop_around_activation": drop,
         "mean_l_cap_unit": cap01,
@@ -340,6 +391,7 @@ def evaluate_l_performance(
         "params": {
             "window": int(window),
             "topk_frac": float(topk_frac),
+            "o_threshold": (float(o_threshold) if o_threshold is not None else None),
             "persist": int(persist),
             "max_delay": int(max_delay),
             "intensity": float(intensity),

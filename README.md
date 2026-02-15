@@ -89,3 +89,10 @@ python tools/run_audit.py --dataset data/sector_2026/ia_2026_synth.csv --name ia
 ## Licence
 
 MIT.
+
+## Sector datasets
+
+- `data/sector_2026/`: finance + IA synthetic (2026)
+- `data/sector_2027/`: finance + IA + biotech synthetic (2027+)
+
+`G(t)` governance proxies are endogenized from P/O/E pressure in the generators.

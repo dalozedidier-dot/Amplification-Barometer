@@ -1,3 +1,3 @@
-incident_id,start_date,end_date,damage_weight,notes,scale_proxy,speed_proxy,leverage_proxy,autonomy_proxy,replicability_proxy,stop_proxy,threshold_proxy,decision_proxy,execution_proxy,coherence_proxy,impact_proxy,propagation_proxy,hysteresis_proxy,margin_proxy,redundancy_proxy,diversity_proxy,recovery_time_proxy,exemption_rate,sanction_delay,control_turnover,conflict_interest_proxy
+incident_id,start_date,end_date,damage_weight,notes,scale_proxy,speed_proxy,leverage_proxy,autonomy_proxy,replicability_proxy,stop_proxy,threshold_proxy,decision_proxy,execution_proxy,coherence_proxy,impact_proxy,propagation_proxy,hysteresis_proxy,margin_proxy,redundancy_proxy,diversity_proxy,recovery_time_proxy,exemption_rate,sanction_delay,control_turnover,conflict_interest_proxy,u_exog
 INC001,2026-01-12,2026-01-20,0.8,"Example: incident window aggregated to proxy means",,,,,,,,,,,,,,,,,,,,,,
 INC002,2026-03-02,2026-03-05,0.4,"Example",,,,,,,,,,,,,,,,,,,,,,
