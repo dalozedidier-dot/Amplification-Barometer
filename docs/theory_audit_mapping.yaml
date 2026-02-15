@@ -1,0 +1,11 @@
+version: "v1.0"
+created_utc: "2026-02-15T00:00:00Z"
+observables:
+  P: {role: "Power scaling observable"}
+  O: {role: "Operational orientation"}
+  E: {role: "Externalities stock and flow"}
+  R: {role: "Resilience recovery capacity"}
+  G: {role: "Governance measurable"}
+  AT: {role: "Amplification ratio P/O"}
+  DELTA_D: {role: "Differential drift"}
+maturity_labels: [Mature, Immature, Dissonant]
