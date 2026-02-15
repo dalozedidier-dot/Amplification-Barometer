@@ -125,10 +125,24 @@ def _plot_series_plotly(df: pd.DataFrame, out_dir: Path, *, window: int = 5, pre
     )
 
 
+
+def _collect_synthetic(synth_dir: Path) -> List[Tuple[Path, str]]:
+    csvs = sorted([p for p in synth_dir.glob("*.csv") if p.is_file()])
+    out: List[Tuple[Path, str]] = []
+    for p in csvs:
+        # normalize names like stable_regime -> stable
+        stem = p.stem
+        name = stem.replace("_regime", "")
+        out.append((p, name))
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", action="append", default=[], help="Dataset CSV path (can be repeated)")
     ap.add_argument("--name", action="append", default=[], help="Name for each --csv (can be repeated)")
+    ap.add_argument("--all-synthetic", action="store_true", help="Run on all CSVs found in --synthetic-dir (ignores --csv/--name)")
+    ap.add_argument("--synthetic-dir", default="data/synthetic", help="Directory containing synthetic CSV datasets")
     ap.add_argument("--baseline-csv", default="", help="Stable baseline CSV for thresholds")
     ap.add_argument("--out-dir", default="_ci_out/audit", help="Output dir")
     ap.add_argument("--window", type=int, default=5)
@@ -140,43 +154,63 @@ def main() -> int:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    synth_dir = Path(args.synthetic_dir)
+
     # Resolve datasets list
     datasets: List[Tuple[Path, str]] = []
-    for i, csv_path in enumerate(args.csv):
-        p = Path(csv_path)
-        name = args.name[i] if i < len(args.name) else p.stem
-        datasets.append((p, name))
+    if args.all_synthetic:
+        if synth_dir.exists():
+            datasets = _collect_synthetic(synth_dir)
+    else:
+        for i, csv_path in enumerate(args.csv):
+            p = Path(csv_path)
+            name = args.name[i] if i < len(args.name) else p.stem
+            datasets.append((p, name))
 
     if not datasets:
         # default synthetic set if present
+        default_dir = synth_dir if synth_dir.exists() else Path("data/synthetic")
         for p in [
-            Path("data/synthetic/stable_regime.csv"),
-            Path("data/synthetic/oscillating_regime.csv"),
-            Path("data/synthetic/bifurcation_regime.csv"),
+            default_dir / "stable_regime.csv",
+            default_dir / "oscillating_regime.csv",
+            default_dir / "bifurcation_regime.csv",
         ]:
             if p.exists():
                 datasets.append((p, p.stem.replace("_regime", "")))
 
     # Baseline thresholds
     thresholds = None
-    baseline_csv = Path(args.baseline_csv) if args.baseline_csv else Path("data/synthetic/stable_regime.csv")
+    if args.baseline_csv:
+        baseline_csv = Path(args.baseline_csv)
+    else:
+        # prefer stable_regime inside synthetic-dir when available
+        candidate = synth_dir / "stable_regime.csv"
+        baseline_csv = candidate if candidate.exists() else Path("data/synthetic/stable_regime.csv")
+
     if baseline_csv.exists():
         stable_df = _read_csv(baseline_csv)
         thresholds = derive_thresholds(stable_df, window=args.window)
         (out_dir / "baseline_thresholds.json").write_text(json.dumps(thresholds.__dict__, indent=2), encoding="utf-8")
 
     if args.calibrate:
-        synth = {}
-        for p in [
-            Path("data/synthetic/stable_regime.csv"),
-            Path("data/synthetic/oscillating_regime.csv"),
-            Path("data/synthetic/bifurcation_regime.csv"),
-        ]:
-            if p.exists():
-                synth[p.stem.replace("_regime", "").replace("stable", "stable")] = _read_csv(p)
+        # Build synthetic set from synthetic dir if present, else from defaults
+        synth: Dict[str, pd.DataFrame] = {}
+        if synth_dir.exists():
+            for p in _collect_synthetic(synth_dir):
+                path, name = p
+                synth[name] = _read_csv(path)
+        else:
+            for p in [
+                Path("data/synthetic/stable_regime.csv"),
+                Path("data/synthetic/oscillating_regime.csv"),
+                Path("data/synthetic/bifurcation_regime.csv"),
+            ]:
+                if p.exists():
+                    synth[p.stem.replace("_regime", "")] = _read_csv(p)
+
         if "stable" in synth and len(synth) >= 2:
             disc = discriminate_regimes(synth, stable_name="stable", window=args.window)
-            (out_dir / "calibration_report.json").write_text(json.dumps(disc, indent=2, ensure_ascii=False), encoding="utf-8")
+            (out_dir / "calibration_report.json").write_text(json.dumps(disc, indent=2), encoding="utf-8")
 
     for path, name in datasets:
         df = _read_csv(path)
