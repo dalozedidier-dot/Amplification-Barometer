@@ -17,7 +17,7 @@ PROXIES = [
     # R
     "margin_proxy","redundancy_proxy","diversity_proxy","recovery_time_proxy",
     # G
-    "exemption_rate","sanction_delay","control_turnover","conflict_interest_proxy",
+    "exemption_rate","sanction_delay","control_turnover","conflict_interest_proxy","rule_execution_gap",
 ]
 
 
@@ -30,6 +30,8 @@ def make_stable(n: int, seed: int) -> pd.DataFrame:
     df["sanction_delay"] = np.clip(20 + rng.normal(0.0, 5.0, size=n), 0.0, 365.0)
     df["control_turnover"] = np.clip(0.04 + rng.normal(0.0, 0.01, size=n), 0.0, 1.0)
     df["conflict_interest_proxy"] = np.clip(0.10 + rng.normal(0.0, 0.03, size=n), 0.0, 1.0)
+    # Écart règle/exécution (cible < 5%)
+    df["rule_execution_gap"] = np.clip(0.03 + rng.normal(0.0, 0.01, size=n), 0.0, 0.12)
     # recovery_time_proxy est un coût, plus bas dans le régime stable
     df["recovery_time_proxy"] = np.clip(0.6 + rng.normal(0.0, 0.05, size=n), 0.0, 2.0)
     return df
@@ -45,6 +47,7 @@ def make_oscillating(n: int, seed: int) -> pd.DataFrame:
     df["sanction_delay"] = np.clip(40 + 20 * (1 + np.sin(t + 0.7)) / 2 + rng.normal(0.0, 4.0, size=n), 0.0, 365.0)
     df["control_turnover"] = np.clip(0.10 + 0.06 * (1 + np.sin(t + 1.1)) / 2 + rng.normal(0.0, 0.02, size=n), 0.0, 1.0)
     df["conflict_interest_proxy"] = np.clip(0.12 + 0.05 * (1 + np.sin(t + 2.0)) / 2 + rng.normal(0.0, 0.02, size=n), 0.0, 1.0)
+    df["rule_execution_gap"] = np.clip(0.04 + 0.03 * (1 + np.sin(t + 1.4)) / 2 + rng.normal(0.0, 0.01, size=n), 0.0, 0.25)
     df["recovery_time_proxy"] = np.clip(0.8 + 0.15 * (1 + np.sin(t + 0.5)) / 2 + rng.normal(0.0, 0.05, size=n), 0.0, 2.5)
     return df
 
@@ -82,6 +85,7 @@ def make_bifurcation(n: int, seed: int) -> pd.DataFrame:
     df["sanction_delay"] = np.clip(20 + 120 * ((growth - 1) / (growth.max() - 1 + 1e-9)) + rng.normal(0.0, 6.0, size=n), 0.0, 365.0)
     df["control_turnover"] = np.clip(0.08 + 0.20 * ((growth - 1) / (growth.max() - 1 + 1e-9)) + rng.normal(0.0, 0.02, size=n), 0.0, 1.0)
     df["conflict_interest_proxy"] = np.clip(0.10 + 0.25 * ((growth - 1) / (growth.max() - 1 + 1e-9)) + rng.normal(0.0, 0.03, size=n), 0.0, 1.0)
+    df["rule_execution_gap"] = np.clip(0.03 + 0.20 * ((growth - 1) / (growth.max() - 1 + 1e-9)) + rng.normal(0.0, 0.015, size=n), 0.0, 0.60)
 
     return df
 
@@ -90,7 +94,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", type=str, default="data/synthetic")
     ap.add_argument("--n", type=int, default=365)
-    ap.add_argument("--start-date", type=str, default="2020-01-01")
+    ap.add_argument("--start-date", type=str, default="2026-01-01")
     ap.add_argument("--seed", type=int, default=7)
     args = ap.parse_args()
 

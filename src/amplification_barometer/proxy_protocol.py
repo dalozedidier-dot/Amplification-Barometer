@@ -168,6 +168,17 @@ PROXY_PROTOCOL: Dict[str, Dict[str, Any]] = {
         "source": "ethics audits",
         "falsification_flags": {"jump_mad_mult": 10.0, "range_violation_rate": 0.005},
     },
+    "rule_execution_gap": {
+        "definition": "Gap between stated rules and observed execution (0 = aligned)",
+        "expected_range": (0.0, 1.0),
+        "risk_direction": "up",
+        "source": "policy vs enforcement reconciliation",
+        "falsification_flags": {
+            "jump_mad_mult": 10.0,
+            "range_violation_rate": 0.005,
+            "threshold_alert": 0.05,
+        },
+    },
 }
 
 

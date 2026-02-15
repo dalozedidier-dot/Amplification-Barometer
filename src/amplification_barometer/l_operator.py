@@ -16,7 +16,13 @@ def _require(df: pd.DataFrame, cols: Tuple[str, ...], context: str) -> None:
 
 
 L_CAP_PROXIES: Tuple[str, ...] = ("stop_proxy", "threshold_proxy", "execution_proxy", "coherence_proxy")
-L_ACT_PROXIES: Tuple[str, ...] = ("exemption_rate", "sanction_delay", "control_turnover", "conflict_interest_proxy")
+L_ACT_PROXIES: Tuple[str, ...] = (
+    "exemption_rate",
+    "sanction_delay",
+    "control_turnover",
+    "conflict_interest_proxy",
+    "rule_execution_gap",
+)
 
 
 def compute_l_cap(df: pd.DataFrame) -> pd.Series:
@@ -43,8 +49,10 @@ def compute_l_act(df: pd.DataFrame) -> pd.Series:
     sd_norm = np.clip(sd / 365.0, 0.0, 1.0)
     ct = df["control_turnover"].astype(float).to_numpy()
     ci = df["conflict_interest_proxy"].astype(float).to_numpy()
+    gap = df["rule_execution_gap"].astype(float).to_numpy()
 
-    risk = 0.30 * ex + 0.25 * sd_norm + 0.25 * ct + 0.20 * ci
+    # Plus le gap règle/exécution monte, plus l'activation effective est compromise.
+    risk = 0.25 * ex + 0.20 * sd_norm + 0.20 * ct + 0.15 * ci + 0.20 * gap
     raw = 1.0 - risk
     z = robust_zscore(raw)
     return pd.Series(z, index=df.index, name="L_ACT")
@@ -202,7 +210,8 @@ def assess_maturity(df: pd.DataFrame, *, df_stressed: pd.DataFrame | None = None
     sd_norm = np.clip(df["sanction_delay"].astype(float).to_numpy() / 365.0, 0.0, 1.0)
     ct = df["control_turnover"].astype(float).to_numpy()
     ci = df["conflict_interest_proxy"].astype(float).to_numpy()
-    act_raw = 1.0 - (0.30 * ex + 0.25 * sd_norm + 0.25 * ct + 0.20 * ci)
+    gap = df["rule_execution_gap"].astype(float).to_numpy()
+    act_raw = 1.0 - (0.25 * ex + 0.20 * sd_norm + 0.20 * ct + 0.15 * ci + 0.20 * gap)
     act_score_raw = float(np.mean(act_raw))
     act_score_enforced = act_score_raw
 
@@ -224,7 +233,8 @@ def assess_maturity(df: pd.DataFrame, *, df_stressed: pd.DataFrame | None = None
         sd_s = np.clip(df_stressed["sanction_delay"].astype(float).to_numpy() / 365.0, 0.0, 1.0)
         ct_s = df_stressed["control_turnover"].astype(float).to_numpy()
         ci_s = df_stressed["conflict_interest_proxy"].astype(float).to_numpy()
-        act_raw_s = 1.0 - (0.30 * ex_s + 0.25 * sd_s + 0.25 * ct_s + 0.20 * ci_s)
+        gap_s = df_stressed["rule_execution_gap"].astype(float).to_numpy()
+        act_raw_s = 1.0 - (0.25 * ex_s + 0.20 * sd_s + 0.20 * ct_s + 0.15 * ci_s + 0.20 * gap_s)
         act_drop = float(np.mean(act_raw) - np.mean(act_raw_s))
 
     cap_high = cap_score_enforced >= 0.95
@@ -287,6 +297,7 @@ def evaluate_l_performance(
     exceed_base = float(np.mean(base_mask))
     exceed_limited = float(np.mean(lim_mask))
     prevented = float(max(0.0, exceed_base - exceed_limited))
+    prevented_rel = float(prevented / exceed_base) if exceed_base > 1e-12 else 0.0
 
     # delay estimate: first desired episode start vs first activation
     d = desired.to_numpy(dtype=bool)
@@ -320,6 +331,7 @@ def evaluate_l_performance(
         "exceedance_base": exceed_base,
         "exceedance_limited": exceed_limited,
         "prevented_exceedance": prevented,
+        "prevented_exceedance_rel": prevented_rel,
         "first_activation_delay_steps": delay,
         "risk_drop_around_activation": drop,
         "mean_l_cap_unit": cap01,

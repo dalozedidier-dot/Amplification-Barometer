@@ -16,6 +16,7 @@ def _make_df(n: int = 50, seed: int = 7) -> pd.DataFrame:
             "sanction_delay": np.clip(rng.normal(30, 5, size=n), 0.0, 365.0),
             "control_turnover": np.clip(rng.normal(0.1, 0.03, size=n), 0.0, 1.0),
             "conflict_interest_proxy": np.clip(rng.normal(0.1, 0.03, size=n), 0.0, 1.0),
+            "rule_execution_gap": np.clip(rng.normal(0.04, 0.01, size=n), 0.0, 1.0),
         }
     )
     return df

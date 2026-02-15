@@ -17,6 +17,10 @@ Le dépôt vise une preuve de vie empirique:
 6. tests anti-gaming (plages attendues, injections, détection)
 7. validation de performance de L(t) sur séries synthétiques
 
+Objectifs de démonstration (cibles par défaut, à justifier par secteur en audit réel):
+- `rule_execution_gap < 0.05` (écart règle/exécution)
+- `prevented_exceedance_rel > 0.10` avec une activation L plus proactive (rapport inclut une variante proactive)
+
 ## Installation
 
 ```bash
@@ -50,12 +54,26 @@ Exécuter l'ensemble des régimes synthétiques et produire un rapport de calibr
 
 ```bash
 python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out --plot
+
+Générer des datasets sectoriels 2026 (synthétiques, sans données sensibles):
+
+```bash
+python tools/generate_sector_2026.py --out-dir data/sector_2026 --n 365 --start-date 2026-01-01
+```
+
+Lancer un audit sur un dataset sectoriel 2026:
+
+```bash
+python tools/run_audit.py --dataset data/sector_2026/ia_2026_synth.csv --name ia_2026 --out-dir _ci_out --plot
+```
 ```
 
 ## Structure
 
 - `src/amplification_barometer`: code (composites, opérateur de limite, audit, anti-gaming)
 - `data/synthetic`: datasets de démonstration (stable, oscillant, bifurcation)
+- `data/sector_2026`: datasets synthétiques sectoriels (finance, IA)
+- `data/real_anonymized`: gabarits pour séries réelles anonymisées (à remplir)
 - `tools`: scripts CLI (génération synthétique, run d'audit)
 - `docs`: protocoles et mapping théorie vers audit
 

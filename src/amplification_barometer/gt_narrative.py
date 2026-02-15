@@ -40,6 +40,14 @@ def validate_g_proxies(df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
             "source": "Déclarations, audits",
             "falsification_test": "Décorrélation suspecte avec sanctions",
         },
+        "rule_execution_gap": {
+            "definition": "Écart règle/exécution (0 = aligné, 1 = rupture totale)",
+            "range": [0.0, 1.0],
+            "risk_direction": "up",
+            "source": "Reconciliation règle vs exécution (logs, contrôles, sanctions)",
+            "falsification_test": "Alerte si écart durable > 5% sur fenêtre glissante",
+            "target_max": 0.05,
+        },
     }
 
     for k, meta in protocol.items():

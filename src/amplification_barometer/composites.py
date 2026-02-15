@@ -8,7 +8,7 @@ import pandas as pd
 
 
 # Version des pondérations et conventions (auditabilité)
-WEIGHTS_VERSION = "v0.4.0"
+WEIGHTS_VERSION = "v0.4.1"
 
 
 @dataclass(frozen=True)
@@ -113,8 +113,9 @@ E_SPEC = CompositeSpec(
 )
 G_SPEC = CompositeSpec(
     name="G",
-    proxies=["exemption_rate", "sanction_delay", "control_turnover", "conflict_interest_proxy"],
-    weights=np.array([0.3, 0.25, 0.25, 0.2]),
+    proxies=["exemption_rate", "sanction_delay", "control_turnover", "conflict_interest_proxy", "rule_execution_gap"],
+    # Le proxy "rule_execution_gap" est un objectif clé (cible < 5%).
+    weights=np.array([0.25, 0.20, 0.15, 0.10, 0.30]),
     invert=True,
 )
 

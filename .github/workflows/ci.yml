@@ -30,6 +30,7 @@ jobs:
         run: |
           mkdir -p _ci_out
           python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out --plot
+          python tools/run_sector_suite.py --sector-dir data/sector_2026 --out-dir _ci_out
 
       - name: Upload audit artefacts
         if: ${{ matrix.python-version == '3.12' }}

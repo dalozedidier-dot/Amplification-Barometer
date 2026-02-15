@@ -37,8 +37,10 @@ class AuditReport:
     stress_suite: Dict[str, Any]
     maturity: Dict[str, Any]
     l_performance: Dict[str, Any]
+    l_performance_proactive: Dict[str, Any]
     manipulability: Dict[str, Any]
     anti_gaming: Dict[str, Any]
+    targets: Dict[str, Any]
 
 
 def _series_stats(x: pd.Series) -> Dict[str, float]:
@@ -163,13 +165,37 @@ def build_audit_report(
 
     l_perf = evaluate_l_performance(df, window=delta_d_window, topk_frac=topk_frac, intensity=stress_intensity)
 
+    # Variante proactive: seuil plus bas, persistance plus courte, délai max réduit.
+    # Intention: viser une prévention d'exceedance > 10% dans des scénarios réalistes.
+    proactive_topk = float(max(float(topk_frac), 0.20))
+    l_perf_pro = evaluate_l_performance(
+        df,
+        window=delta_d_window,
+        topk_frac=proactive_topk,
+        persist=2,
+        max_delay=8,
+        intensity=stress_intensity,
+    )
+
     manipulability = run_manipulability_suite(df, magnitude=manipulability_magnitude)
     anti_gaming = {
         "o_bias": anti_gaming_o_bias(df, magnitude=o_bias_magnitude, window=delta_d_window),
     }
 
+    # Cibles de démonstration (audit réel: ces seuils doivent être justifiés par secteur)
+    gap_mean = float(np.mean(df["rule_execution_gap"].astype(float).to_numpy())) if "rule_execution_gap" in df.columns else float("nan")
+    targets: Dict[str, Any] = {
+        "rule_execution_gap_target_max": 0.05,
+        "rule_execution_gap_mean": gap_mean,
+        "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
+        "prevented_exceedance_rel_target_min": 0.10,
+        "prevented_exceedance_rel": float(l_perf_pro.get("prevented_exceedance_rel", 0.0)),
+        "prevented_exceedance_meets_target": bool(float(l_perf_pro.get("prevented_exceedance_rel", 0.0)) >= 0.10),
+        "proactive_topk_frac": proactive_topk,
+    }
+
     return AuditReport(
-        version="0.4.0",
+        version="0.4.1",
         weights_version=WEIGHTS_VERSION,
         dataset_name=dataset_name,
         created_utc=created,
@@ -178,8 +204,10 @@ def build_audit_report(
         stress_suite=stress_suite,
         maturity=maturity,
         l_performance=l_perf,
+        l_performance_proactive=l_perf_pro,
         manipulability=manipulability,
         anti_gaming=anti_gaming,
+        targets=targets,
     )
 
 
@@ -196,8 +224,10 @@ def write_audit_report(report: AuditReport, out_path: str | Path) -> None:
         "stress_suite": report.stress_suite,
         "maturity": report.maturity,
         "l_performance": report.l_performance,
+        "l_performance_proactive": report.l_performance_proactive,
         "manipulability": report.manipulability,
         "anti_gaming": report.anti_gaming,
+        "targets": report.targets,
     }
     out_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False, default=_json_default),

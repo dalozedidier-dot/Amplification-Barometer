@@ -37,3 +37,17 @@ Le dépôt sépare deux composantes:
 2. `L_act` pour l'activation effective (enforcement réel, exemptions, délais, capture)
 
 Voir `amplification_barometer.l_operator`.
+
+## 5. Ajout clé pour G(t): rule_execution_gap
+
+Proxy
+- `rule_execution_gap`
+
+Intuition audit
+- Mesure un écart entre la règle affichée et l'exécution observée.
+- Cible de démonstration: < 0.05 (5%).
+
+Spécification minimale
+- Définition: ratio ou score normalisé dans [0,1] où 0 est une exécution alignée et 1 une rupture totale.
+- Source: rapprochement politique de contrôle, logs d'exécution, décisions, sanctions.
+- Test anti-gaming: baisse artificielle de l'écart sans cohérence simultanée des proxys voisins (sanction_delay, exemptions, contrôle).
