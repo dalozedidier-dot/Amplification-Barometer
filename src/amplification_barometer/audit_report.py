@@ -11,8 +11,10 @@ import pandas as pd
 
 from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
 from .composites import (
+    E_SPEC,
     WEIGHTS_VERSION,
     compute_at,
+    compute_composite,
     compute_delta_d,
     compute_e,
     compute_g,
@@ -88,85 +90,6 @@ def _json_default(obj: Any) -> Any:
     raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serialisable")
 
 
-def _compute_verdict(
-    *,
-    maturity: Mapping[str, Any],
-    stability: Mapping[str, Any],
-    stress_suite: Mapping[str, Any],
-    anti_gaming: Mapping[str, Any],
-    targets: Mapping[str, Any],
-) -> Dict[str, Any]:
-    # Scores normalisés 0..1 (démo). Les dimensions restent séparées.
-    def _clamp01(x: float) -> float:
-        return float(max(0.0, min(1.0, x)))
-
-    # stabilité: moyenne Spearman et Jaccard TopK si présents
-    spe = float(stability.get("spearman_mean_risk", stability.get("spearman_mean", 0.0)) or 0.0)
-    jac = float(stability.get("topk_jaccard_mean_risk", stability.get("topk_jaccard_mean", stability.get("topk_jaccard_mean_risk", 0.0))) or 0.0)
-    stability_score = _clamp01((spe + jac) / 2.0)
-
-    # L_cap / L_act depuis maturité
-    cap = float(maturity.get("cap_score_enforced", maturity.get("cap_score_raw", 0.0)) or 0.0)
-    act = float(maturity.get("act_score_enforced", maturity.get("act_score_raw", 0.0)) or 0.0)
-    lcap_score = _clamp01(cap)
-    lact_score = _clamp01(act)
-
-    # stress: plus la dégradation max est basse, meilleur est le score
-    degrs = []
-    for v in stress_suite.values():
-        try:
-            degrs.append(float(v.get("degradation", 1.0)))
-        except Exception:
-            pass
-    max_deg = max(degrs) if degrs else 1.0
-    stress_score = _clamp01(1.0 / (1.0 + max(0.0, max_deg - 1.0)))
-
-    # anti-gaming: pénalité si red_flag ou biais O élevé
-    red_flag = bool(anti_gaming.get("red_flag", False))
-    sev = 0.0
-    if "o_bias" in anti_gaming and isinstance(anti_gaming["o_bias"], Mapping):
-        sev = float(anti_gaming["o_bias"].get("severity", 0.0) or 0.0)
-    anti_score = _clamp01(1.0 - max(sev, 1.0 if red_flag else 0.0))
-
-    # gouvernance: cibles neutres via targets
-    gap_ok = bool(targets.get("rule_execution_gap_meets_target", False))
-    turn_ok = True
-    if "control_turnover_meets_target" in targets:
-        turn_ok = bool(targets.get("control_turnover_meets_target", False))
-    governance_score = 1.0 if (gap_ok and turn_ok) else (0.5 if (gap_ok or turn_ok) else 0.0)
-
-    # résilience: proxy via stress_score + L_act (démo)
-    resilience_score = _clamp01(0.6 * stress_score + 0.4 * lact_score)
-
-    dims = {
-        "stability": stability_score,
-        "L_cap": lcap_score,
-        "L_act": lact_score,
-        "resilience": resilience_score,
-        "governance": governance_score,
-        "anti_gaming": anti_score,
-        "stress_suite": stress_score,
-    }
-
-    # score global optionnel 0..100
-    weights = {
-        "stability": 0.15,
-        "L_cap": 0.20,
-        "L_act": 0.15,
-        "resilience": 0.15,
-        "governance": 0.15,
-        "anti_gaming": 0.10,
-        "stress_suite": 0.10,
-    }
-    global_score = 0.0
-    for k, w in weights.items():
-        global_score += float(dims.get(k, 0.0)) * float(w)
-    global_score_100 = float(round(100.0 * _clamp01(global_score), 2))
-
-    label = str(maturity.get("label", "Immature"))
-
-    return {"label": label, "global_score": global_score_100, "dimensions": dims}
-
 def build_audit_report(
     df: pd.DataFrame,
     *,
@@ -191,8 +114,24 @@ def build_audit_report(
 
     p = compute_p(df)
     o = compute_o(df)
-    e = compute_e(df)
+
+    # E(t) complet: niveau (flux composite), stock, dérivée, irréversibilité
+    e_level = compute_composite(df, E_SPEC, norm="robust")
+    e_stock = compute_e(df)  # déjà basé sur un cumul dans composites.py
+    dE_dt = e_stock.diff().fillna(0.0)
+
+    eps = 1e-12
+    num = dE_dt.clip(lower=0.0).rolling(5, min_periods=1).sum()
+    den = dE_dt.abs().rolling(5, min_periods=1).sum() + eps
+    e_irreversibility = (num / den).clip(lower=0.0, upper=1.0)
+
     r = compute_r(df)
+    r_level = r
+    if "recovery_time_proxy" in df.columns:
+        r_mttr_proxy = df["recovery_time_proxy"].astype(float)
+    else:
+        r_mttr_proxy = pd.Series([0.0] * len(df), index=df.index, name="recovery_time_proxy")
+
     g = compute_g(df)
     at = compute_at(df)
     dd = compute_delta_d(df, window=delta_d_window)
@@ -204,8 +143,14 @@ def build_audit_report(
     summary = {
         "P": _series_stats(p),
         "O": _series_stats(o),
-        "E": _series_stats(e),
+        "E": _series_stats(e_stock),
+        "E_level": _series_stats(e_level),
+        "E_stock": _series_stats(e_stock),
+        "dE_dt": _series_stats(dE_dt),
+        "E_irreversibility": _series_stats(e_irreversibility),
         "R": _series_stats(r),
+        "R_level": _series_stats(r_level),
+        "R_mttr_proxy": _series_stats(r_mttr_proxy),
         "G": _series_stats(g),
         "AT": _series_stats(at),
         "DELTA_D": _series_stats(dd),
@@ -311,19 +256,45 @@ def build_audit_report(
         "rule_execution_gap_target_max": 0.05,
         "rule_execution_gap_mean": gap_mean,
         "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
-        "prevented_exceedance_rel_target_min": 0.10,
-        "prevented_topk_excess_rel_target_min": 0.10,
-        "prevented_exceedance_rel": float(l_perf_pro.get("prevented_exceedance_rel", 0.0)),
-        "prevented_topk_excess_rel": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
-        "prevented_primary_metric": "prevented_topk_excess_rel",
-        "prevented_primary_value": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
-        "prevented_exceedance_meets_target": bool(float(l_perf_pro.get("prevented_exceedance_rel", 0.0)) >= 0.10),
-        "prevented_meets_target": bool(float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)) >= 0.10),
-        "proactive_topk_frac": proactive_topk,
-        "proactive_o_threshold": float(o_thr),
+        "control_turnover_target_max": 0.05,
+        "control_turnover_mean": float(np.mean(df["control_turnover"].astype(float).to_numpy())) if "control_turnover" in df.columns else float("nan"),
     }
 
-    verdict = _compute_verdict(maturity=maturity, stability=stability, stress_suite=stress_suite, anti_gaming=anti_gaming, targets=targets)
+    # Verdict multidimensionnel léger (auditables)
+    stab = float(0.5 * float(stability.get("spearman_worst_risk", 0.0)) + 0.5 * float(stability.get("topk_jaccard_worst_risk", 0.0)))
+    stab = float(np.clip(stab, 0.0, 1.0))
+    cap = float(np.clip(0.5 + 0.25 * float(maturity.get("cap_score_enforced", 0.0)), 0.0, 1.0))
+    act = float(np.clip(0.5 + 0.25 * float(maturity.get("act_score_enforced", 0.0)), 0.0, 1.0))
+    mttr_med = float(np.median(r_mttr_proxy.to_numpy(dtype=float))) if len(r_mttr_proxy) else 0.0
+    res = float(np.clip(1.0 - mttr_med, 0.0, 1.0))
+    gov = float(np.clip(0.5 + 0.25 * float(np.mean(g.to_numpy(dtype=float))), 0.0, 1.0))
+    ob = anti_gaming.get("o_bias", {})
+    deg = float(ob.get("degradation", 0.0)) if isinstance(ob, dict) else 0.0
+    anti = float(np.clip(1.0 - deg, 0.0, 1.0))
+    degrades = []
+    for v in stress_suite.values():
+        try:
+            degrades.append(float(v.get("degradation", 0.0)))
+        except Exception:
+            pass
+    worst = max(degrades) if degrades else 0.0
+    stress_dim = float(np.clip(1.0 - worst, 0.0, 1.0))
+
+    dimensions = {
+        "stability": stab,
+        "L_cap": cap,
+        "L_act": act,
+        "resilience": res,
+        "governance": gov,
+        "anti_gaming": anti,
+        "stress_suite": stress_dim,
+    }
+    global_score = float(np.mean(list(dimensions.values())) * 100.0) if dimensions else 0.0
+    verdict = {
+        "label": str(maturity.get("label", "Immature")),
+        "global_score": global_score,
+        "dimensions": dimensions,
+    }
 
     return AuditReport(
         version="0.4.3",
