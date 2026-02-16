@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -223,8 +224,38 @@ def build_audit_report(
     )
 
 
+def _sanitize_json(obj: Any) -> Any:
+    """Convert NaN/Inf to None recursively so JSON is strict and portable."""
+    if obj is None:
+        return None
+    if isinstance(obj, (str, int, bool)):
+        return obj
+    # numpy scalars
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        obj = float(obj)
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return float(obj)
+    if isinstance(obj, dict):
+        return {str(k): _sanitize_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_json(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return [_sanitize_json(v) for v in obj.tolist()]
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    if isinstance(obj, Path):
+        return str(obj)
+    # last resort
+    return str(obj)
+
+
 def write_audit_report(report: AuditReport, out_path: str | Path) -> None:
     p = Path(out_path)
     p.parent.mkdir(parents=True, exist_ok=True)
+    payload = _sanitize_json(asdict(report))
     with p.open("w", encoding="utf-8") as f:
-        json.dump(asdict(report), f, indent=2, ensure_ascii=False)
+        json.dump(payload, f, indent=2, ensure_ascii=False, allow_nan=False)
