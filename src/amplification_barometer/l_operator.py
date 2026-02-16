@@ -261,9 +261,27 @@ def evaluate_l_performance(
     cap01 = float(np.mean(_to_unit_interval(lcap.to_numpy(dtype=float))))
     act01 = float(np.mean(_to_unit_interval(lact.to_numpy(dtype=float))))
 
+    # Verdict minimal (sans circularité): basé sur performance + activation + garde-fous gouvernance.
+    g_rule_gap = float(np.mean(pd.to_numeric(df.get("rule_execution_gap"), errors="coerce").to_numpy(dtype=float)))
+    g_turnover = float(np.mean(pd.to_numeric(df.get("control_turnover"), errors="coerce").to_numpy(dtype=float)))
+
+    verdict = "Dissonant"
+    if (cap01 < 0.40) or (prevented_rel < 0.05):
+        verdict = "Immature"
+    elif (
+        (cap01 >= 0.60)
+        and (act01 >= 0.60)
+        and (np.isfinite(activation_delay_steps) and activation_delay_steps <= 5.0)
+        and (prevented_rel >= 0.10)
+        and (e_reduction_rel >= 0.20)
+        and (g_rule_gap <= 0.05)
+        and (g_turnover <= 0.05)
+    ):
+        verdict = "Mature"
     return {
         "prevented_exceedance": float(prevented),
         "prevented_exceedance_rel": float(prevented_rel),
+        "verdict": verdict,
         "prevented_topk_excess_rel": float(prevented_topk_excess_rel),
         "activation_delay_steps": float(activation_delay_steps),
         "e_reduction_rel": float(e_reduction_rel),

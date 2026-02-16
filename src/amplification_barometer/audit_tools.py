@@ -254,7 +254,8 @@ def anti_gaming_o_bias(
     delta_mean = float(np.mean(r1.to_numpy(dtype=float) - r0.to_numpy(dtype=float)))
     red_flag = bool(delta_mean < -0.25 * float(np.std(r0.to_numpy(dtype=float)) + 1e-9))
 
-    detections = detect_falsification(biased, cols=[c for c in biased.columns if c.endswith("_proxy")])
+    proxy_cols = [c for c in biased.columns if c.endswith("_proxy")]
+    detections = {c: detect_falsification(biased, proxy=c).__dict__ for c in proxy_cols}
 
     return {
         "delta_risk_mean": float(delta_mean),
