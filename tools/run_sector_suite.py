@@ -45,7 +45,7 @@ def main() -> int:
         df = _read_csv(p)
         rep = build_audit_report(df, dataset_name=p.stem, window=args.window, thresholds=thresholds)
         write_audit_report(rep, out_dir / f"audit_report_{p.stem}.json")
-        results.append({"name": p.stem, "maturity": rep.maturity.get("label"), "risk_mean": rep.summary.get("RISK", {}).get("mean")})
+        results.append({"name": p.stem, "maturity": rep.maturity.get("label"), "risk_mean": rep.summary.get("RISK", {}).get("mean"), "global_score": (rep.verdict or {}).get("global_score"), "dimensions": ((rep.verdict or {}).get("dimensions") or {})})
 
     (out_dir / "sector_suite_summary.json").write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     return 0

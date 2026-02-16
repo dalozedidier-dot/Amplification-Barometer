@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .calibration import Thresholds, derive_thresholds, risk_signature
-from .composites import compute_e_metrics, compute_o_level, compute_at, compute_delta_d, robust_zscore
+from .composites import compute_at, compute_delta_d, compute_e_metrics, compute_o_level, robust_zscore
 
 
 def _require(df: pd.DataFrame, cols: Tuple[str, ...], context: str) -> None:
@@ -101,7 +100,6 @@ def realize_activation(desired: pd.Series, lact: pd.Series, *, max_delay: int = 
     d = desired.to_numpy(dtype=bool)
     a = np.zeros_like(d, dtype=bool)
     lact01 = _to_unit_interval(lact.to_numpy(dtype=float))
-    # lower lact => more delay
     delays = np.round((1.0 - lact01) * float(max_delay)).astype(int)
 
     last_desired = -10**9
@@ -111,7 +109,7 @@ def realize_activation(desired: pd.Series, lact: pd.Series, *, max_delay: int = 
             delay = int(delays[i])
             j = min(len(a) - 1, i + delay)
             a[j] = True
-    # keep activation "on" for a short hold to model enforcement duration
+
     hold = max(1, int(max_delay // 3))
     for i in range(len(a)):
         if a[i]:
@@ -195,10 +193,18 @@ def evaluate_l_performance(
     lact_override: pd.Series | None = None,
     lcap_override: pd.Series | None = None,
 ) -> Dict[str, Any]:
-    risk = _risk_series(df, window=window, thresholds=thresholds)
+    """
+    Évalue un opérateur de limite L en utilisant un seuil de risque.
+
+    Règle baseline:
+    - Si thresholds est fourni, risk_threshold par défaut doit être thresholds.risk_thr
+    - Interdire un recalcul par dataset quand une baseline est fournie
+    """
+    local_thr = thresholds if thresholds is not None else derive_thresholds(df, window=window)
+    risk = _risk_series(df, window=window, thresholds=local_thr)
+
     if risk_threshold is None:
-        k = max(1, int(len(df) * float(topk_frac)))
-        risk_threshold = float(np.partition(risk.to_numpy(dtype=float), -k)[-k])
+        risk_threshold = float(local_thr.risk_thr)
 
     lact = compute_l_act(df) if lact_override is None else lact_override
     lcap = compute_l_cap(df) if lcap_override is None else lcap_override
@@ -217,7 +223,7 @@ def evaluate_l_performance(
 
     activated = realize_activation(desired, lact, max_delay=max_delay)
     df_limited = apply_limit_action(df, activated, lcap, intensity=intensity)
-    risk_limited = _risk_series(df_limited, window=window, thresholds=thresholds)
+    risk_limited = _risk_series(df_limited, window=window, thresholds=local_thr)
 
     base_mask = risk.to_numpy(dtype=float) > float(risk_threshold)
     lim_mask = risk_limited.to_numpy(dtype=float) > float(risk_threshold)
@@ -245,20 +251,15 @@ def evaluate_l_performance(
     first_a = int(np.argmax(a)) if np.any(a) else -1
     activation_delay_steps = float(first_a - first_d) if (first_d >= 0 and first_a >= 0) else float("nan")
 
-    # E reduction relative
+    # E reduction relative, bornée dans [0, 1]
     e_base = compute_e_metrics(df)["E_level"].to_numpy(dtype=float)
     e_lim = compute_e_metrics(df_limited)["E_level"].to_numpy(dtype=float)
-    e_base_mean = float(np.mean(e_base))
-    e_lim_mean = float(np.mean(e_lim))
-    e_reduction_rel = float(max(0.0, e_base_mean - e_lim_mean) / (abs(e_base_mean) + 1e-12))
+    base_abs = float(np.mean(np.abs(e_base))) + 1e-12
+    lim_abs = float(np.mean(np.abs(e_lim)))
+    e_reduction_rel = float(np.clip(max(0.0, base_abs - lim_abs) / base_abs, 0.0, 1.0))
 
     cap01 = float(np.mean(_to_unit_interval(lcap.to_numpy(dtype=float))))
     act01 = float(np.mean(_to_unit_interval(lact.to_numpy(dtype=float))))
-    verdict = "Mature"
-    if cap01 < 0.45:
-        verdict = "Immature"
-    elif (cap01 >= 0.45) and (act01 < 0.45):
-        verdict = "Dissonant"
 
     return {
         "prevented_exceedance": float(prevented),
@@ -267,36 +268,50 @@ def evaluate_l_performance(
         "activation_delay_steps": float(activation_delay_steps),
         "e_reduction_rel": float(e_reduction_rel),
         "risk_threshold": float(risk_threshold),
-        "verdict": verdict,
+        "l_cap_proxy_mean": float(cap01),
+        "l_act_proxy_mean": float(act01),
     }
 
 
-def assess_maturity(df: pd.DataFrame, *, window: int = 5) -> MaturityAssessment:
+def assess_maturity(df: pd.DataFrame, *, window: int = 5, thresholds: Thresholds | None = None) -> MaturityAssessment:
     """Maturity without circularity: L_cap bench + L_act observed."""
+    local_thr = thresholds if thresholds is not None else derive_thresholds(df, window=window)
+
     lcap = compute_l_cap(df)
     lact = compute_l_act(df)
-    # Bench: ideal activation (always on)
+
+    # Bench: idéal (activation toujours active)
     ideal_lact = pd.Series(np.ones(len(df), dtype=float) * 10.0, index=df.index, name="L_ACT_IDEAL")
-    perf_ideal = evaluate_l_performance(df, window=window, lact_override=ideal_lact, lcap_override=lcap)
+    perf_ideal = evaluate_l_performance(df, window=window, thresholds=local_thr, lact_override=ideal_lact, lcap_override=lcap)
 
     l_cap_bench_score = float(0.6 * perf_ideal["prevented_exceedance_rel"] + 0.4 * perf_ideal["prevented_topk_excess_rel"])
-    perf_real = evaluate_l_performance(df, window=window, thresholds=None)
+
+    perf_real = evaluate_l_performance(df, window=window, thresholds=local_thr)
     activation_delay_steps = float(perf_real["activation_delay_steps"])
+
     act01 = _to_unit_interval(lact.to_numpy(dtype=float))
     activation_stability = float(1.0 - np.std(act01))
 
-    gap = float(np.mean(pd.to_numeric(df.get("rule_execution_gap", 0.0), errors="coerce").to_numpy(dtype=float))) if "rule_execution_gap" in df.columns else 1.0
-    ct = float(np.mean(pd.to_numeric(df.get("control_turnover", 0.0), errors="coerce").to_numpy(dtype=float))) if "control_turnover" in df.columns else 1.0
+    gap = (
+        float(np.mean(pd.to_numeric(df.get("rule_execution_gap", 0.0), errors="coerce").to_numpy(dtype=float)))
+        if "rule_execution_gap" in df.columns
+        else 1.0
+    )
+    ct = (
+        float(np.mean(pd.to_numeric(df.get("control_turnover", 0.0), errors="coerce").to_numpy(dtype=float)))
+        if "control_turnover" in df.columns
+        else 1.0
+    )
 
-    # Criteria targets
     prevented_exceedance_rel = float(perf_real["prevented_exceedance_rel"])
     e_reduction_rel = float(perf_real["e_reduction_rel"])
 
+    # Typologie conforme
     label = "Mature"
     if l_cap_bench_score < 0.45:
         label = "Immature"
     else:
-        # dissonant if activation low or governance off-target
+        # dissonant si activation faible ou gouvernance hors cibles
         if (float(np.mean(act01)) < 0.45) or (gap > 0.05) or (ct > 0.05):
             label = "Dissonant"
 
@@ -306,6 +321,7 @@ def assess_maturity(df: pd.DataFrame, *, window: int = 5) -> MaturityAssessment:
         "gap_mean": gap,
         "ct_mean": ct,
     }
+
     return MaturityAssessment(
         label=label,
         l_cap_bench_score=float(l_cap_bench_score),

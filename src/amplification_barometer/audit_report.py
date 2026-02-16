@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -42,6 +41,7 @@ class AuditReport:
     l_performance_proactive: Dict[str, Any]
     manipulability: Dict[str, Any]
     anti_gaming: Dict[str, Any]
+    verdict: Dict[str, Any]
     targets: Dict[str, Any]
 
 
@@ -63,6 +63,68 @@ def _topk_indices(x: pd.Series, k: int) -> Sequence[int]:
         return []
     idx = np.argpartition(arr, -k)[-k:]
     return [int(i) for i in idx.tolist()]
+
+
+def _resilience_summary(stress_suite: Dict[str, Any]) -> Dict[str, Any]:
+    statuses = {}
+    degradations = []
+    for name, payload in stress_suite.items():
+        st = str(payload.get("status"))
+        statuses[name] = st
+        degradations.append(float(payload.get("degradation", 0.0)))
+    resilient = sum(1 for s in statuses.values() if s == "Résilient")
+    total = max(1, len(statuses))
+    return {
+        "resilient_frac": float(resilient / total),
+        "worst_degradation": float(np.max(degradations)) if degradations else 0.0,
+        "statuses": statuses,
+    }
+
+
+def _governance_summary(maturity: Dict[str, Any], targets: Dict[str, Any]) -> Dict[str, Any]:
+    gap = float(maturity.get("governance_rule_execution_gap", 1.0))
+    ct = float(maturity.get("governance_control_turnover", 1.0))
+    ok = bool((gap <= float(targets["rule_execution_gap_target_max"])) and (ct <= float(targets["control_turnover_target_max"])))
+    return {"rule_execution_gap_mean": gap, "control_turnover_mean": ct, "meets_targets": ok}
+
+
+def _compute_verdict(
+    *,
+    stability: Dict[str, Any],
+    maturity: Dict[str, Any],
+    stress_suite: Dict[str, Any],
+    anti_gaming: Dict[str, Any],
+    targets: Dict[str, Any],
+) -> Dict[str, Any]:
+    stability_score = 1.0 if bool(stability.get("stable_flag")) else 0.0
+    lcap_score = float(np.clip(float(maturity.get("l_cap_bench_score", 0.0)), 0.0, 1.0))
+    lact_score = float(np.clip(float(maturity.get("l_act_mean", 0.0)), 0.0, 1.0))
+
+    gov = _governance_summary(maturity, targets)
+    governance_score = 1.0 if gov["meets_targets"] else 0.0
+
+    res = _resilience_summary(stress_suite)
+    resilience_score = float(np.clip(res["resilient_frac"], 0.0, 1.0))
+
+    anti_gaming_score = 0.0 if bool(anti_gaming.get("red_flag")) else 1.0
+
+    dims = {
+        "stability": {"score": stability_score, "stable_flag": bool(stability.get("stable_flag")), "spearman_mean": float(stability.get("spearman_mean_risk", 0.0)), "topk_jaccard_mean": float(stability.get("topk_jaccard_mean_risk", 0.0))},
+        "L_cap": {"score": lcap_score, "l_cap_bench_score": float(maturity.get("l_cap_bench_score", 0.0))},
+        "L_act": {"score": lact_score, "l_act_mean": float(maturity.get("l_act_mean", 0.0)), "activation_delay_steps": float(maturity.get("activation_delay_steps", float("nan"))), "activation_stability": float(maturity.get("activation_stability", float("nan")))},
+        "resilience": {"score": resilience_score, **res},
+        "governance": {"score": governance_score, **gov, "targets": {"rule_execution_gap_max": float(targets["rule_execution_gap_target_max"]), "control_turnover_max": float(targets["control_turnover_target_max"])}},
+        "anti_gaming": {"score": anti_gaming_score, "red_flag": bool(anti_gaming.get("red_flag")), "delta_risk_mean": float(anti_gaming.get("delta_risk_mean", 0.0))},
+        "stress_suite": {"scenarios": stress_suite},
+    }
+
+    global_score = float(np.mean([stability_score, lcap_score, lact_score, governance_score, resilience_score, anti_gaming_score]))
+
+    return {
+        "label": str(maturity.get("label")),
+        "global_score": global_score,
+        "dimensions": dims,
+    }
 
 
 def build_audit_report(
@@ -108,7 +170,7 @@ def build_audit_report(
 
     stability = audit_score_stability(df, windows=(3, 5, 8), topk_frac=0.10)
     stress_suite = run_stress_suite(df, window=window, thresholds=thresholds)
-    maturity = asdict(assess_maturity(df, window=window))
+    maturity = asdict(assess_maturity(df, window=window, thresholds=thresholds))
 
     l_perf = evaluate_l_performance(df, window=window, thresholds=thresholds)
 
@@ -133,10 +195,18 @@ def build_audit_report(
         "prevented_exceedance_rel_min": 0.10,
     }
 
+    verdict = _compute_verdict(
+        stability=stability,
+        maturity=maturity,
+        stress_suite=stress_suite,
+        anti_gaming=anti_gaming,
+        targets=targets,
+    )
+
     created_utc = datetime.now(timezone.utc).isoformat()
 
     return AuditReport(
-        version="0.5.0",
+        version="0.5.1",
         weights_version=WEIGHTS_VERSION,
         dataset_name=str(dataset_name),
         created_utc=created_utc,
@@ -148,6 +218,7 @@ def build_audit_report(
         l_performance_proactive=l_perf_pro,
         manipulability=manipulability,
         anti_gaming=anti_gaming,
+        verdict=verdict,
         targets=targets,
     )
 

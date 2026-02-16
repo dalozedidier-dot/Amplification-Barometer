@@ -33,3 +33,7 @@ def test_build_audit_report_has_expected_keys():
     assert "Overload" in rep.stress_suite
     assert "label" in rep.maturity
     assert "prevented_exceedance_rel_target_min" in rep.targets
+    assert rep.verdict["label"] in {"Mature", "Immature", "Dissonant"}
+    assert "dimensions" in rep.verdict
+    assert "stability" in rep.verdict["dimensions"]
+    assert "anti_gaming" in rep.verdict["dimensions"]
