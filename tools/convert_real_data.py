@@ -5,7 +5,7 @@ import argparse
 import json
 import zipfile
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import pandas as pd
 
@@ -45,7 +45,12 @@ def _write_meta(meta_path: Optional[Path], meta: Dict[str, Any]) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(description="Convert real datasets into Amplification-Barometer proxy CSV.")
     p.add_argument("--input", required=True, help="Path to .csv or .zip containing a single .csv")
-    p.add_argument("--kind", required=True, choices=["binance_aggtrades", "binance_trades", "borg_traces", "aiops_phase2"])
+    p.add_argument(
+        "--kind",
+        required=True,
+        choices=["binance_aggtrades", "binance_trades", "borg_traces", "aiops_phase2"],
+        help="Dataset kind / adapter to use",
+    )
     p.add_argument("--out-csv", required=True, help="Output proxy CSV path")
     p.add_argument("--meta-json", default=None, help="Optional metadata JSON output path")
 
@@ -60,7 +65,7 @@ def main() -> int:
     out_csv = Path(args.out_csv)
     meta_path = Path(args.meta_json) if args.meta_json else None
 
-    header = 0
+    header: Optional[int] = 0
     if args.kind in {"binance_aggtrades", "binance_trades"}:
         header = None
 
@@ -87,6 +92,11 @@ def main() -> int:
     else:
         raise ValueError(f"Unknown kind: {args.kind}")
 
+    # Important: tools/run_audit.py expects a 'date' column for parsing + index.
+    # Ensure the index is written as a named column "date" in the CSV.
+    if prox.index.name is None or str(prox.index.name).strip() == "":
+        prox.index.name = "date"
+
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     prox.to_csv(out_csv, index=True)
 
@@ -94,6 +104,7 @@ def main() -> int:
         {
             "rows_out": int(len(prox)),
             "columns_out": list(prox.columns),
+            "index_name_out": str(prox.index.name),
         }
     )
     _write_meta(meta_path, meta)
