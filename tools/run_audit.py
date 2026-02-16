@@ -138,7 +138,40 @@ def _plot_series_plotly(
 
 
 def _read_csv(path: Path) -> pd.DataFrame:
-    return pd.read_csv(path, parse_dates=["date"]).set_index("date")
+    """Read a dataset CSV and return a DataFrame indexed by a datetime index named 'date'.
+
+    This tool historically required a 'date' column. For compatibility with proxy CSVs
+    produced by adapters (or user exports), we accept common alternatives:
+    - date, datetime, timestamp, time, ts
+    - an unnamed first column (ex: 'Unnamed: 0') that contains the index
+    """
+    df = pd.read_csv(path)
+
+    # Prefer explicit date-like columns
+    candidates = ["date", "datetime", "timestamp", "time", "ts"]
+    col = next((c for c in candidates if c in df.columns), None)
+
+    # Common case: index written without a name
+    if col is None and len(df.columns) > 0:
+        first = str(df.columns[0])
+        if first.startswith("Unnamed") or first.strip() == "":
+            df = df.rename(columns={df.columns[0]: "date"})
+            col = "date"
+
+    if col is None:
+        raise ValueError(
+            "Dataset CSV must contain a 'date' column (or one of: datetime, timestamp, time, ts), "
+            "or an unnamed first column holding the datetime index."
+        )
+
+    df[col] = pd.to_datetime(df[col], errors="coerce", utc=True)
+    if df[col].isna().all():
+        raise ValueError(f"Could not parse any datetime values from column '{col}' in {path}")
+
+    df = df.set_index(col)
+    df.index.name = "date"
+    return df
+
 
 
 def _write_md_summary(report, out_path: Path) -> None:
