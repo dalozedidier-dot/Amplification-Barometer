@@ -41,6 +41,7 @@ class AuditReport:
     l_performance_proactive: Dict[str, Any]
     manipulability: Dict[str, Any]
     anti_gaming: Dict[str, Any]
+    verdict: Dict[str, Any]
     targets: Dict[str, Any]
 
 
@@ -87,6 +88,85 @@ def _json_default(obj: Any) -> Any:
     raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serialisable")
 
 
+def _compute_verdict(
+    *,
+    maturity: Mapping[str, Any],
+    stability: Mapping[str, Any],
+    stress_suite: Mapping[str, Any],
+    anti_gaming: Mapping[str, Any],
+    targets: Mapping[str, Any],
+) -> Dict[str, Any]:
+    # Scores normalisés 0..1 (démo). Les dimensions restent séparées.
+    def _clamp01(x: float) -> float:
+        return float(max(0.0, min(1.0, x)))
+
+    # stabilité: moyenne Spearman et Jaccard TopK si présents
+    spe = float(stability.get("spearman_mean_risk", stability.get("spearman_mean", 0.0)) or 0.0)
+    jac = float(stability.get("topk_jaccard_mean_risk", stability.get("topk_jaccard_mean", stability.get("topk_jaccard_mean_risk", 0.0))) or 0.0)
+    stability_score = _clamp01((spe + jac) / 2.0)
+
+    # L_cap / L_act depuis maturité
+    cap = float(maturity.get("cap_score_enforced", maturity.get("cap_score_raw", 0.0)) or 0.0)
+    act = float(maturity.get("act_score_enforced", maturity.get("act_score_raw", 0.0)) or 0.0)
+    lcap_score = _clamp01(cap)
+    lact_score = _clamp01(act)
+
+    # stress: plus la dégradation max est basse, meilleur est le score
+    degrs = []
+    for v in stress_suite.values():
+        try:
+            degrs.append(float(v.get("degradation", 1.0)))
+        except Exception:
+            pass
+    max_deg = max(degrs) if degrs else 1.0
+    stress_score = _clamp01(1.0 / (1.0 + max(0.0, max_deg - 1.0)))
+
+    # anti-gaming: pénalité si red_flag ou biais O élevé
+    red_flag = bool(anti_gaming.get("red_flag", False))
+    sev = 0.0
+    if "o_bias" in anti_gaming and isinstance(anti_gaming["o_bias"], Mapping):
+        sev = float(anti_gaming["o_bias"].get("severity", 0.0) or 0.0)
+    anti_score = _clamp01(1.0 - max(sev, 1.0 if red_flag else 0.0))
+
+    # gouvernance: cibles neutres via targets
+    gap_ok = bool(targets.get("rule_execution_gap_meets_target", False))
+    turn_ok = True
+    if "control_turnover_meets_target" in targets:
+        turn_ok = bool(targets.get("control_turnover_meets_target", False))
+    governance_score = 1.0 if (gap_ok and turn_ok) else (0.5 if (gap_ok or turn_ok) else 0.0)
+
+    # résilience: proxy via stress_score + L_act (démo)
+    resilience_score = _clamp01(0.6 * stress_score + 0.4 * lact_score)
+
+    dims = {
+        "stability": stability_score,
+        "L_cap": lcap_score,
+        "L_act": lact_score,
+        "resilience": resilience_score,
+        "governance": governance_score,
+        "anti_gaming": anti_score,
+        "stress_suite": stress_score,
+    }
+
+    # score global optionnel 0..100
+    weights = {
+        "stability": 0.15,
+        "L_cap": 0.20,
+        "L_act": 0.15,
+        "resilience": 0.15,
+        "governance": 0.15,
+        "anti_gaming": 0.10,
+        "stress_suite": 0.10,
+    }
+    global_score = 0.0
+    for k, w in weights.items():
+        global_score += float(dims.get(k, 0.0)) * float(w)
+    global_score_100 = float(round(100.0 * _clamp01(global_score), 2))
+
+    label = str(maturity.get("label", "Immature"))
+
+    return {"label": label, "global_score": global_score_100, "dimensions": dims}
+
 def build_audit_report(
     df: pd.DataFrame,
     *,
@@ -118,26 +198,6 @@ def build_audit_report(
     dd = compute_delta_d(df, window=delta_d_window)
     risk = _risk_series(df, window=delta_d_window)
 
-    # Observables E(t) et R(t) enrichis pour audit strict.
-    # Ici, compute_e(df) renvoie un proxy de stock (z-score). On dérive un niveau et une dérivée cohérents.
-    e_stock = e
-    e_level = e_stock.diff().fillna(0.0)
-    dE_dt = e_level
-
-    # irréversibilité: part des variations positives dans |dE_dt|, bornée 0..1
-    eps = 1e-12
-    pos = dE_dt.clip(lower=0.0)
-    num = pos.rolling(5, min_periods=1).sum()
-    den = dE_dt.abs().rolling(5, min_periods=1).sum() + eps
-    e_irreversibility = (num / den).clip(lower=0.0, upper=1.0)
-
-    r_level = r
-    if "recovery_time_proxy" in df.columns:
-        r_mttr_proxy = df["recovery_time_proxy"].astype(float)
-    else:
-        r_mttr_proxy = pd.Series([0.0] * len(df), index=df.index, name="recovery_time_proxy")
-
-
     k = max(1, int(len(df) * float(topk_frac)))
     topk = _topk_indices(risk, k)
 
@@ -145,13 +205,7 @@ def build_audit_report(
         "P": _series_stats(p),
         "O": _series_stats(o),
         "E": _series_stats(e),
-        "E_level": _series_stats(e_level),
-        "E_stock": _series_stats(e_stock),
-        "dE_dt": _series_stats(dE_dt),
-        "E_irreversibility": _series_stats(e_irreversibility),
         "R": _series_stats(r),
-        "R_level": _series_stats(r_level),
-        "R_mttr_proxy": _series_stats(r_mttr_proxy),
         "G": _series_stats(g),
         "AT": _series_stats(at),
         "DELTA_D": _series_stats(dd),
@@ -269,6 +323,8 @@ def build_audit_report(
         "proactive_o_threshold": float(o_thr),
     }
 
+    verdict = _compute_verdict(maturity=maturity, stability=stability, stress_suite=stress_suite, anti_gaming=anti_gaming, targets=targets)
+
     return AuditReport(
         version="0.4.3",
         weights_version=WEIGHTS_VERSION,
@@ -282,6 +338,7 @@ def build_audit_report(
         l_performance_proactive=l_perf_pro,
         manipulability=manipulability,
         anti_gaming=anti_gaming,
+        verdict=verdict,
         targets=targets,
     )
 
@@ -302,6 +359,7 @@ def write_audit_report(report: AuditReport, out_path: str | Path) -> None:
         "l_performance_proactive": report.l_performance_proactive,
         "manipulability": report.manipulability,
         "anti_gaming": report.anti_gaming,
+        "verdict": report.verdict,
         "targets": report.targets,
     }
     out_path.write_text(
