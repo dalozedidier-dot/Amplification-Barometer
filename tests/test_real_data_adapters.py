@@ -14,7 +14,6 @@ from amplification_barometer.real_data_adapters import (
     borg_traces_to_proxies,
 )
 
-
 FIX = Path(__file__).parent / "fixtures" / "raw"
 
 
@@ -26,9 +25,13 @@ def _assert_required(df: pd.DataFrame) -> None:
 
 
 def _assert_report_smoke(rep) -> None:
-    # Keep compatibility with older report schemas: only require the invariant keys.
-    for k in ["P", "O", "E", "R", "G", "AT", "DELTA_D", "RISK"]:
+    # Be tolerant to report schema evolution: require invariants + at least one E/R/G variant.
+    for k in ["P", "O", "AT", "DELTA_D", "RISK"]:
         assert k in rep.summary
+
+    assert ("E" in rep.summary) or ("E_stock" in rep.summary) or ("E_level" in rep.summary)
+    assert ("R" in rep.summary) or ("R_level" in rep.summary)
+    assert ("G" in rep.summary) or ("G_level" in rep.summary)
 
 
 def test_binance_aggtrades_adapter_smoke() -> None:

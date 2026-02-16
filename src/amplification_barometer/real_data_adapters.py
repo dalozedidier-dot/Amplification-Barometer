@@ -78,7 +78,7 @@ def _to_datetime_index(ts: pd.Series) -> pd.DatetimeIndex:
     dt = pd.to_datetime(ts.astype("int64"), unit=unit, utc=True, errors="coerce")
     if dt.isna().all():
         # Fallback: treat as monotonic steps
-        dt = pd.date_range("1970-01-01", periods=len(ts), freq="S", tz="UTC")
+        dt = pd.date_range("1970-01-01", periods=len(ts), freq="s", tz="UTC")
     return pd.DatetimeIndex(dt)
 
 
@@ -296,7 +296,7 @@ def borg_traces_to_proxies(
     agg["user_diversity"] = g.apply(lambda x: x["user"].nunique()).astype(float)
 
     agg = agg.sort_index()
-    idx = pd.date_range("1970-01-01", periods=len(agg), freq=f"{bucket_seconds}S", tz="UTC")
+    idx = pd.date_range("1970-01-01", periods=len(agg), freq=f"{bucket_seconds}s", tz="UTC")
     agg.index = idx
 
     overuse = ((agg["avg_cpu"] - agg["req_cpu"]).clip(lower=0.0)) / (agg["req_cpu"] + 1e-12)
