@@ -249,15 +249,47 @@ def build_audit_report(
     anti_gaming = {
         "o_bias": anti_gaming_o_bias(df, magnitude=o_bias_magnitude, window=delta_d_window),
     }
-
     # Cibles de démonstration (audit réel: ces seuils doivent être justifiés par secteur)
     gap_mean = float(np.mean(df["rule_execution_gap"].astype(float).to_numpy())) if "rule_execution_gap" in df.columns else float("nan")
+    control_turnover_mean = float(np.mean(df["control_turnover"].astype(float).to_numpy())) if "control_turnover" in df.columns else float("nan")
+
+    # Cibles de performance L (anti circularité): elles s'appliquent sur la variante proactive retenue.
+    perf = l_perf_pro
+    prevented_exceedance_rel = float(perf.get("prevented_exceedance_rel", 0.0))
+    prevented_topk_excess_rel = float(perf.get("prevented_topk_excess_rel", 0.0))
+    activation_delay_steps = float(perf.get("activation_delay_steps", float("nan")))
+    e_reduction_rel = float(perf.get("e_reduction_rel", float("nan")))
+    recovery_rate_post_stress = float(perf.get("recovery_rate_post_stress", float("nan")))
+
     targets: Dict[str, Any] = {
+        # Gouvernance
         "rule_execution_gap_target_max": 0.05,
         "rule_execution_gap_mean": gap_mean,
         "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
         "control_turnover_target_max": 0.05,
-        "control_turnover_mean": float(np.mean(df["control_turnover"].astype(float).to_numpy())) if "control_turnover" in df.columns else float("nan"),
+        "control_turnover_mean": control_turnover_mean,
+        "control_turnover_meets_target": bool(control_turnover_mean <= 0.05) if np.isfinite(control_turnover_mean) else False,
+
+        # Performance sous stress (L_cap x L_act)
+        "prevented_exceedance_rel_target_min": 0.10,
+        "prevented_exceedance_rel": prevented_exceedance_rel,
+        "prevented_exceedance_rel_meets_target": bool(prevented_exceedance_rel >= 0.10),
+
+        "prevented_topk_excess_rel_target_min": 0.10,
+        "prevented_topk_excess_rel": prevented_topk_excess_rel,
+        "prevented_topk_excess_rel_meets_target": bool(prevented_topk_excess_rel >= 0.10),
+
+        "activation_delay_steps_target_max": 5,
+        "activation_delay_steps": activation_delay_steps,
+        "activation_delay_steps_meets_target": bool(activation_delay_steps <= 5) if np.isfinite(activation_delay_steps) else False,
+
+        "E_reduction_rel_target_min": 0.20,
+        "E_reduction_rel": e_reduction_rel,
+        "E_reduction_rel_meets_target": bool(e_reduction_rel >= 0.20) if np.isfinite(e_reduction_rel) else False,
+
+        "recovery_rate_post_stress_target_min": 0.90,
+        "recovery_rate_post_stress": recovery_rate_post_stress,
+        "recovery_rate_post_stress_meets_target": bool(recovery_rate_post_stress >= 0.90) if np.isfinite(recovery_rate_post_stress) else False,
     }
 
     # Verdict multidimensionnel léger (auditables)
