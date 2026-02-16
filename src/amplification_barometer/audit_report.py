@@ -112,29 +112,31 @@ def build_audit_report(
     p = compute_p(df)
     o = compute_o(df)
     e = compute_e(df)
-
-# E(t) complet: niveau, stock, dérivée, irréversibilité (auditables)
-e_level = e
-e_stock = e_level.cumsum()
-dE_dt = e_level.diff().fillna(0.0)
-
-# irréversibilité: part de variations positives dans |dE_dt| (0..1)
-eps = 1e-12
-num = (dE_dt.clip(lower=0.0)).rolling(5, min_periods=1).sum()
-den = (dE_dt.abs()).rolling(5, min_periods=1).sum() + eps
-e_irreversibility = (num / den).clip(lower=0.0, upper=1.0)
     r = compute_r(df)
-
-# R(t) complet: niveau + proxy MTTR (temps de récupération)
-r_level = r
-if "recovery_time_proxy" in df.columns:
-    r_mttr_proxy = df["recovery_time_proxy"].astype(float)
-else:
-    r_mttr_proxy = pd.Series([0.0]*len(df), index=df.index, name="recovery_time_proxy")
     g = compute_g(df)
     at = compute_at(df)
     dd = compute_delta_d(df, window=delta_d_window)
     risk = _risk_series(df, window=delta_d_window)
+
+    # Observables E(t) et R(t) enrichis pour audit strict.
+    # Ici, compute_e(df) renvoie un proxy de stock (z-score). On dérive un niveau et une dérivée cohérents.
+    e_stock = e
+    e_level = e_stock.diff().fillna(0.0)
+    dE_dt = e_level
+
+    # irréversibilité: part des variations positives dans |dE_dt|, bornée 0..1
+    eps = 1e-12
+    pos = dE_dt.clip(lower=0.0)
+    num = pos.rolling(5, min_periods=1).sum()
+    den = dE_dt.abs().rolling(5, min_periods=1).sum() + eps
+    e_irreversibility = (num / den).clip(lower=0.0, upper=1.0)
+
+    r_level = r
+    if "recovery_time_proxy" in df.columns:
+        r_mttr_proxy = df["recovery_time_proxy"].astype(float)
+    else:
+        r_mttr_proxy = pd.Series([0.0] * len(df), index=df.index, name="recovery_time_proxy")
+
 
     k = max(1, int(len(df) * float(topk_frac)))
     topk = _topk_indices(risk, k)
