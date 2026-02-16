@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from amplification_barometer.audit_report import build_audit_report, write_audit_report  # noqa: E402
-from amplification_barometer.calibration import discriminate_regimes  # noqa: E402
+from amplification_barometer.calibration import discriminate_regimes, derive_thresholds  # noqa: E402
 from amplification_barometer.composites import compute_at, compute_delta_d  # noqa: E402
 from amplification_barometer.l_operator import compute_l_act, compute_l_cap  # noqa: E402
 from amplification_barometer.html_report import HtmlReportOptions, build_self_contained_html_report, build_reports_index  # noqa: E402
@@ -226,7 +226,11 @@ def main() -> int:
         datasets = [(Path(args.dataset), args.name or Path(args.dataset).stem)]
 
 
-    # Calibration discrimination summary (synthetic only): derived once from stable regime
+    # Baseline stable (comparabilité inter-datasets).
+    # - En mode --all-synthetic: dérivé une fois et réutilisé partout.
+    # - En mode dataset unique: si stable_regime.csv est présent, on l'utilise comme baseline.
+    baseline_thresholds: dict[str, float] | None = None
+
     if args.all_synthetic:
         syn = Path(args.synthetic_dir)
         disc = discriminate_regimes(
@@ -238,15 +242,30 @@ def main() -> int:
             stable_name="stable",
             window=args.window,
         )
+        baseline_thresholds = dict(disc.get("thresholds", {}) or {})
         (out_dir / "calibration_report.json").write_text(
-            json.dumps(disc, indent=2, ensure_ascii=False), encoding="utf-8"
+            json.dumps(disc, indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8"
         )
+    else:
+        syn = Path(args.synthetic_dir)
+        stable_path = syn / "stable_regime.csv"
+        if stable_path.exists():
+            thr = derive_thresholds(_read_csv(stable_path), window=args.window)
+            baseline_thresholds = {
+                "risk_thr": float(thr.risk_thr),
+                "at_p95_stable": float(thr.at_p95_stable),
+                "dd_p95_stable": float(thr.dd_p95_stable),
+                "baseline_at_median": float(thr.baseline_at_median),
+                "baseline_at_mad": float(thr.baseline_at_mad),
+                "baseline_dd_median": float(thr.baseline_dd_median),
+                "baseline_dd_mad": float(thr.baseline_dd_mad),
+            }
 
     html_reports = []
 
     for path, name in datasets:
         df = _read_csv(path)
-        report = build_audit_report(df, dataset_name=name)
+        report = build_audit_report(df, dataset_name=name, delta_d_window=args.window, thresholds=baseline_thresholds)
         write_audit_report(report, out_dir / f"audit_report_{name}.json")
 
         if args.html_report:
