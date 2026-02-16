@@ -112,7 +112,25 @@ def build_audit_report(
     p = compute_p(df)
     o = compute_o(df)
     e = compute_e(df)
+
+# E(t) complet: niveau, stock, dérivée, irréversibilité (auditables)
+e_level = e
+e_stock = e_level.cumsum()
+dE_dt = e_level.diff().fillna(0.0)
+
+# irréversibilité: part de variations positives dans |dE_dt| (0..1)
+eps = 1e-12
+num = (dE_dt.clip(lower=0.0)).rolling(5, min_periods=1).sum()
+den = (dE_dt.abs()).rolling(5, min_periods=1).sum() + eps
+e_irreversibility = (num / den).clip(lower=0.0, upper=1.0)
     r = compute_r(df)
+
+# R(t) complet: niveau + proxy MTTR (temps de récupération)
+r_level = r
+if "recovery_time_proxy" in df.columns:
+    r_mttr_proxy = df["recovery_time_proxy"].astype(float)
+else:
+    r_mttr_proxy = pd.Series([0.0]*len(df), index=df.index, name="recovery_time_proxy")
     g = compute_g(df)
     at = compute_at(df)
     dd = compute_delta_d(df, window=delta_d_window)
@@ -125,7 +143,13 @@ def build_audit_report(
         "P": _series_stats(p),
         "O": _series_stats(o),
         "E": _series_stats(e),
+        "E_level": _series_stats(e_level),
+        "E_stock": _series_stats(e_stock),
+        "dE_dt": _series_stats(dE_dt),
+        "E_irreversibility": _series_stats(e_irreversibility),
         "R": _series_stats(r),
+        "R_level": _series_stats(r_level),
+        "R_mttr_proxy": _series_stats(r_mttr_proxy),
         "G": _series_stats(g),
         "AT": _series_stats(at),
         "DELTA_D": _series_stats(dd),

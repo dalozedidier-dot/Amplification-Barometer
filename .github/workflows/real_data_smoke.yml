@@ -1,0 +1,53 @@
+name: Real Data Smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"  # Mondays 03:00 UTC
+
+jobs:
+  real-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Run real-data smoke tests (if present)
+        run: |
+          if [ -f tests/test_real_data_smoke.py ]; then
+            pytest -q tests/test_real_data_smoke.py
+          else
+            echo "No tests/test_real_data_smoke.py in repo; skipping."
+          fi
+
+      - name: Build real-data audit artefacts (fixtures if present)
+        run: |
+          mkdir -p _ci_out/real_data
+          if [ -f tests/fixtures/real/btc_5min_proxies_sample.csv ]; then
+            python tools/run_audit.py --dataset tests/fixtures/real/btc_5min_proxies_sample.csv --name btc_5min_real --out-dir _ci_out/real_data --plot --html-report --plotly
+          fi
+          if [ -f tests/fixtures/real/algae_raceway0_proxies_sample.csv ]; then
+            python tools/run_audit.py --dataset tests/fixtures/real/algae_raceway0_proxies_sample.csv --name algae_raceway_real --out-dir _ci_out/real_data --plot --html-report --plotly
+          fi
+          # Optional: if you commit real proxy CSVs under data/real_proxies/, audit them too.
+          if [ -d data/real_proxies ]; then
+            for f in data/real_proxies/*.csv; do
+              [ -e "$f" ] || continue
+              name=$(basename "$f" .csv)
+              python tools/run_audit.py --dataset "$f" --name "$name" --out-dir _ci_out/real_data --plot --html-report --plotly
+            done
+          fi
+
+      - name: Upload real-data artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: real_data_artefacts
+          path: _ci_out/real_data

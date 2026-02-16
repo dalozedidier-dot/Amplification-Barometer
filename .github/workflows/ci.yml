@@ -24,7 +24,11 @@ jobs:
           pip install -e .
       - name: Run tests
         run: |
-          pytest -q
+          if [ -f tests/test_real_data_smoke.py ]; then
+            pytest -q --ignore=tests/test_real_data_smoke.py
+          else
+            pytest -q
+          fi
 
       - name: Build audit artefacts (demo)
         if: ${{ matrix.python-version == '3.12' }}
