@@ -1,9 +1,8 @@
-
 from setuptools import find_packages, setup
 
 setup(
     name="amplification-barometer",
-    version="0.5.0",
+    version="0.4.4",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[
@@ -12,7 +11,6 @@ setup(
         "scipy>=1.10.0",
         "matplotlib>=3.7.0",
         "plotly>=5.20.0",
-        "PyYAML>=6.0",
     ],
     author="Votre Nom",
     description="Auditable amplification barometer: composites, stability audits, stress tests, anti-gaming suite, and L(t) performance checks",

@@ -1,11 +1,15 @@
-
 import numpy as np
-from amplification_barometer.ode_model import simulate_barometer_ode
+
+from amplification_barometer.ode_model import BarometerParams, simulate_minimal_po, simulate_barometer_ode
 
 
-def test_ode_simulation_runs():
-    t = np.linspace(0, 10, 50)
-    df = simulate_barometer_ode(t=t)
-    assert list(df.columns) == ["P", "O", "E", "R", "G"]
+def test_simulate_minimal_po():
+    df = simulate_minimal_po(t=np.linspace(0, 5, 50))
+    assert list(df.columns) == ["P", "O"]
     assert len(df) == 50
-    assert np.isfinite(df.to_numpy()).all()
+
+
+def test_simulate_barometer_ode_shapes():
+    df = simulate_barometer_ode(t=np.linspace(0, 10, 100), params=BarometerParams())
+    assert list(df.columns) == ["P", "O", "E", "R"]
+    assert len(df) == 100

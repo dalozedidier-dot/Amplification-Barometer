@@ -1,15 +1,8 @@
 version: "v1.0"
 notes:
   purpose: "Proxy specifications for auditable composites. Ranges are default demo ranges and must be adapted per sector."
-  normalization_default: "baseline_mad_z"
+  normalization_default: "mad_z"
   missing_policy: "raise"
-
-
-falsification_defaults:
-  jump_mad_mult: 8.0
-  shift_mad_mult: 1.8
-  range_violation_rate: 0.01
-  clamp_quantile_width: 0.10
 
 families:
   P:

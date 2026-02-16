@@ -1,53 +1,78 @@
-
 #!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
-from typing import List
 
 import pandas as pd
 
 from amplification_barometer.audit_report import build_audit_report, write_audit_report
-from amplification_barometer.calibration import derive_thresholds
 
 
 def _read_csv(path: Path) -> pd.DataFrame:
-    df = pd.read_csv(path)
-    if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"], errors="coerce")
-        df = df.set_index("date").sort_index()
-    return df
+    return pd.read_csv(path, parse_dates=["date"]).set_index("date")
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--sector-dir", default="data/sector", help="Directory with sector datasets")
-    ap.add_argument("--baseline-csv", default="data/synthetic/stable_regime.csv", help="Stable baseline CSV")
-    ap.add_argument("--out-dir", default="_ci_out/sector_suite", help="Output dir")
-    ap.add_argument("--window", type=int, default=5)
+    ap = argparse.ArgumentParser(description="Run a small sector suite on sector datasets (2026, 2027+, etc.).")
+    ap.add_argument("--sector-dir", type=str, default="data/sector_2026")
+    ap.add_argument("--out-dir", type=str, default="_ci_out")
+    ap.add_argument("--datasets", nargs="*", default=None, help="Override datasets to run")
     args = ap.parse_args()
 
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out = Path(args.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
 
-    thresholds = None
-    base_path = Path(args.baseline_csv)
-    if base_path.exists():
-        thresholds = derive_thresholds(_read_csv(base_path), window=args.window)
-        (out_dir / "baseline_thresholds.json").write_text(json.dumps(thresholds.__dict__, indent=2), encoding="utf-8")
+    if args.datasets:
+        paths = [Path(p) for p in args.datasets]
+    else:
+        sdir = Path(args.sector_dir)
+        paths = sorted(sdir.glob("*.csv"))
 
-    sector_dir = Path(args.sector_dir)
-    csvs: List[Path] = sorted(sector_dir.glob("*.csv")) if sector_dir.exists() else []
-    results = []
-    for p in csvs:
+    rows = []
+    for p in paths:
+        if not p.exists():
+            raise SystemExit(f"Missing dataset: {p}")
+        name = p.stem
         df = _read_csv(p)
-        rep = build_audit_report(df, dataset_name=p.stem, window=args.window, thresholds=thresholds)
-        write_audit_report(rep, out_dir / f"audit_report_{p.stem}.json")
-        results.append({"name": p.stem, "maturity": rep.maturity.get("label"), "risk_mean": rep.summary.get("RISK", {}).get("mean"), "global_score": (rep.verdict or {}).get("global_score"), "dimensions": ((rep.verdict or {}).get("dimensions") or {})})
+        rep = build_audit_report(df, dataset_name=name)
+        write_audit_report(rep, out / f"audit_report_{name}.json")
+        rows.append(
+            {
+                "dataset": name,
+                "rule_execution_gap_mean": rep.targets.get("rule_execution_gap_mean"),
+                "gap_meets_target": rep.targets.get("rule_execution_gap_meets_target"),
+                "prevented_exceedance_rel": rep.targets.get("prevented_exceedance_rel"),
+                "prevented_meets_target": rep.targets.get("prevented_meets_target"),
+                "prevented_topk_excess_rel": rep.targets.get("prevented_topk_excess_rel"),
+                "proactive_topk_frac": rep.targets.get("proactive_topk_frac"),
+                "maturity_label": rep.maturity.get("label"),
+                "l_verdict": rep.l_performance.get("verdict"),
+                "l_verdict_proactive": rep.l_performance_proactive.get("verdict"),
+            }
+        )
 
-    (out_dir / "sector_suite_summary.json").write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+    summary = pd.DataFrame(rows)
+    summary.to_csv(out / "sector_suite_summary.csv", index=False)
+
+    md_lines = [
+        "# Sector suite summary",
+        "",
+        "Targets (demo):",
+        "- rule_execution_gap_mean < 0.05",
+        "- prevented_topk_excess_rel > 0.10 (proactive L variant)",
+        "",
+        "Results:",
+        "",
+    ]
+    # Avoid optional dependency (tabulate). Write a minimal table.
+    cols = list(summary.columns)
+    md_lines.append("| " + " | ".join(cols) + " |")
+    md_lines.append("| " + " | ".join(["---"] * len(cols)) + " |")
+    for _, r in summary.iterrows():
+        md_lines.append("| " + " | ".join(str(r[c]) for c in cols) + " |")
+    (out / "sector_suite_summary.md").write_text("\n".join(md_lines), encoding="utf-8")
+
     return 0
 
 
