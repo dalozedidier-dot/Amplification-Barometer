@@ -14,6 +14,10 @@ REQUIRED_PROXIES: Tuple[str, ...] = (
     "exemption_rate","sanction_delay","control_turnover","conflict_interest_proxy","rule_execution_gap",
 )
 
+# Backward compatible alias expected by older tests and workflows.
+REQUIRED_COLUMNS: Tuple[str, ...] = REQUIRED_PROXIES
+
+
 
 def has_required_proxies(df: pd.DataFrame) -> bool:
     cols = set(df.columns)
