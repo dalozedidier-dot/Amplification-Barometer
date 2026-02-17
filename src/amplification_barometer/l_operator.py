@@ -52,9 +52,17 @@ def compute_l_act(df: pd.DataFrame) -> pd.Series:
 
 
 def _sigmoid01(z: float, *, k: float = 1.6) -> float:
-    """Map un score (≈0 autour de stable) vers [0,1] avec dynamique (évite plafond à ~0.50)."""
+    """Map un score (≈0 autour de stable) vers [0,1] avec dynamique (évite plafond à ~0.50).
+
+    Implémentation numériquement stable pour éviter les overflows sur exp().
+    """
     z = float(z)
-    return float(1.0 / (1.0 + np.exp(-k * z)))
+    x = float(k) * z
+    if x >= 0.0:
+        e = float(np.exp(-x))
+        return float(1.0 / (1.0 + e))
+    e = float(np.exp(x))
+    return float(e / (1.0 + e))
 
 
 @dataclass(frozen=True)
