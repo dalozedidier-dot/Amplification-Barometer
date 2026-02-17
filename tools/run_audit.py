@@ -15,6 +15,7 @@ import pandas as pd  # noqa: E402
 from amplification_barometer.audit_report import build_audit_report, write_audit_report  # noqa: E402
 from amplification_barometer.calibration import Thresholds, derive_thresholds  # noqa: E402
 from amplification_barometer.composites import compute_at, compute_delta_d  # noqa: E402
+from amplification_barometer.l_operator import compute_l_cap, compute_l_act  # noqa: E402
 from amplification_barometer.html_report import render_audit_html  # noqa: E402
 
 
@@ -143,7 +144,9 @@ def _run_one(csv_path: Path, *, name: str, out_dir: Path, window: int, do_png: b
         else:
             plot_exponential_or_bifurcation(at.index, at.to_numpy(), title=f"@(t) – {name}", y_label="@(t)", out_html=out_dir / f"{name}_at.html")
         plot_exponential_or_bifurcation(dd.index, dd.to_numpy(), title=f"Δd(t) – {name}", y_label="Δd(t)", out_html=out_dir / f"{name}_delta_d.html")
-        plot_lcap_lact(df, title=f"L_cap / L_act – {name}", out_html=out_dir / f"{name}_lcap_lact.html")
+        l_cap = compute_l_cap(df).to_numpy()
+        l_act = compute_l_act(df).to_numpy()
+        plot_lcap_lact(df.index, l_cap, l_act, title=f"L_cap / L_act – {name}", out_html=out_dir / f"{name}_lcap_lact.html")
         build_dashboard(out_dir, prefix=name)
 
     # Consolidated HTML (self-contained)
