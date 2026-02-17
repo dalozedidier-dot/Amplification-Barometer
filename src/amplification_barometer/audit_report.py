@@ -40,6 +40,7 @@ class AuditReport:
     stability: Dict[str, Any]
     stress_suite: Dict[str, Any]
     maturity: Dict[str, Any]
+    verdict: Dict[str, Any]
     l_performance: Dict[str, Any]
     l_performance_proactive: Dict[str, Any]
     manipulability: Dict[str, Any]
@@ -126,7 +127,9 @@ def build_audit_report(
         "P": _series_stats(p),
         "O": _series_stats(o),
         "E": _series_stats(e),
+        "E_stock": _series_stats(e),
         "R": _series_stats(r),
+        "R_level": _series_stats(r),
         "G": _series_stats(g),
         "AT": _series_stats(at),
         "DELTA_D": _series_stats(dd),
@@ -242,6 +245,34 @@ def build_audit_report(
 
     thresholds_payload = asdict(thresholds) if thresholds is not None else None
 
+    
+    # Verdict (multidimensionnel, non circulaire)
+    stability_score = float(stability.get("spearman_mean_risk", float("nan")))
+    stability_dim = "ok" if np.isfinite(stability_score) and stability_score >= 0.85 else ("warn" if np.isfinite(stability_score) and stability_score >= 0.60 else "fail")
+    anti_flag = bool((anti_gaming.get("o_bias") or {}).get("flag", False))
+
+    l_reactive = str(l_perf.get("verdict", "UNKNOWN"))
+    l_proactive = str((variants[0].get("verdict", "UNKNOWN") if variants else "UNKNOWN"))
+
+    dims: Dict[str, Any] = {
+        "stability": {"score": stability_score, "state": stability_dim},
+        "l_reactive": l_reactive,
+        "l_proactive": l_proactive,
+        "anti_gaming_o_bias": {"flag": anti_flag},
+    }
+
+    # Label conservateur: priorité à la maturité proxy-based, puis cohérence avec L.
+    m_label = str(maturity.get("label", "Unknown"))
+    if anti_flag:
+        label = "Dissonant"
+    elif m_label.lower().startswith("mature") and l_reactive.upper() in {"PASS", "OK", "GOOD"}:
+        label = "Mature"
+    elif m_label.lower().startswith("immature"):
+        label = "Immature"
+    else:
+        label = "Dissonant"
+
+    verdict: Dict[str, Any] = {"label": label, "dimensions": dims}
     return AuditReport(
         version=str(REPORT_VERSION),
         weights_version=str(WEIGHTS_VERSION),
@@ -251,6 +282,7 @@ def build_audit_report(
         stability=stability,
         stress_suite={k: asdict(v) for k, v in stress_suite.items()},
         maturity=maturity,
+        verdict=verdict,
         l_performance=l_perf,
         l_performance_proactive=l_perf_pro,
         manipulability=manipulability,
@@ -272,6 +304,7 @@ def write_audit_report(report: AuditReport, out_path: str | Path) -> None:
         "stability": report.stability,
         "stress_suite": report.stress_suite,
         "maturity": report.maturity,
+        "verdict": report.verdict,
         "l_performance": report.l_performance,
         "l_performance_proactive": report.l_performance_proactive,
         "manipulability": report.manipulability,

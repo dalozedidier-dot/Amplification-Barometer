@@ -43,6 +43,123 @@ REQUIRED_PROXIES: Tuple[str, ...] = (
 # Backwards/forwards compatibility: some code/tests refer to REQUIRED_COLUMNS.
 REQUIRED_COLUMNS: Tuple[str, ...] = REQUIRED_PROXIES
 
+
+def has_required_proxies(df: pd.DataFrame) -> bool:
+    """Return True if the dataframe already contains the full proxy schema."""
+    cols = set(map(str, df.columns))
+    return set(REQUIRED_PROXIES).issubset(cols)
+
+
+def ensure_datetime_index(df: pd.DataFrame, *, tz: str = "UTC") -> pd.DataFrame:
+    """Ensure a timezone-aware DatetimeIndex.
+
+    Accepted time sources:
+    - existing DatetimeIndex
+    - a column among: date, datetime, dt, timestamp, time, ts, open_time, close_time
+    Numeric timestamps are interpreted as epoch seconds/ms/us via magnitude heuristics.
+    """
+    if isinstance(df.index, pd.DatetimeIndex):
+        idx = df.index
+        if idx.tz is None:
+            idx = idx.tz_localize("UTC")
+        idx = idx.tz_convert(tz)
+        out = df.copy()
+        out.index = idx
+        out.index.name = "date"
+        return out.sort_index()
+
+    time_cols = ("date", "datetime", "dt", "timestamp", "time", "ts", "open_time", "close_time")
+    for col in time_cols:
+        if col not in df.columns:
+            continue
+        s = df[col]
+        out = df.drop(columns=[col]).copy()
+
+        if pd.api.types.is_numeric_dtype(s):
+            s_num = pd.to_numeric(s, errors="coerce")
+            if s_num.notna().any():
+                unit = _detect_epoch_unit(s_num.dropna())
+                dt = pd.to_datetime(s_num, unit=unit, utc=True, errors="coerce")
+            else:
+                dt = pd.to_datetime(s, utc=True, errors="coerce")
+        else:
+            dt = pd.to_datetime(s, utc=True, errors="coerce")
+
+        idx = pd.DatetimeIndex(dt)
+        if idx.tz is None:
+            idx = idx.tz_localize("UTC")
+        idx = idx.tz_convert(tz)
+
+        out.index = idx
+        out.index.name = "date"
+        out = out[~out.index.isna()]
+        return out.sort_index()
+
+    raise ValueError("No usable datetime column/index found (expected one of: date/datetime/timestamp/time/ts/open_time/close_time).")
+
+
+def finance_ohlcv_to_proxies(
+    df: pd.DataFrame,
+    *,
+    price_col: str = "close",
+    volume_col: Optional[str] = None,
+    n_trades_col: Optional[str] = None,
+) -> pd.DataFrame:
+    """Convert generic OHLCV bars to the proxy schema.
+
+    This is a lightweight adapter used by tools/convert_real_data.py.
+    It does not introduce any per-dataset normalization; composites handle robust normalization downstream.
+    """
+    df2 = ensure_datetime_index(df)
+    cols = {c.lower() for c in df2.columns}
+
+    pcol = price_col.lower()
+    if pcol not in cols:
+        raise ValueError(f"Missing price_col={price_col!r} in OHLCV input")
+
+    # Build the 'bars' frame expected by _finance_bars_to_proxies.
+    bars = pd.DataFrame(index=df2.index)
+
+    # price_last
+    bars["price_last"] = df2[price_col].astype(float)
+
+    # price_mean, prefer typical price if H/L available
+    if {"high", "low"}.issubset(cols):
+        high = df2[[c for c in df2.columns if c.lower() == "high"][0]].astype(float)
+        low = df2[[c for c in df2.columns if c.lower() == "low"][0]].astype(float)
+        bars["price_mean"] = (high + low + bars["price_last"]) / 3.0
+    else:
+        bars["price_mean"] = bars["price_last"]
+
+    # volume
+    vcol = volume_col
+    if vcol is None:
+        for guess in ("volume", "vol", "qty"):
+            if guess in cols:
+                vcol = [c for c in df2.columns if c.lower() == guess][0]
+                break
+    if vcol is not None and vcol in df2.columns:
+        bars["vol"] = pd.to_numeric(df2[vcol], errors="coerce").fillna(0.0).astype(float)
+    else:
+        bars["vol"] = 0.0
+
+    # n_trades
+    nt_col = n_trades_col
+    if nt_col is None:
+        for guess in ("n_trades", "trades", "count"):
+            if guess in cols:
+                nt_col = [c for c in df2.columns if c.lower() == guess][0]
+                break
+    if nt_col is not None and nt_col in df2.columns:
+        bars["n_trades"] = pd.to_numeric(df2[nt_col], errors="coerce").fillna(1.0).astype(float)
+    else:
+        bars["n_trades"] = 1.0
+
+    # buyer_maker_frac is unknown for generic OHLCV, keep neutral.
+    bars["buyer_maker_frac"] = 0.5
+
+    return _finance_bars_to_proxies(bars)
+
 def _mad(x: np.ndarray) -> float:
     x = x[np.isfinite(x)]
     if x.size == 0:
