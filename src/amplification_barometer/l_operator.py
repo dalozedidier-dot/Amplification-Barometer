@@ -404,7 +404,9 @@ def evaluate_l_performance(
 
     return {
         "prevented_exceedance": float(prevented_exceedance),
+        "prevented_exceedance_rel": float(prevented_exceedance),
         "topk_overlap": float(topk_overlap),
+        "prevented_topk_excess_rel": float(np.clip(1.0 - float(topk_overlap), 0.0, 1.0)),
         "e_reduction_rel": float(e_reduction_rel),
         "risk_threshold": float(thr),
         "cap01": float(cap01),
