@@ -8,7 +8,7 @@ import pandas as pd
 
 
 # Version des pondérations et conventions (auditabilité)
-WEIGHTS_VERSION = "v0.4.5"
+WEIGHTS_VERSION = "v0.4.6"
 
 
 @dataclass(frozen=True)
@@ -141,13 +141,60 @@ def compute_o(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd
     return compute_composite(df, _override_weights(O_SPEC, weights), norm="robust")
 
 
-def compute_e(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
-    """Externalités E(t): traité comme stock ou quasi-stock.
+def compute_e_level(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
+    """Externalités E_level(t): flux composite normalisé.
 
-    Pour la démo, on calcule un flux composite puis on cumule.
+    Convention démo:
+    - E_level(t) est un score composite (z robuste) calculé sur les proxys E.
+    - E_stock(t) est l'intégrale discrète (cumsum) de E_level(t).
     """
-    flow = compute_composite(df, _override_weights(E_SPEC, weights), norm="robust").to_numpy()
-    stock = np.cumsum(flow)
+    level = compute_composite(df, _override_weights(E_SPEC, weights), norm="robust")
+    level.name = "E_level"
+    return level
+
+
+def compute_e_stock(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
+    """Externalités E_stock(t): stock (cumul discret) dérivé de E_level(t)."""
+    level = compute_e_level(df, weights=weights)
+    stock = level.cumsum()
+    stock.name = "E_stock"
+    return stock
+
+
+def compute_de_dt(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
+    """dE_dt(t): variation discrète du stock E_stock(t)."""
+    stock = compute_e_stock(df, weights=weights)
+    de = stock.diff().fillna(0.0)
+    de.name = "dE_dt"
+    return de
+
+
+def compute_e_irreversibility(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> float:
+    """Indice d'irréversibilité de E_stock, entre 0 et 1.
+
+    Définition: somme des incréments positifs / somme des incréments en valeur absolue.
+    - proche de 1: accumulation quasi monotone (forte inertie)
+    - proche de 0.5: flux réversible, va et vient
+    - proche de 0: décroissance quasi monotone
+    """
+    de = compute_de_dt(df, weights=weights).to_numpy(dtype=float)
+    de = de[np.isfinite(de)]
+    if de.size == 0:
+        return 0.5
+    pos = float(np.sum(de[de > 0.0]))
+    neg = float(np.sum(-de[de < 0.0]))
+    denom = pos + neg + 1e-12
+    return float(pos / denom)
+
+
+def compute_e(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
+    """Externalités E(t): score stock (z robuste) dérivé de E_stock(t).
+
+    Compatibilité:
+    - compute_e() conserve l'interprétation historique "stock z-score".
+    - Pour un audit détaillé, utiliser compute_e_level / compute_e_stock / compute_de_dt.
+    """
+    stock = compute_e_stock(df, weights=weights).to_numpy(dtype=float)
     z = robust_zscore(stock)
     return pd.Series(z, index=df.index, name="E")
 

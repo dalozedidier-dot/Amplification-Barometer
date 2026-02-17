@@ -9,7 +9,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-REPORT_VERSION = "0.4.5"
+REPORT_VERSION = "0.4.6"
 
 from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
 from .calibration import Thresholds, derive_thresholds, risk_signature
@@ -18,6 +18,10 @@ from .composites import (
     compute_at,
     compute_delta_d,
     compute_e,
+    compute_e_level,
+    compute_e_stock,
+    compute_de_dt,
+    compute_e_irreversibility,
     compute_g,
     compute_o,
     compute_o_level,
@@ -114,6 +118,10 @@ def build_audit_report(
     p = compute_p(df)
     o = compute_o(df)
     e = compute_e(df)
+    e_level = compute_e_level(df)
+    e_stock = compute_e_stock(df)
+    de_dt = compute_de_dt(df)
+    e_irreversibility = compute_e_irreversibility(df)
     r = compute_r(df)
     g = compute_g(df)
     at = compute_at(df)
@@ -123,14 +131,20 @@ def build_audit_report(
     k = max(1, int(np.ceil(float(topk_frac) * float(len(df)))))
     topk = _topk_indices(risk, k)
 
+    r_mttr = df["recovery_time_proxy"].astype(float) if "recovery_time_proxy" in df.columns else pd.Series(np.nan, index=df.index, name="recovery_time_proxy")
     summary = {
         "P": _series_stats(p),
         "O": _series_stats(o),
         "E": _series_stats(e),
-        "E_stock": _series_stats(e),
+        "E_level": _series_stats(e_level),
+        "E_stock": _series_stats(e_stock),
+        "dE_dt": _series_stats(de_dt),
+        "E_irreversibility": float(e_irreversibility),
         "R": _series_stats(r),
         "R_level": _series_stats(r),
+        "R_mttr_proxy": _series_stats(r_mttr if isinstance(r_mttr, pd.Series) else pd.Series(r_mttr, index=df.index)),
         "G": _series_stats(g),
+        "G_level": _series_stats(g),
         "AT": _series_stats(at),
         "DELTA_D": _series_stats(dd),
         "RISK": _series_stats(risk),

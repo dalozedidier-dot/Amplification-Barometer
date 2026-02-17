@@ -121,6 +121,162 @@ def simulate_barometer_ode(
     return pd.DataFrame(sol, columns=["P", "O", "E", "R"], index=t)
 
 
+
+@dataclass(frozen=True)
+class BarometerParams5(BarometerParams):
+    """Extension 5D: ajout d'un état G(t) (gouvernance).
+
+    Objectif: fournir un système couplé P,O,E,R,G pour stress tests et Monte Carlo.
+    Ce modèle est démonstratif et ne prétend pas être un jumeau numérique.
+    """
+    # dynamique gouvernance
+    g_target: float = 0.9
+    k_g: float = 0.25
+    p_g: float = 0.15
+    o_g: float = 0.10
+    e_g: float = 0.10
+
+    # couplages faibles (optionnels)
+    k_go: float = 0.10
+    k_gr: float = 0.05
+    k_gp: float = 0.05
+
+
+def barometer_ode_5d(x, t, p: BarometerParams5, shock_u: float = 0.0, shock_g: float = 0.0):
+    """Modèle Baromètre 5D (démo) avec gouvernance endogène.
+
+    dP/dt = P * (a - b*O - c*P) + shock_u + k_gp*(1-G)*P
+    dO/dt = u - v*P - n*O - m*E + k_go*(G-0.5)
+    dE/dt = alpha*P - beta*O - lam*E
+    dR/dt = delta*O - gamma*E - xi*R + k_gr*(G-0.5)
+    dG/dt = k_g*(g_target - G) - p_g*P - e_g*E + o_g*O + shock_g
+    """
+    P, O, E, R, G = x
+    dPdt = P * (p.a - p.b * O - p.c * P) + float(shock_u) + p.k_gp * (1.0 - G) * P
+    dOdt = p.u - p.v * P - p.n * O - p.m * E + p.k_go * (G - 0.5)
+    dEdt = p.alpha * P - p.beta * O - p.lam * E
+    dRdt = p.delta * O - p.gamma * E - p.xi * R + p.k_gr * (G - 0.5)
+    dGdt = p.k_g * (p.g_target - G) - p.p_g * P - p.e_g * E + p.o_g * O + float(shock_g)
+    return [dPdt, dOdt, dEdt, dRdt, dGdt]
+
+
+def poisson_shock_on_grid(
+    t: np.ndarray,
+    *,
+    rate: float,
+    scale: float,
+    seed: int = 7,
+    positive: bool = True,
+) -> np.ndarray:
+    """Chocs exogènes rares sur grille temporelle (Poisson approx discret).
+
+    rate: intensité (événements par unité de temps)
+    scale: amplitude typique
+    """
+    t = np.asarray(t, dtype=float)
+    if t.size < 2:
+        return np.zeros_like(t, dtype=float)
+    dt = float(np.mean(np.diff(t)))
+    p_evt = float(np.clip(rate * dt, 0.0, 1.0))
+    rng = np.random.default_rng(int(seed))
+    events = rng.random(t.size) < p_evt
+    amps = rng.normal(0.0, float(scale), size=t.size)
+    if positive:
+        amps = np.abs(amps)
+    shock = amps * events.astype(float)
+    return shock
+
+
+def simulate_barometer_ode5(
+    initial_state=(0.6, 0.6, 0.0, 0.8, 0.8),
+    t: np.ndarray | None = None,
+    *,
+    params: BarometerParams5 = BarometerParams5(),
+    shock_profile_p: Optional[Callable[[float], float]] = None,
+    shock_profile_g: Optional[Callable[[float], float]] = None,
+) -> pd.DataFrame:
+    """Simule le modèle 5D (P,O,E,R,G).
+
+    shock_profile_p: sP(t) ajouté à dP/dt
+    shock_profile_g: sG(t) ajouté à dG/dt
+    """
+    if t is None:
+        t = np.linspace(0.0, 40.0, 600)
+    t = np.asarray(t, dtype=float)
+
+    if shock_profile_p is None:
+        def shock_profile_p(_tt: float) -> float:
+            return 0.0
+
+    if shock_profile_g is None:
+        def shock_profile_g(_tt: float) -> float:
+            return 0.0
+
+    def f(x, tt):
+        return barometer_ode_5d(
+            x,
+            tt,
+            params,
+            shock_u=float(shock_profile_p(tt)),
+            shock_g=float(shock_profile_g(tt)),
+        )
+
+    sol = odeint(f, initial_state, t)
+    return pd.DataFrame(sol, columns=["P", "O", "E", "R", "G"], index=t)
+
+
+def simulate_barometer_monte_carlo(
+    *,
+    runs: int = 200,
+    t: np.ndarray | None = None,
+    params: BarometerParams5 = BarometerParams5(),
+    shock_rate: float = 0.08,
+    shock_scale_p: float = 0.35,
+    shock_scale_g: float = 0.10,
+    seed: int = 7,
+    eps: float = 1e-8,
+) -> pd.DataFrame:
+    """Monte Carlo sur le modèle 5D avec chocs rares.
+
+    Sortie: table de résumés par run (max, p95, temps de dépassement, etc).
+    """
+    if t is None:
+        t = np.linspace(0.0, 40.0, 600)
+    t = np.asarray(t, dtype=float)
+
+    rng = np.random.default_rng(int(seed))
+    rows = []
+    for i in range(int(runs)):
+        # Chocs discrets puis interpolation linéaire
+        sp = poisson_shock_on_grid(t, rate=shock_rate, scale=shock_scale_p, seed=int(rng.integers(0, 2**31 - 1)), positive=True)
+        sg = poisson_shock_on_grid(t, rate=shock_rate * 0.5, scale=shock_scale_g, seed=int(rng.integers(0, 2**31 - 1)), positive=False)
+
+        def shock_p(tt: float) -> float:
+            return float(np.interp(tt, t, sp))
+
+        def shock_g(tt: float) -> float:
+            return float(np.interp(tt, t, sg))
+
+        df = simulate_barometer_ode5(t=t, params=params, shock_profile_p=shock_p, shock_profile_g=shock_g)
+        at = df["P"].to_numpy(dtype=float) / (df["O"].to_numpy(dtype=float) + eps)
+        risk = at + np.gradient(at)  # proxy simple, distinct des scores data-driven
+
+        row = {
+            "run": int(i),
+            "at_max": float(np.nanmax(at)),
+            "at_p95": float(np.nanpercentile(at, 95)),
+            "risk_p95": float(np.nanpercentile(risk, 95)),
+            "risk_max": float(np.nanmax(risk)),
+            "e_max": float(np.nanmax(df["E"].to_numpy(dtype=float))),
+            "g_min": float(np.nanmin(df["G"].to_numpy(dtype=float))),
+            "time_high_risk_frac": float(np.mean(risk > float(np.nanpercentile(risk, 95)))),
+            "shock_p_total": float(np.nansum(sp)),
+            "shock_g_total": float(np.nansum(sg)),
+        }
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
 def _sigmoid(x: float) -> float:
     return float(1.0 / (1.0 + np.exp(-float(x))))
 
