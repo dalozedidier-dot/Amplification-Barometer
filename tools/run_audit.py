@@ -140,13 +140,13 @@ def _run_one(csv_path: Path, *, name: str, out_dir: Path, window: int, do_png: b
         oscill_hint = ("oscill" in name.lower()) or (float(at.std()) < 0.8 and float(at.abs().max()) < 6.0)
 
         if oscill_hint:
-            plot_oscillating(at.index, at.to_numpy(), title=f"@(t) – {name}", y_label="@(t)", out_html=out_dir / f"{name}_at.html", baseline=1.0)
+            plot_oscillating(at.index, at.to_numpy(), title=f"@(t) - {name}", y_label="@(t)", out_html=out_dir / f"{name}_at.html", baseline=1.0)
         else:
-            plot_exponential_or_bifurcation(at.index, at.to_numpy(), title=f"@(t) – {name}", y_label="@(t)", out_html=out_dir / f"{name}_at.html")
-        plot_exponential_or_bifurcation(dd.index, dd.to_numpy(), title=f"Δd(t) – {name}", y_label="Δd(t)", out_html=out_dir / f"{name}_delta_d.html")
+            plot_exponential_or_bifurcation(at.index, at.to_numpy(), title=f"@(t) - {name}", y_label="@(t)", out_html=out_dir / f"{name}_at.html")
+        plot_exponential_or_bifurcation(dd.index, dd.to_numpy(), title=f"Δd(t) - {name}", y_label="Δd(t)", out_html=out_dir / f"{name}_delta_d.html")
         l_cap = compute_l_cap(df).to_numpy()
         l_act = compute_l_act(df).to_numpy()
-        plot_lcap_lact(df.index, l_cap, l_act, title=f"L_cap / L_act – {name}", out_html=out_dir / f"{name}_lcap_lact.html")
+        plot_lcap_lact(df.index, l_cap, l_act, title=f"L_cap / L_act - {name}", out_html=out_dir / f"{name}_lcap_lact.html")
         plot_dashboard(
             df.index,
             at.to_numpy(),
@@ -177,6 +177,7 @@ def main() -> int:
     ap.add_argument("--window", type=int, default=5, help="Smoothing window for Δd(t).")
     ap.add_argument("--plot", action="store_true", help="Write PNG plots with matplotlib.")
     ap.add_argument("--plotly", action="store_true", help="Write interactive HTML plots with Plotly.")
+    ap.add_argument("--html-report", action="store_true", help="Enable the consolidated self-contained HTML report (default on).")
     ap.add_argument("--no-html-report", action="store_true", help="Disable the consolidated self-contained HTML report.")
     ap.add_argument("--all-synthetic", action="store_true", help="Run on all synthetic datasets.")
     ap.add_argument("--synthetic-dir", type=str, default="data/synthetic", help="Synthetic data directory.")
