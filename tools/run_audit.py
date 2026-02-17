@@ -133,7 +133,7 @@ def _run_one(csv_path: Path, *, name: str, out_dir: Path, window: int, do_png: b
 
     if do_plotly:
         # Keep existing per-chart HTML for quick browsing
-        from amplification_barometer.plotly_viz import build_dashboard, plot_exponential_or_bifurcation, plot_lcap_lact, plot_oscillating  # noqa
+        from amplification_barometer.plotly_viz import plot_dashboard, plot_exponential_or_bifurcation, plot_lcap_lact, plot_oscillating  # noqa
 
         at = compute_at(df)
         dd = compute_delta_d(df, window=window)
@@ -147,7 +147,15 @@ def _run_one(csv_path: Path, *, name: str, out_dir: Path, window: int, do_png: b
         l_cap = compute_l_cap(df).to_numpy()
         l_act = compute_l_act(df).to_numpy()
         plot_lcap_lact(df.index, l_cap, l_act, title=f"L_cap / L_act – {name}", out_html=out_dir / f"{name}_lcap_lact.html")
-        build_dashboard(out_dir, prefix=name)
+        plot_dashboard(
+            df.index,
+            at.to_numpy(),
+            dd.to_numpy(),
+            l_cap,
+            l_act,
+            title=f"Audit dashboard: {name}",
+            out_html=out_dir / f"{name}_dashboard.html",
+        )
 
     # Consolidated HTML (self-contained)
     if do_html_report:
