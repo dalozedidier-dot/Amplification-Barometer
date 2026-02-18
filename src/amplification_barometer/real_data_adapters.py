@@ -458,3 +458,102 @@ def aiops_phase2_to_proxies(
 
     out = _ensure_governance_defaults(out)
     return ensure_required_columns(out)
+def ensure_datetime_index(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure a UTC datetime index named 'date'.
+
+    Accepts either:
+    - a 'date' column
+    - an existing DatetimeIndex
+
+    Always returns a copy sorted by index, with tz-aware UTC timestamps.
+    """
+    out = df.copy()
+    if "date" in out.columns:
+        out["date"] = pd.to_datetime(out["date"], utc=True, errors="coerce")
+        out = out.dropna(subset=["date"]).set_index("date")
+    if not isinstance(out.index, pd.DatetimeIndex):
+        raise ValueError("Input must have a 'date' column or a DatetimeIndex.")
+    # Ensure UTC tz-aware
+    if out.index.tz is None:
+        out.index = out.index.tz_localize("UTC")
+    else:
+        out.index = out.index.tz_convert("UTC")
+    out = out.sort_index()
+    out.index.name = "date"
+    return out
+
+
+def has_required_proxies(df: pd.DataFrame) -> bool:
+    """Return True if all required proxy columns are present."""
+    cols = set(df.columns)
+    return all(c in cols for c in REQUIRED_PROXIES)
+
+
+def finance_ohlcv_to_proxies(
+    df: pd.DataFrame,
+    *,
+    price_col: str = "close",
+    volume_col: Optional[str] = None,
+) -> pd.DataFrame:
+    """Convert OHLCV-like data to proxy columns.
+
+    This is a lightweight adapter for smoke tests. It produces the REQUIRED_PROXIES
+    using robust, scale-aware transforms. Governance columns are set to conservative
+    defaults and will be flagged as uninformative by the audit layer.
+    """
+    df2 = ensure_datetime_index(df)
+    if price_col not in df2.columns:
+        raise ValueError(f"Missing price column: {price_col}")
+    price = pd.to_numeric(df2[price_col], errors="coerce").astype(float)
+    price = price.replace([np.inf, -np.inf], np.nan).fillna(method="ffill").fillna(method="bfill")
+    logp = np.log(np.maximum(price.to_numpy(), 1e-12))
+    # Returns and volatility
+    ret = np.diff(logp, prepend=logp[0])
+    abs_ret = np.abs(ret)
+    vol = pd.Series(abs_ret, index=df2.index).rolling(50, min_periods=5).mean().to_numpy()
+    vol = np.nan_to_num(vol, nan=float(np.nanmean(vol)) if np.isfinite(np.nanmean(vol)) else 0.0)
+
+    scale_proxy = pd.Series(logp, index=df2.index)
+    speed_proxy = pd.Series(abs_ret, index=df2.index)
+    leverage_proxy = pd.Series(vol, index=df2.index)
+
+    if volume_col and volume_col in df2.columns:
+        volu = pd.to_numeric(df2[volume_col], errors="coerce").astype(float)
+        volu = volu.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        leverage_proxy = leverage_proxy + robust_z(volu)
+
+    proxies = pd.DataFrame(index=df2.index)
+    proxies["scale_proxy"] = robust_z(scale_proxy)
+    proxies["speed_proxy"] = robust_z(speed_proxy)
+    proxies["leverage_proxy"] = robust_z(leverage_proxy)
+
+    # P
+    proxies["autonomy_proxy"] = 1.0
+    proxies["replicability_proxy"] = 1.0
+
+    # O (use volatility as a proxy for execution/coherence pressures)
+    proxies["stop_proxy"] = 1.0
+    proxies["threshold_proxy"] = robust_z(pd.Series(vol, index=df2.index))
+    proxies["decision_proxy"] = robust_z(pd.Series(ret, index=df2.index))
+    proxies["execution_proxy"] = robust_z(pd.Series(abs_ret, index=df2.index))
+    proxies["coherence_proxy"] = 1.0
+
+    # E
+    proxies["impact_proxy"] = robust_z(pd.Series(abs_ret, index=df2.index))
+    proxies["propagation_proxy"] = robust_z(pd.Series(vol, index=df2.index))
+    proxies["hysteresis_proxy"] = 0.0
+
+    # R
+    proxies["margin_proxy"] = 1.0
+    proxies["redundancy_proxy"] = 0.5
+    proxies["diversity_proxy"] = 0.5
+    proxies["recovery_time_proxy"] = 0.0
+
+    # G defaults (unavoidably uninformative for pure OHLCV)
+    proxies["exemption_rate"] = 0.05
+    proxies["sanction_delay"] = 60.0
+    proxies["control_turnover"] = 0.03
+    proxies["conflict_interest_proxy"] = 0.05
+    proxies["rule_execution_gap"] = 0.03
+
+    return proxies

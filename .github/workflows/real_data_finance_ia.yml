@@ -39,6 +39,8 @@ jobs:
 
           python tools/run_audit.py --dataset _ci_out/real_data/finance_agg_proxies.csv --name finance_agg --out-dir _ci_out/real_data/finance_agg --plotly
           python tools/run_audit.py --dataset _ci_out/real_data/ia_borg_proxies.csv --name ia_borg --out-dir _ci_out/real_data/ia_borg --plotly
+          python tools/run_audit.py --dataset _ci_out/real_data/finance_trades_proxies.csv --name finance_trades --out-dir _ci_out/real_data/finance_trades --plotly
+          python tools/run_audit.py --dataset _ci_out/real_data/ia_aiops_proxies.csv --name ia_aiops --out-dir _ci_out/real_data/ia_aiops --plotly
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

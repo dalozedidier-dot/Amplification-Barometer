@@ -37,6 +37,10 @@ def _discover_inputs(repo_root: Path, *, include_root_proxies: bool = True) -> L
         if p.exists():
             candidates += list(p.glob("*.csv"))
             candidates += list(p.glob("*.parquet"))
+
+    if include_root_proxies:
+        candidates += list(repo_root.glob("*_proxies.csv"))
+
     return sorted(set(candidates))
 
 
