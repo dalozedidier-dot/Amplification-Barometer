@@ -8,7 +8,7 @@ import pandas as pd
 
 
 # Version des pondérations et conventions (auditabilité)
-WEIGHTS_VERSION = "v0.4.6"
+WEIGHTS_VERSION = "v0.4.5"
 
 
 @dataclass(frozen=True)
@@ -142,58 +142,57 @@ def compute_o(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd
 
 
 def compute_e_level(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
-    """Externalités E_level(t): flux composite normalisé.
+    """Externalités E_level(t): flux composite normalisé (z-score robuste).
 
-    Convention démo:
-    - E_level(t) est un score composite (z robuste) calculé sur les proxys E.
-    - E_stock(t) est l'intégrale discrète (cumsum) de E_level(t).
+    Il s'agit d'un flux. Il est utile pour détecter les épisodes où les externalités
+    augmentent rapidement, avant que le stock ne s'accumule.
     """
-    level = compute_composite(df, _override_weights(E_SPEC, weights), norm="robust")
-    level.name = "E_level"
-    return level
+    s = compute_composite(df, _override_weights(E_SPEC, weights), norm="robust")
+    s.name = "E_LEVEL"
+    return s
 
 
 def compute_e_stock(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
-    """Externalités E_stock(t): stock (cumul discret) dérivé de E_level(t)."""
-    level = compute_e_level(df, weights=weights)
-    stock = level.cumsum()
-    stock.name = "E_stock"
-    return stock
+    """Externalités E_stock(t): cumul discret de E_level(t).
+
+    Ce stock est exprimé dans l'échelle du flux normalisé. Il n'est pas re-normalisé
+    afin de garder une interprétation additive claire sur la fenêtre.
+    """
+    flow = compute_e_level(df, weights=weights).to_numpy(dtype=float)
+    stock = np.cumsum(flow)
+    return pd.Series(stock, index=df.index, name="E_STOCK")
 
 
 def compute_de_dt(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
-    """dE_dt(t): variation discrète du stock E_stock(t)."""
-    stock = compute_e_stock(df, weights=weights)
-    de = stock.diff().fillna(0.0)
-    de.name = "dE_dt"
-    return de
+    """dE_dt(t): dérivée discrète du stock E_stock(t)."""
+    stock = compute_e_stock(df, weights=weights).to_numpy(dtype=float)
+    de = np.empty_like(stock, dtype=float)
+    if stock.size:
+        de[0] = 0.0
+        if stock.size > 1:
+            de[1:] = np.diff(stock)
+    return pd.Series(de, index=df.index, name="dE_dt")
 
 
-def compute_e_irreversibility(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> float:
-    """Indice d'irréversibilité de E_stock, entre 0 et 1.
+def compute_e_irreversibility(df: pd.DataFrame, *, weights: Sequence[float] | None = None, eps: float = 1e-12) -> float:
+    """Mesure simple d'irréversibilité de E: part des incréments positifs.
 
-    Définition: somme des incréments positifs / somme des incréments en valeur absolue.
-    - proche de 1: accumulation quasi monotone (forte inertie)
-    - proche de 0.5: flux réversible, va et vient
-    - proche de 0: décroissance quasi monotone
+    Retourne une valeur dans [0, 1].
+    - 1 signifie que le stock augmente quasi toujours.
+    - 0 signifie qu'il diminue quasi toujours.
+    - 0.5 signifie absence de direction dominante (ou pas de signal).
     """
     de = compute_de_dt(df, weights=weights).to_numpy(dtype=float)
-    de = de[np.isfinite(de)]
-    if de.size == 0:
+    mask = np.isfinite(de) & (np.abs(de) > float(eps))
+    n = int(np.sum(mask))
+    if n == 0:
         return 0.5
-    pos = float(np.sum(de[de > 0.0]))
-    neg = float(np.sum(-de[de < 0.0]))
-    denom = pos + neg + 1e-12
-    return float(pos / denom)
+    pos = int(np.sum(de[mask] > 0.0))
+    return float(pos) / float(n)
 
 
 def compute_e(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
-    """Externalités E(t): score stock (z robuste) dérivé de E_stock(t).
-
-    Compatibilité:
-    - compute_e() conserve l'interprétation historique "stock z-score".
-    - Pour un audit détaillé, utiliser compute_e_level / compute_e_stock / compute_de_dt.
-    """
+    """Externalités E(t): version historique, stock z-normalisé."""
     stock = compute_e_stock(df, weights=weights).to_numpy(dtype=float)
     z = robust_zscore(stock)
     return pd.Series(z, index=df.index, name="E")
