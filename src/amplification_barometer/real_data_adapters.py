@@ -101,9 +101,51 @@ def _ensure_governance_defaults(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+
+def _sanitize_governance(df: pd.DataFrame) -> pd.DataFrame:
+    """Sanitize governance proxies when a known degeneracy pattern is detected.
+
+    Motivation (auditability):
+    Some real datasets provide incomplete fields for "rule execution gap" and the
+    derived proxy can saturate near 1.0 even when incident-related signals are low.
+    This creates a false governance collapse and dominates G(t).
+
+    Guard rule:
+    - If rule_execution_gap median is very high (>= 0.95)
+      AND impact_proxy median is low (< 0.20),
+      then we reinterpret rule_execution_gap as an incident-persistence proxy
+      derived from impact_proxy (bounded 0..1) with a short rolling mean.
+
+    This keeps the proxy conservative and bounded, while preventing division-by-zero
+    and missing-field artifacts from polluting the audit.
+    """
+    out = df.copy()
+    if "rule_execution_gap" not in out.columns:
+        return out
+    r = pd.to_numeric(out["rule_execution_gap"], errors="coerce")
+    if "impact_proxy" not in out.columns:
+        return out
+    imp = pd.to_numeric(out["impact_proxy"], errors="coerce")
+    r_med = float(np.nanmedian(r.to_numpy(dtype=float))) if r.size else float("nan")
+    imp_med = float(np.nanmedian(imp.to_numpy(dtype=float))) if imp.size else float("nan")
+    if np.isfinite(r_med) and np.isfinite(imp_med) and (r_med >= 0.95) and (imp_med < 0.20):
+        # Degeneracy: prefer recovery persistence if available (more direct "execution gap").
+        if "recovery_time_proxy" in out.columns:
+            rt = pd.to_numeric(out["recovery_time_proxy"], errors="coerce").fillna(0.0).astype(float)
+            # Scale: 10 time steps to reach 1.0 (conservative); then smooth.
+            s = np.clip(rt / 10.0, 0.0, 1.0)
+        else:
+            # Fallback: incident intensity proxy.
+            s = np.clip(imp.astype(float), 0.0, 1.0)
+
+        s = s.rolling(10, min_periods=3).mean().fillna(0.0)
+        out["rule_execution_gap"] = s.astype(float)
+    return out
+
 def ensure_required_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     out = _ensure_governance_defaults(out)
+    out = _sanitize_governance(out)
     for c in REQUIRED_PROXIES:
         if c not in out.columns:
             out[c] = 0.0
@@ -344,7 +386,9 @@ def borg_traces_to_proxies(
         # Failure persistence as "execution gap" proxy (0..1), small when incidents are rare/short.
         exec_gap = (agg["failed_rate"] > 0.0).astype(float).rolling(10, min_periods=3).mean().fillna(0.0)
     else:
-        exec_gap = gap
+        # Use overuse (violations above request) rather than absolute gap.
+        # Underuse is not a governance failure.
+        exec_gap = overuse
 
     out["rule_execution_gap"] = exec_gap.clip(0.0, 1.0)
     out["control_turnover"] = robust_z(agg["user_diversity"]).abs().clip(0.0, 1.0)

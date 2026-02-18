@@ -314,13 +314,25 @@ def evaluate_l_performance(
         prevented_exceedance = float(np.mean(exceed0.astype(float)) - np.mean(exceed1.astype(float))) / float(np.mean(exceed0.astype(float)))
         prevented_exceedance = float(np.clip(prevented_exceedance, 0.0, 1.0))
 
-    # TopK overlap (severity tail)
+    # TopK tail metrics (anti-gaming): indices are defined by the *baseline* risk.
+    # We report two complementary quantities:
+    # - topk_overlap: membership stability of the tail (legacy diagnostic)
+    # - prevented_topk_excess_rel: relative reduction of *excess risk* above the threshold
+    #   on the baseline TopK indices (prevention signal even if membership is unchanged).
     m0 = _topk_mask(risk, frac=float(topk_frac))
     m1 = _topk_mask(risk2, frac=float(topk_frac))
+
     inter = float(np.sum(m0 & m1))
     denom = float(np.sum(m0))
     topk_overlap = float(inter / denom) if denom > 0 else 1.0
-    prevented_topk_excess_rel = float(np.clip(1.0 - topk_overlap, 0.0, 1.0))
+
+    # Excess reduction on baseline TopK
+    excess0 = float(np.mean(np.clip(risk[m0] - rt, 0.0, None))) if denom > 0 else 0.0
+    excess1 = float(np.mean(np.clip(risk2[m0] - rt, 0.0, None))) if denom > 0 else 0.0
+    if excess0 > 1e-12:
+        prevented_topk_excess_rel = float(np.clip((excess0 - excess1) / excess0, 0.0, 1.0))
+    else:
+        prevented_topk_excess_rel = 0.0
 
     # E reduction proxy (if E exists)
     e_reduction_rel = 0.0

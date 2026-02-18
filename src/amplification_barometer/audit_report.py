@@ -9,7 +9,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-REPORT_VERSION = "0.4.6"
+REPORT_VERSION = "0.4.7"
 
 from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
 from .calibration import Thresholds, derive_thresholds, risk_signature
@@ -271,29 +271,38 @@ def build_audit_report(
     anti_gaming = {
         "o_bias": anti_gaming_o_bias(df, magnitude=o_bias_magnitude, window=delta_d_window),
     }
-
     # Demo targets (auditable, sector-dependent in real deployments)
     gap_mean = float(np.mean(df["rule_execution_gap"].astype(float).to_numpy())) if "rule_execution_gap" in df.columns else float("nan")
+
+    e_rel = float(l_perf_pro.get("prevented_exceedance_rel", 0.0))
+    t_rel = float(l_perf_pro.get("prevented_topk_excess_rel", 0.0))
+    if t_rel >= e_rel:
+        prevented_primary_metric = "prevented_topk_excess_rel"
+        prevented_primary_value = t_rel
+    else:
+        prevented_primary_metric = "prevented_exceedance_rel"
+        prevented_primary_value = e_rel
+
+    prevented_meets_target = bool((t_rel >= 0.10) or (e_rel >= 0.10))
+
     targets: Dict[str, Any] = {
         "rule_execution_gap_target_max": 0.05,
         "rule_execution_gap_mean": gap_mean,
         "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
         "prevented_exceedance_rel_target_min": 0.10,
         "prevented_topk_excess_rel_target_min": 0.10,
-        "prevented_exceedance_rel": float(l_perf_pro.get("prevented_exceedance_rel", 0.0)),
-        "prevented_topk_excess_rel": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
+        "prevented_exceedance_rel": e_rel,
+        "prevented_topk_excess_rel": t_rel,
         "proactive_topk_excess_rel": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
-        "prevented_primary_metric": "prevented_topk_excess_rel",
-        "prevented_primary_value": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
-        "prevented_exceedance_meets_target": bool(float(l_perf_pro.get("prevented_exceedance_rel", 0.0)) >= 0.10),
-        "prevented_meets_target": bool(float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)) >= 0.10),
+        "prevented_primary_metric": prevented_primary_metric,
+        "prevented_primary_value": prevented_primary_value,
+        "prevented_exceedance_meets_target": bool(e_rel >= 0.10),
+        "prevented_meets_target": prevented_meets_target,
         "proactive_topk_frac": proactive_topk,
         "proactive_o_threshold": float(o_thr),
     }
 
     thresholds_payload = asdict(thresholds) if thresholds is not None else None
-
-    
     # Verdict (multidimensionnel, non circulaire)
     stability_score = float(stability.get("spearman_mean_risk", float("nan")))
     stability_dim = "ok" if np.isfinite(stability_score) and stability_score >= 0.85 else ("warn" if np.isfinite(stability_score) and stability_score >= 0.60 else "fail")
@@ -311,13 +320,19 @@ def build_audit_report(
 
     # Label conservateur: priorité à la maturité proxy-based, puis cohérence avec L.
     m_label = str(maturity.get("label", "Unknown"))
+
+    good_L = { "PASS", "OK", "GOOD", "MATURE" }
+    l_reactive_ok = l_reactive.strip().upper() in good_L
+    l_proactive_ok = l_proactive.strip().upper() in good_L
+
     if anti_flag:
         label = "Dissonant"
-    elif m_label.lower().startswith("mature") and l_reactive.upper() in {"PASS", "OK", "GOOD"}:
+    elif m_label.lower().startswith("mature") and l_reactive_ok and l_proactive_ok and stability_dim == "ok":
         label = "Mature"
     elif m_label.lower().startswith("immature"):
         label = "Immature"
     else:
+        # Includes cases where stability is "warn"/"fail" or L is not aligned with maturity.
         label = "Dissonant"
 
     verdict: Dict[str, Any] = {"label": label, "dimensions": dims}
