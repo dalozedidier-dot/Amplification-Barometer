@@ -9,7 +9,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-REPORT_VERSION = "0.4.11"
+REPORT_VERSION = "0.4.12"
 
 from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
 from .calibration import Thresholds, derive_thresholds, risk_signature
@@ -312,7 +312,30 @@ def build_audit_report(
             "frac_default": frac_default,
             "default": float(dv),
         }
-    governance_proxies_uninformative = bool(len(default_like_cols) >= 3)
+    # Detect placeholder-like governance. This happens when a sector dataset was generated
+# before endogenization: governance columns are ~1.0 + noise and sanction_delay ~1.
+placeholder_like = False
+try:
+    gap_raw = pd.to_numeric(df.get("rule_execution_gap"), errors="coerce").to_numpy(dtype=float)
+    turnover_raw = pd.to_numeric(df.get("control_turnover"), errors="coerce").to_numpy(dtype=float)
+    sanc_raw = pd.to_numeric(df.get("sanction_delay"), errors="coerce").to_numpy(dtype=float)
+    if gap_raw.size and turnover_raw.size and sanc_raw.size:
+        gap_m = float(np.nanmean(gap_raw))
+        turn_m = float(np.nanmean(turnover_raw))
+        sanc_m = float(np.nanmean(sanc_raw))
+        placeholder_like = bool(
+            np.isfinite(gap_m)
+            and np.isfinite(turn_m)
+            and np.isfinite(sanc_m)
+            and (gap_m > 0.5)
+            and (turn_m > 0.5)
+            and (sanc_m < 5.0)
+        )
+except Exception:
+    placeholder_like = False
+
+governance_proxies_uninformative = bool((len(default_like_cols) >= 3) or placeholder_like)
+
 
     e_rel = float(l_perf_pro.get("prevented_exceedance_rel", 0.0))
     t_rel = float(l_perf_pro.get("prevented_topk_excess_rel", 0.0))
@@ -331,6 +354,7 @@ def build_audit_report(
         "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
         "governance_proxy_quality": {
             "flag_uninformative": governance_proxies_uninformative,
+            "flag_placeholder_like": bool(placeholder_like),
             "default_like_cols": list(default_like_cols),
             "constant_cols": list(constant_cols),
             "fields": gov_field_stats,
@@ -366,6 +390,7 @@ def build_audit_report(
         "anti_gaming_o_bias": {"flag": anti_flag},
         "governance_proxy_quality": {
             "flag_uninformative": governance_proxies_uninformative,
+            "flag_placeholder_like": bool(placeholder_like),
             "default_like_cols": list(default_like_cols),
         },
     }

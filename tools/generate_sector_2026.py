@@ -163,6 +163,28 @@ def make_ia_2026(n: int, seed: int) -> pd.DataFrame:
     return df
 
 
+def _sanity_check_governance(df: pd.DataFrame, *, name: str) -> None:
+    """Fail fast if governance proxies look like placeholders.
+
+    Placeholder pattern: rule_execution_gap ~ 1, control_turnover ~ 1, sanction_delay ~ 1.
+    Correct endogenized pattern: gap and turnover below ~0.20, sanction_delay in double-digits.
+    """
+    required = ["rule_execution_gap", "control_turnover", "sanction_delay"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise SystemExit(f"{name}: missing governance columns: {missing}. Regenerate with tools/generate_sector_2026.py.")
+
+    gap_m = float(pd.to_numeric(df["rule_execution_gap"], errors="coerce").mean())
+    turn_m = float(pd.to_numeric(df["control_turnover"], errors="coerce").mean())
+    sanc_m = float(pd.to_numeric(df["sanction_delay"], errors="coerce").mean())
+
+    if (gap_m > 0.25) or (turn_m > 0.25) or (sanc_m < 5.0):
+        raise SystemExit(
+            f"{name}: governance proxies out of expected scale (gap_mean={gap_m:.3f}, turnover_mean={turn_m:.3f}, sanction_delay_mean={sanc_m:.3f}). "
+            "This usually means the dataset was generated before governance endogenization. Delete the folder and regenerate sector_2026."
+        )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", type=str, default="data/sector_2026")
@@ -177,10 +199,12 @@ def main() -> int:
     idx = pd.date_range(args.start_date, periods=args.n, freq="D")
 
     fin = make_finance_2026(args.n, args.seed)
+    _sanity_check_governance(fin, name="finance_2026_synth")
     fin.insert(0, "date", idx)
     fin.to_csv(out / "finance_2026_synth.csv", index=False)
 
     ia = make_ia_2026(args.n, args.seed)
+    _sanity_check_governance(ia, name="ia_2026_synth")
     ia.insert(0, "date", idx)
     ia.to_csv(out / "ia_2026_synth.csv", index=False)
 
