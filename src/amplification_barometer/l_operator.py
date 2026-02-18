@@ -27,11 +27,26 @@ L_ACT_PROXIES: Tuple[str, ...] = (
 
 
 def compute_l_cap(df: pd.DataFrame) -> pd.Series:
-    """L_cap (z): capacité intrinsèque d'arrêt (proxy composite)."""
+    """L_cap (z): capacité intrinsèque d'arrêt (proxy composite), sur une échelle stable.
+
+    Contrairement à une normalisation interne (z-score), on veut un score comparable
+    entre datasets. On mappe chaque proxy en "good" dans [0,1] via une loi saturante
+    (plus le proxy est élevé, plus la capacité est bonne), puis on projette en z
+    avec un logit afin que _sigmoid01(z, k=1.6) ≈ good.
+    """
     _require(df, L_CAP_PROXIES, "L_cap")
-    arr = df.loc[:, list(L_CAP_PROXIES)].astype(float).to_numpy()
-    raw = np.mean(arr, axis=1)
-    z = robust_zscore(raw)
+    x = df.loc[:, list(L_CAP_PROXIES)].astype(float).to_numpy()
+    x = np.clip(x, 0.0, None)
+
+    # Saturating map: 1 - exp(-x/tau). Tau fixe et auditable.
+    tau = 1.0
+    good = 1.0 - np.exp(-x / tau)
+    good_mean = np.mean(good, axis=1)
+
+    eps = 1e-6
+    good_mean = np.clip(good_mean, eps, 1.0 - eps)
+
+    z = (np.log(good_mean / (1.0 - good_mean)) / 1.6).astype(float)
     return pd.Series(z, index=df.index, name="L_CAP")
 
 

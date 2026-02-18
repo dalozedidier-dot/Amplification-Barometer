@@ -37,7 +37,7 @@ from .manipulability import run_manipulability_suite, validate_proxy_ranges
 from .ode_model import simulate_barometer_ode, simulate_endogenous_g, simulate_minimal_po
 from .proxy_protocol import PROXY_PROTOCOL, required_proxies
 
-__version__ = '0.4.9'
+__version__ = '0.4.10'
 
 __all__ = [
     "WEIGHTS_VERSION",

@@ -83,7 +83,7 @@ def make_stable(n: int, seed: int) -> pd.DataFrame:
     # recovery_time_proxy est un coût, plus bas dans le régime stable
     df["recovery_time_proxy"] = np.clip(0.6 + rng.normal(0.0, 0.05, size=n), 0.0, 2.0)
 
-    df = _endogenize_g(df, rng, base_gap=0.03, pressure_scale=0.80)
+    df = _endogenize_g(df, rng, base_gap=0.018, pressure_scale=0.20)
     return df
 
 
@@ -94,7 +94,7 @@ def make_oscillating(n: int, seed: int) -> pd.DataFrame:
     df = pd.DataFrame(osc, columns=PROXIES)
     df["recovery_time_proxy"] = np.clip(0.8 + 0.15 * (1 + np.sin(t + 0.5)) / 2 + rng.normal(0.0, 0.05, size=n), 0.0, 2.5)
 
-    df = _endogenize_g(df, rng, base_gap=0.04, pressure_scale=1.00)
+    df = _endogenize_g(df, rng, base_gap=0.020, pressure_scale=0.22)
     return df
 
 

@@ -29,7 +29,7 @@ BASE_PROXIES = [
     "redundancy_proxy",
     "diversity_proxy",
     "recovery_time_proxy",
-    # G
+    # G (endogenized)
     "exemption_rate",
     "sanction_delay",
     "control_turnover",
@@ -38,26 +38,36 @@ BASE_PROXIES = [
 ]
 
 
-P_PROXIES = ["scale_proxy","speed_proxy","leverage_proxy","autonomy_proxy","replicability_proxy"]
-O_PROXIES = ["stop_proxy","threshold_proxy","decision_proxy","execution_proxy","coherence_proxy"]
-E_PROXIES = ["impact_proxy","propagation_proxy","hysteresis_proxy"]
+P_PROXIES = ["scale_proxy", "speed_proxy", "leverage_proxy", "autonomy_proxy", "replicability_proxy"]
+O_PROXIES = ["stop_proxy", "threshold_proxy", "decision_proxy", "execution_proxy", "coherence_proxy"]
+E_PROXIES = ["impact_proxy", "propagation_proxy", "hysteresis_proxy"]
+
 
 def _sigmoid(x: np.ndarray, k: float = 2.0) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-k * x))
 
-def _endogenize_g(df: pd.DataFrame, rng: np.random.Generator, *, base_gap: float = 0.03, pressure_scale: float = 1.0) -> pd.DataFrame:
-    """Derive governance proxies endogenously from P/O/E proxies."""
+
+def _endogenize_g(df: pd.DataFrame, rng: np.random.Generator, *, base_gap: float = 0.02, pressure_scale: float = 0.40) -> pd.DataFrame:
+    """Derive governance proxies endogenously from P/O/E proxies.
+
+    Contrainte de démo: on veut un régime "gouvernance saine" par défaut, donc des
+    valeurs compatibles avec l'objectif critique rule_execution_gap_mean < 0.05,
+    sauf dérives explicites.
+    """
     p = df[P_PROXIES].astype(float).mean(axis=1).to_numpy()
     o = df[O_PROXIES].astype(float).mean(axis=1).to_numpy()
     e = df[E_PROXIES].astype(float).mean(axis=1).to_numpy()
+
     pressure_raw = (p - 1.0) + 0.9 * (1.0 - o) + 0.8 * (e - 1.0)
     pressure = np.clip(_sigmoid(pressure_raw) * float(pressure_scale), 0.0, 1.0)
 
-    df["exemption_rate"] = np.clip(0.08 + 0.35 * pressure + rng.normal(0.0, 0.02, size=len(df)), 0.0, 1.0)
-    df["sanction_delay"] = np.clip(18.0 + 280.0 * pressure + rng.normal(0.0, 10.0, size=len(df)), 0.0, 365.0)
-    df["control_turnover"] = np.clip(0.04 + 0.08 * pressure + rng.normal(0.0, 0.01, size=len(df)), 0.0, 1.0)
-    df["conflict_interest_proxy"] = np.clip(0.10 + 0.22 * pressure + rng.normal(0.0, 0.02, size=len(df)), 0.0, 1.0)
-    df["rule_execution_gap"] = np.clip(base_gap + 0.18 * pressure + rng.normal(0.0, 0.008, size=len(df)), 0.0, 0.50)
+    df["exemption_rate"] = np.clip(0.04 + 0.22 * pressure + rng.normal(0.0, 0.015, size=len(df)), 0.0, 1.0)
+    df["sanction_delay"] = np.clip(12.0 + 210.0 * pressure + rng.normal(0.0, 8.0, size=len(df)), 0.0, 365.0)
+    df["control_turnover"] = np.clip(0.025 + 0.040 * pressure + rng.normal(0.0, 0.006, size=len(df)), 0.0, 1.0)
+    df["conflict_interest_proxy"] = np.clip(0.06 + 0.14 * pressure + rng.normal(0.0, 0.012, size=len(df)), 0.0, 1.0)
+
+    # gap cible <5% dans les régimes mûrs, dérive sous pression
+    df["rule_execution_gap"] = np.clip(base_gap + 0.08 * pressure + rng.normal(0.0, 0.004, size=len(df)), 0.0, 0.20)
     return df
 
 
@@ -77,6 +87,10 @@ def make_finance_2026(n: int, seed: int) -> pd.DataFrame:
 
     # exogenous shocks mainly on P proxies
     u_exog = np.zeros(n, dtype=float)
+    drift_exempt = np.zeros(n, dtype=float)
+    drift_sanc = np.zeros(n, dtype=float)
+    drift_gap = np.zeros(n, dtype=float)
+
     n_events = 10
     event_starts = rng.choice(np.arange(10, n - 20), size=n_events, replace=False)
     for s in sorted(event_starts):
@@ -96,26 +110,21 @@ def make_finance_2026(n: int, seed: int) -> pd.DataFrame:
         df.loc[df.index[s : s + dur], "execution_proxy"] *= (1.0 - 0.10 * amp)
         df.loc[df.index[s : s + dur], "stop_proxy"] *= (1.0 - 0.08 * amp)
 
-        # governance drift risk: exemptions increase in severe episodes
+        # governance drift in severe episodes (applied after endogenization)
         if amp > 1.0:
-            df.loc[df.index[s : s + dur], "exemption_rate"] = np.clip(
-                df.loc[df.index[s : s + dur], "exemption_rate"].to_numpy(dtype=float) + 0.03,
-                0.0,
-                1.0,
-            )
-            df.loc[df.index[s : s + dur], "sanction_delay"] = np.clip(
-                df.loc[df.index[s : s + dur], "sanction_delay"].to_numpy(dtype=float) + 10.0,
-                0.0,
-                365.0,
-            )
-            df.loc[df.index[s : s + dur], "rule_execution_gap"] = np.clip(
-                df.loc[df.index[s : s + dur], "rule_execution_gap"].to_numpy(dtype=float) + 0.02,
-                0.0,
-                1.0,
-            )
+            drift_exempt[s : s + dur] += 0.03
+            drift_sanc[s : s + dur] += 10.0
+            drift_gap[s : s + dur] += 0.02
 
     df["u_exog"] = u_exog
     df["sector_tag"] = "finance"
+
+    # Endogenize governance from the final P/O/E/O state, then add explicit drift.
+    df = _endogenize_g(df, rng, base_gap=0.02, pressure_scale=0.40)
+
+    df["exemption_rate"] = np.clip(df["exemption_rate"].to_numpy(dtype=float) + drift_exempt, 0.0, 1.0)
+    df["sanction_delay"] = np.clip(df["sanction_delay"].to_numpy(dtype=float) + drift_sanc, 0.0, 365.0)
+    df["rule_execution_gap"] = np.clip(df["rule_execution_gap"].to_numpy(dtype=float) + drift_gap, 0.0, 1.0)
 
     return df
 
@@ -150,6 +159,7 @@ def make_ia_2026(n: int, seed: int) -> pd.DataFrame:
     df["u_exog"] = u_exog
     df["sector_tag"] = "ia"
 
+    df = _endogenize_g(df, rng, base_gap=0.022, pressure_scale=0.45)
     return df
 
 
@@ -175,7 +185,13 @@ def main() -> int:
     ia.to_csv(out / "ia_2026_synth.csv", index=False)
 
     (out / "README.md").write_text(
-        """# Sector 2026 synthetic datasets\n\nCes CSV sont synthétiques, destinés à la démonstration et aux stress tests reproductibles.\n\n- finance_2026_synth.csv: chocs P(t) dominants.\n- ia_2026_synth.csv: externalités réseau dominantes.\n""",
+        """# Sector 2026 synthetic datasets
+
+Ces CSV sont synthétiques, destinés à la démonstration et aux stress tests reproductibles.
+
+- finance_2026_synth.csv: chocs P(t) dominants avec dérives G explicites sur épisodes sévères.
+- ia_2026_synth.csv: externalités réseau dominantes, G endogène par pression P/O/E.
+""",
         encoding="utf-8",
     )
 
