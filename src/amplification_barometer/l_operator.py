@@ -205,13 +205,13 @@ def evaluate_l_performance(
     df: pd.DataFrame,
     *,
     window: int = 5,
-    topk_frac: float = 0.10,
+    topk_frac: float = 0.15,
     o_threshold: Optional[float] = None,
     risk_threshold: Optional[float] = None,
     thresholds: Optional[Thresholds] = None,
     persist: int = 2,
-    max_delay: int = 8,
-    intensity: float = 1.0,
+    max_delay: int = 3,
+    intensity: float = 1.5,
 ) -> Dict[str, Any]:
     """Evaluate a demonstrator limit operator L.
 
@@ -268,7 +268,7 @@ def evaluate_l_performance(
                 j = i + dly
                 if j >= desired.size:
                     break
-                if lact01[j] >= 0.55:
+                if lact01[j] >= 0.52:
                     activated[j] = True
                     delay_steps[j] = dly
                     break
@@ -289,7 +289,7 @@ def evaluate_l_performance(
     # Rationale: on datasets where P reduction alone mostly scales risk without changing
     # the TopK membership (e.g., AIOps), a small improvement of O proxies is a realistic
     # countermeasure (better stop/threshold/decision/execution/coherence).
-    o_boost = float(np.clip(0.08 * float(intensity), 0.0, 0.60))
+    o_boost = float(np.clip(0.12 * float(intensity), 0.0, 0.60))
     if o_boost > 0.0:
         for col in ("stop_proxy", "threshold_proxy", "decision_proxy", "execution_proxy", "coherence_proxy"):
             if col in df2.columns:

@@ -9,7 +9,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-REPORT_VERSION = "0.4.7"
+REPORT_VERSION = "0.4.8"
 
 from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
 from .calibration import Thresholds, derive_thresholds, risk_signature
@@ -102,7 +102,7 @@ def build_audit_report(
     dataset_name: str = "dataset",
     delta_d_window: int = 5,
     stability_windows: Sequence[int] = (3, 5, 8),
-    topk_frac: float = 0.10,
+    topk_frac: float = 0.15,
     stress_intensity: float = 1.0,
     manipulability_magnitude: float = 0.2,
     o_bias_magnitude: float = 0.15,
@@ -169,12 +169,20 @@ def build_audit_report(
     maturity_assessment = assess_maturity(df)
     maturity = asdict(maturity_assessment)
 
+    # L tuning: on veut un opérateur proactif (delay court) et une intensité suffisante.
+    # Ces réglages ne modifient pas la suite de stress, seulement le démonstrateur L.
+    l_intensity_reactive = float(max(1.5, 1.25 * float(stress_intensity)))
+    l_intensity_proactive = float(max(2.0, 1.75 * float(stress_intensity)))
+    l_max_delay_reactive = 3
+    l_max_delay_proactive = 2
     # L performance (reactive)
     l_perf = evaluate_l_performance(
         df,
         window=delta_d_window,
         topk_frac=topk_frac,
-        intensity=stress_intensity,
+        persist=2,
+        max_delay=int(l_max_delay_reactive),
+        intensity=float(l_intensity_reactive),
         thresholds=thresholds,
         risk_threshold=float(thresholds.risk_thr) if thresholds is not None else None,
     )
@@ -183,7 +191,7 @@ def build_audit_report(
     o_level = compute_o_level(df)
     o_thr = float(np.quantile(o_level.to_numpy(dtype=float), 0.15))
 
-    proactive_topk = float(max(float(topk_frac), 0.20))
+    proactive_topk = float(max(float(topk_frac), 0.25))
     variants: list[dict[str, Any]] = []
 
     v1 = evaluate_l_performance(
@@ -192,8 +200,8 @@ def build_audit_report(
         topk_frac=proactive_topk,
         o_threshold=o_thr,
         persist=2,
-        max_delay=8,
-        intensity=stress_intensity,
+        max_delay=int(l_max_delay_proactive),
+        intensity=float(l_intensity_proactive),
         thresholds=thresholds,
         risk_threshold=float(thresholds.risk_thr) if thresholds is not None else None,
     )
@@ -204,18 +212,18 @@ def build_audit_report(
     # Proactive autotune: if the first pass is weak, explore a small grid.
     # Goal: reach prevented_topk_excess_rel >= 0.10 when possible, without making CI heavy.
     if (float(v1.get("prevented_topk_excess_rel", 0.0)) < 0.10) and (float(v1.get("prevented_exceedance_rel", 0.0)) < 0.10):
-        o_thr_candidates = [None, float(np.quantile(o_level.to_numpy(dtype=float), 0.20))]
+        o_thr_candidates = [float(o_thr), float(np.quantile(o_level.to_numpy(dtype=float), 0.20))]
 
-        topk_candidates = sorted({float(max(0.10, min(0.40, float(topk_frac)))), 0.20, 0.30})
+        topk_candidates = sorted({float(max(0.10, min(0.40, float(topk_frac)))), 0.15, 0.20, 0.25, 0.30})
         persist_candidates = [1, 2, 3]
-        max_delay_candidates = [0, 2, 4, 6, 8]
+        max_delay_candidates = [0, 1, 2, 3, 4]
 
         # We allow a bit more intensity than the default 1.0 because in real datasets
         # the tail membership often needs a stronger intervention to move.
         intensity_candidates = [
-            float(stress_intensity),
-            float(min(3.0, 1.5 * float(stress_intensity))),
-            float(min(3.0, 2.5 * float(stress_intensity))),
+            float(l_intensity_proactive),
+            float(min(3.0, 1.25 * float(l_intensity_proactive))),
+            float(min(3.0, 1.50 * float(l_intensity_proactive))),
         ]
 
         grid_variants: list[dict[str, Any]] = []
@@ -272,7 +280,10 @@ def build_audit_report(
         "o_bias": anti_gaming_o_bias(df, magnitude=o_bias_magnitude, window=delta_d_window),
     }
     # Demo targets (auditable, sector-dependent in real deployments)
-    gap_mean = float(np.mean(df["rule_execution_gap"].astype(float).to_numpy())) if "rule_execution_gap" in df.columns else float("nan")
+    gap_arr = df["rule_execution_gap"].astype(float).to_numpy() if "rule_execution_gap" in df.columns else None
+    gap_mean = float(np.mean(gap_arr)) if gap_arr is not None else float("nan")
+    gap_std = float(np.std(gap_arr)) if gap_arr is not None else float("nan")
+    gap_suspect_constant_high = bool((gap_arr is not None) and (gap_mean > 0.95) and (gap_std < 0.02))
 
     e_rel = float(l_perf_pro.get("prevented_exceedance_rel", 0.0))
     t_rel = float(l_perf_pro.get("prevented_topk_excess_rel", 0.0))
@@ -288,6 +299,8 @@ def build_audit_report(
     targets: Dict[str, Any] = {
         "rule_execution_gap_target_max": 0.05,
         "rule_execution_gap_mean": gap_mean,
+        "rule_execution_gap_std": gap_std,
+        "rule_execution_gap_suspect_constant_high": gap_suspect_constant_high,
         "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
         "prevented_exceedance_rel_target_min": 0.10,
         "prevented_topk_excess_rel_target_min": 0.10,
@@ -300,6 +313,8 @@ def build_audit_report(
         "prevented_meets_target": prevented_meets_target,
         "proactive_topk_frac": proactive_topk,
         "proactive_o_threshold": float(o_thr),
+        "l_reactive_params": dict(l_perf.get("params", {})),
+        "l_proactive_best_params": dict(l_perf_pro.get("params", {})),
     }
 
     thresholds_payload = asdict(thresholds) if thresholds is not None else None
