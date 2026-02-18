@@ -83,7 +83,23 @@ def render_audit_html(
         columns=["Metric", "Value"],
     )
 
-    df_targets = pd.DataFrame.from_dict(report_dict.get("targets", {}) or {}, orient="index", columns=["value"]).reset_index().rename(columns={"index": "target"})
+    # "targets" is intended to be a flat mapping (target -> scalar value).
+    # Some reports may also include nested dicts (e.g. parameter bundles) for traceability.
+    # Pandas treats any dict-of-dicts as a nested table and will crash if values are mixed.
+    targets_raw: Any = report_dict.get("targets", {}) or {}
+    targets_flat: Dict[str, Any] = {}
+    if isinstance(targets_raw, dict):
+        for k, v in targets_raw.items():
+            if isinstance(v, dict) or isinstance(v, (list, tuple)):
+                targets_flat[str(k)] = json.dumps(v, ensure_ascii=False, sort_keys=True)
+            else:
+                targets_flat[str(k)] = v
+    else:
+        targets_flat = {"targets": json.dumps(targets_raw, ensure_ascii=False)}
+
+    df_targets = (
+        pd.DataFrame.from_dict(targets_flat, orient="index", columns=["value"]).reset_index().rename(columns={"index": "target"})
+    )
 
     # Figures
     figs = [
