@@ -458,6 +458,108 @@ def aiops_phase2_to_proxies(
 
     out = _ensure_governance_defaults(out)
     return ensure_required_columns(out)
+
+def univariate_csv_to_proxies(
+    raw: pd.DataFrame,
+    *,
+    timestamp_col: Optional[str] = None,
+    value_col: Optional[str] = None,
+    label_col: Optional[str] = None,
+    tz: str = "UTC",
+) -> pd.DataFrame:
+    """Convert a generic univariate time series CSV to proxy schema.
+
+    Supported inputs:
+    - timestamp/date column as ISO string or epoch seconds/ms/us
+    - value column (float)
+    - optional label column (0/1 or bool), or is_anomaly/anomaly
+
+    This adapter is intended for datasets like NAB, Yahoo S5, simple KPI exports,
+    and CPC result series with columns [timestamp, value].
+    """
+    df = raw.copy()
+
+    cols_l = {str(c).lower(): c for c in df.columns}
+    def _pick(cands, explicit):
+        if explicit:
+            if explicit in df.columns:
+                return explicit
+            if explicit.lower() in cols_l:
+                return cols_l[explicit.lower()]
+        for c in cands:
+            if c in df.columns:
+                return c
+            if c.lower() in cols_l:
+                return cols_l[c.lower()]
+        return None
+
+    ts_col = _pick(["timestamp", "date", "time", "ds", "datetime"], timestamp_col)
+    val_col = _pick(["value", "y", "metric", "count", "val"], value_col)
+    lab_col = _pick(["label", "is_anomaly", "anomaly", "is_outlier"], label_col)
+
+    if ts_col is None or val_col is None:
+        raise ValueError("univariate_csv_to_proxies: need timestamp/date and value columns")
+
+    ts = df[ts_col]
+    # Numeric epoch
+    if pd.api.types.is_numeric_dtype(ts):
+        idx = _to_datetime_index(pd.to_numeric(ts, errors="coerce").fillna(0.0))
+    else:
+        dt = pd.to_datetime(ts, utc=True, errors="coerce")
+        if dt.isna().mean() > 0.80:
+            # Fallback: attempt numeric parsing
+            ts2 = pd.to_numeric(ts, errors="coerce")
+            if ts2.notna().any():
+                idx = _to_datetime_index(ts2.fillna(0.0))
+            else:
+                idx = pd.date_range("1970-01-01", periods=len(df), freq="min", tz="UTC")
+        else:
+            idx = pd.DatetimeIndex(dt)
+
+    idx = idx.tz_convert(tz) if idx.tz is not None else idx.tz_localize("UTC").tz_convert(tz)
+    df = df.copy()
+    df.index = idx
+    df = df.sort_index()
+
+    v = pd.to_numeric(df[val_col], errors="coerce").fillna(0.0).astype(float)
+
+    if lab_col is None:
+        label = pd.Series([0.0] * len(df), index=df.index, dtype=float)
+    else:
+        label = pd.to_numeric(df[lab_col], errors="coerce").fillna(0.0).clip(0.0, 1.0).astype(float)
+
+    dv = v.diff().abs().fillna(0.0)
+    vol = v.rolling(30, min_periods=10).std().fillna(0.0)
+    resid = (v - v.rolling(30, min_periods=10).median().fillna(v.median())).abs()
+
+    high = (label > 0.0) | (dv > dv.quantile(0.95))
+    rec_run = _run_length_high(high)
+
+    out = pd.DataFrame(index=df.index)
+    out["scale_proxy"] = np.log1p(v.abs())
+    out["speed_proxy"] = np.log1p(dv + 1e-12)
+    out["leverage_proxy"] = vol
+    out["autonomy_proxy"] = 1.0 - _rolling_autocorr(v, window=20).abs()
+    out["replicability_proxy"] = 1.0 - (vol / (v.abs().rolling(30, min_periods=10).mean() + 1e-12)).fillna(0.0)
+
+    out["stop_proxy"] = 1.0 - label
+    out["threshold_proxy"] = 1.0 - robust_z(resid).clip(lower=-3, upper=3) / 3.0
+    out["decision_proxy"] = 1.0 - robust_z(dv).clip(lower=-3, upper=3) / 3.0
+    out["execution_proxy"] = 1.0 - robust_z(vol).clip(lower=-3, upper=3) / 3.0
+    out["coherence_proxy"] = 1.0 - robust_z(_rolling_autocorr(v, window=30).abs()).clip(lower=-3, upper=3) / 3.0
+
+    out["impact_proxy"] = label + robust_z(resid).abs()
+    out["propagation_proxy"] = label.diff().abs().fillna(0.0)
+    out["hysteresis_proxy"] = label.rolling(10, min_periods=3).mean().fillna(0.0)
+
+    out["margin_proxy"] = 1.0 / (1.0 + vol)
+    out["redundancy_proxy"] = 1.0 / (1.0 + robust_z(dv).abs())
+    out["diversity_proxy"] = 0.5
+    out["recovery_time_proxy"] = rec_run.astype(float)
+
+    out = _ensure_governance_defaults(out)
+    return ensure_required_columns(out)
+
 def ensure_datetime_index(df: pd.DataFrame) -> pd.DataFrame:
     """Ensure a UTC datetime index named 'date'.
 

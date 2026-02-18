@@ -1,0 +1,52 @@
+name: Real Data Credit Card Fraud (Optional)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fraud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install
+        run: |
+          set -e
+          python -m pip install --upgrade pip setuptools wheel
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install -e .
+
+      - name: Convert + audit (only if dataset is present)
+        env:
+          PYTHONPATH: src
+        run: |
+          set -e
+          in1="data/real/raw/fraud/creditcard.csv"
+          in2="input/creditcard.csv"
+          if [ -f "$in1" ]; then
+            infile="$in1"
+          elif [ -f "$in2" ]; then
+            infile="$in2"
+          else
+            mkdir -p _ci_out/fraud
+            echo '{ "note": "Missing creditcard.csv. Place it under data/real/raw/fraud/creditcard.csv (recommended) or input/creditcard.csv, then re-run this workflow." }' > _ci_out/fraud/note.json
+            exit 0
+          fi
+
+          mkdir -p _ci_out/fraud
+          python tools/convert_creditcard_fraud_to_proxies.py --input "$infile" --out-csv _ci_out/fraud/creditcard_proxies.csv
+          python tools/run_audit.py --dataset _ci_out/fraud/creditcard_proxies.csv --name creditcard_fraud --out-dir _ci_out/fraud --plot --html-report --plotly
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: real_data_fraud_artefacts
+          path: _ci_out/fraud

@@ -1,0 +1,54 @@
+name: Real Data Univariate (Fixtures)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 3 * * 2"  # Tuesdays 03:30 UTC
+
+jobs:
+  univariate-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install
+        run: |
+          set -e
+          python -m pip install --upgrade pip setuptools wheel
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install -e .
+          python -m pip install pytest
+
+      - name: Adapter tests
+        run: |
+          pytest -q tests/test_real_data_adapters.py
+
+      - name: Convert fixtures to proxies + audit
+        env:
+          PYTHONPATH: src
+        run: |
+          set -e
+          mkdir -p _ci_out/univariate/proxies
+          mkdir -p _ci_out/univariate/reports
+
+          shopt -s nullglob
+          for f in tests/fixtures/real/univariate/*.csv; do
+            base=$(basename "$f" .csv)
+            out="_ci_out/univariate/proxies/${base}_proxies.csv"
+            python tools/convert_real_data.py --input "$f" --kind univariate_csv --out-csv "$out"
+            python tools/run_audit.py --dataset "$out" --name "univariate_${base}" --out-dir _ci_out/univariate/reports --plot --html-report --plotly
+          done
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: real_data_univariate_artefacts
+          path: _ci_out/univariate

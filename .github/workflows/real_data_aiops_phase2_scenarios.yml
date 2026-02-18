@@ -1,0 +1,57 @@
+name: Real Data AIOps Phase2 (Scenarios)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  aiops-phase2-scenarios:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install
+        run: |
+          set -e
+          python -m pip install --upgrade pip setuptools wheel
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install -e .
+
+      - name: Convert fixtures to proxies
+        env:
+          PYTHONPATH: src
+        run: |
+          set -e
+          mkdir -p _ci_out/aiops_phase2_scenarios/proxies
+
+          shopt -s nullglob
+          for f in tests/fixtures/real/aiops_phase2/*.csv; do
+            base=$(basename "$f" .csv)
+            out="_ci_out/aiops_phase2_scenarios/proxies/${base}_proxies.csv"
+            python tools/convert_real_data.py --input "$f" --kind aiops_phase2 --out-csv "$out"
+          done
+
+      - name: Run scenario smoke on proxies
+        env:
+          PYTHONPATH: src
+        run: |
+          set -e
+          inputs=$(ls -1 _ci_out/aiops_phase2_scenarios/proxies/*_proxies.csv 2>/dev/null || true)
+          if [ -z "$inputs" ]; then
+            echo "No proxies found; skipping."
+            exit 0
+          fi
+          python tools/run_real_data_smoke.py --out-dir _ci_out/aiops_phase2_scenarios/reports --inputs $inputs --scenarios 10 --segment-len 900 --seed 1337
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: real_data_aiops_phase2_scenarios
+          path: _ci_out/aiops_phase2_scenarios

@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="amplification-barometer",
-    version="0.4.12",
+    version="0.4.13",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[

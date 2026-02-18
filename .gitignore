@@ -5,3 +5,6 @@ __pycache__/
 .env
 .DS_Store
 
+
+# Large real-world sources (keep fixtures under tests/fixtures/real/)
+data/real/raw/

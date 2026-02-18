@@ -61,7 +61,7 @@ def main() -> int:
         "--kind",
         type=str,
         default="",
-        help="Adapter kind: binance_aggtrades, binance_trades, borg_traces, aiops_phase2, finance_ohlcv, auto.",
+        help="Adapter kind: binance_aggtrades, binance_trades, borg_traces, aiops_phase2, univariate_csv, finance_ohlcv, auto.",
     )
     ap.add_argument("--out-csv", type=str, default="", help="Output CSV with proxies and a date column.")
     ap.add_argument("--bar-freq", type=str, default="1min", help="Resampling frequency for trade-like feeds.")
@@ -92,15 +92,18 @@ def main() -> int:
         kind = str(args.kind).strip().lower()
 
         if kind == "auto":
-            cols = {str(c).lower() for c in df.columns}
-            if {"p", "q", "t"}.issubset(cols) or {"price", "qty", "ts"}.issubset(cols):
-                kind = "binance_aggtrades"
-            elif any(c in cols for c in ("job_id", "task_id", "container", "service", "user", "resource_request")):
-                kind = "borg_traces"
-            else:
-                kind = "aiops_phase2"
-
-        tz = str(args.tz)
+    cols = {str(c).lower() for c in df.columns}
+    if {"p", "q", "t"}.issubset(cols) or {"price", "qty", "ts"}.issubset(cols):
+        kind = "binance_aggtrades"
+    elif any(c in cols for c in ("job_id", "task_id", "container", "service", "user", "resource_request")):
+        kind = "borg_traces"
+    elif {"timestamp", "value"}.issubset(cols) and ("kpi id" in cols or "label" in cols):
+        kind = "aiops_phase2"
+    elif {"timestamp", "value"}.issubset(cols) or {"date", "value"}.issubset(cols) or {"time", "value"}.issubset(cols):
+        kind = "univariate_csv"
+    else:
+        kind = "aiops_phase2"
+tz = str(args.tz)
 
         if kind == "binance_aggtrades":
             # This adapter usually supports tz, but we keep it tolerant.
@@ -117,7 +120,10 @@ def main() -> int:
         elif kind == "aiops_phase2":
             out = _call_with_optional_tz(rda.aiops_phase2_to_proxies, df, tz)
             out = _ensure_tz_index(out, tz)
-        elif kind in ("finance_ohlcv", "ohlcv"):
+        elif kind == "univariate_csv":
+    out = _call_with_optional_tz(rda.univariate_csv_to_proxies, df, tz)
+    out = _ensure_tz_index(out, tz)
+elif kind in ("finance_ohlcv", "ohlcv"):
             # If already in proxy schema, just normalize index. Otherwise build proxies from OHLCV.
             if hasattr(rda, "has_required_proxies") and hasattr(rda, "ensure_datetime_index") and hasattr(rda, "finance_ohlcv_to_proxies"):
                 if rda.has_required_proxies(df):

@@ -16,6 +16,7 @@ from amplification_barometer.real_data_adapters import (
     ensure_datetime_index,
     finance_ohlcv_to_proxies,
     has_required_proxies,
+    univariate_csv_to_proxies,
 )
 
 
@@ -63,6 +64,13 @@ def _to_proxies(df: pd.DataFrame) -> pd.DataFrame:
         df2 = ensure_datetime_index(df2)
         vol_col = "volume" if "volume" in df2.columns else None
         return finance_ohlcv_to_proxies(df2, price_col="close", volume_col=vol_col)
+
+
+# Univariate timestamp,value style
+cols2 = {c.lower() for c in df.columns}
+if {"timestamp", "value"}.issubset(cols2) or {"date", "value"}.issubset(cols2) or {"time", "value"}.issubset(cols2):
+    df2 = df.rename(columns={c: c.lower() for c in df.columns})
+    return univariate_csv_to_proxies(df2)
 
     raise ValueError("Unsupported real-data format. Provide proxies columns or OHLCV columns.")
 

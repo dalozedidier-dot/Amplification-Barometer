@@ -14,3 +14,11 @@ Le dépôt contient trois workflows principaux sous `.github/workflows/`.
 - Déclenchements: workflow_dispatch, schedule.
 - Smoke sur adaptateurs finance et IA.
 
+
+
+Nouveaux workflows real data (fixtures):
+- .github/workflows/real_data_univariate.yml
+- .github/workflows/real_data_univariate_scenarios.yml
+- .github/workflows/real_data_aiops_phase2.yml
+- .github/workflows/real_data_aiops_phase2_scenarios.yml
+- .github/workflows/real_data_creditcard_fraud_optional.yml
