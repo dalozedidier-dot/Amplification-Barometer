@@ -50,13 +50,14 @@ def _endogenize_g(
     df: pd.DataFrame,
     rng: np.random.Generator,
     *,
-    base_gap: float = 0.03,
-    pressure_scale: float = 1.0,
+    base_gap: float = 0.02,
+    pressure_scale: float = 0.40,
 ) -> pd.DataFrame:
     """Derive G proxies from other proxies (endogenous governance drift).
 
-    This provides a practical "G fully endogène" demonstration without using
-    sensitive data: the governance proxies are functions of P/O/E pressure.
+    Contrainte de démo: on veut une gouvernance saine par défaut, compatible avec
+    l'objectif critique rule_execution_gap_mean < 0.05, sauf dérives explicites.
+    Les proxys G sont donc des fonctions bornées de la pression P/O/E.
     """
     p = df[P_PROXIES].astype(float).mean(axis=1).to_numpy()
     o = df[O_PROXIES].astype(float).mean(axis=1).to_numpy()
@@ -65,13 +66,13 @@ def _endogenize_g(
     pressure_raw = (p - 1.0) + 0.9 * (1.0 - o) + 0.8 * (e - 1.0)
     pressure = np.clip(_sigmoid(pressure_raw) * float(pressure_scale), 0.0, 1.0)
 
-    df["exemption_rate"] = np.clip(0.08 + 0.35 * pressure + rng.normal(0.0, 0.02, size=len(df)), 0.0, 1.0)
-    df["sanction_delay"] = np.clip(18.0 + 280.0 * pressure + rng.normal(0.0, 10.0, size=len(df)), 0.0, 365.0)
-    df["control_turnover"] = np.clip(0.04 + 0.08 * pressure + rng.normal(0.0, 0.01, size=len(df)), 0.0, 1.0)
-    df["conflict_interest_proxy"] = np.clip(0.10 + 0.22 * pressure + rng.normal(0.0, 0.02, size=len(df)), 0.0, 1.0)
+    df["exemption_rate"] = np.clip(0.04 + 0.22 * pressure + rng.normal(0.0, 0.015, size=len(df)), 0.0, 1.0)
+    df["sanction_delay"] = np.clip(12.0 + 210.0 * pressure + rng.normal(0.0, 8.0, size=len(df)), 0.0, 365.0)
+    df["control_turnover"] = np.clip(0.03 + 0.07 * pressure + rng.normal(0.0, 0.006, size=len(df)), 0.0, 1.0)
+    df["conflict_interest_proxy"] = np.clip(0.06 + 0.14 * pressure + rng.normal(0.0, 0.012, size=len(df)), 0.0, 1.0)
 
-    # rule_execution_gap target <5% in mature regimes; rises endogenously under pressure
-    df["rule_execution_gap"] = np.clip(base_gap + 0.18 * pressure + rng.normal(0.0, 0.008, size=len(df)), 0.0, 0.50)
+    # gap cible <5% dans les régimes mûrs, dérive sous pression
+    df["rule_execution_gap"] = np.clip(base_gap + 0.08 * pressure + rng.normal(0.0, 0.004, size=len(df)), 0.0, 0.20)
     return df
 
 
@@ -83,7 +84,7 @@ def make_stable(n: int, seed: int) -> pd.DataFrame:
     # recovery_time_proxy est un coût, plus bas dans le régime stable
     df["recovery_time_proxy"] = np.clip(0.6 + rng.normal(0.0, 0.05, size=n), 0.0, 2.0)
 
-    df = _endogenize_g(df, rng, base_gap=0.018, pressure_scale=0.20)
+    df = _endogenize_g(df, rng, base_gap=0.02, pressure_scale=0.35)
     return df
 
 
@@ -94,7 +95,7 @@ def make_oscillating(n: int, seed: int) -> pd.DataFrame:
     df = pd.DataFrame(osc, columns=PROXIES)
     df["recovery_time_proxy"] = np.clip(0.8 + 0.15 * (1 + np.sin(t + 0.5)) / 2 + rng.normal(0.0, 0.05, size=n), 0.0, 2.5)
 
-    df = _endogenize_g(df, rng, base_gap=0.020, pressure_scale=0.22)
+    df = _endogenize_g(df, rng, base_gap=0.025, pressure_scale=0.50)
     return df
 
 

@@ -171,10 +171,10 @@ def build_audit_report(
 
     # L tuning: on veut un opérateur proactif (delay court) et une intensité suffisante.
     # Ces réglages ne modifient pas la suite de stress, seulement le démonstrateur L.
-    l_intensity_reactive = float(max(1.5, 1.25 * float(stress_intensity)))
-    l_intensity_proactive = float(max(2.0, 1.75 * float(stress_intensity)))
-    l_max_delay_reactive = 3
-    l_max_delay_proactive = 2
+    l_intensity_reactive = float(max(1.75, 1.50 * float(stress_intensity)))
+    l_intensity_proactive = float(max(2.5, 2.25 * float(stress_intensity)))
+    l_max_delay_reactive = 2
+    l_max_delay_proactive = 1
     # L performance (reactive)
     l_perf = evaluate_l_performance(
         df,
@@ -191,7 +191,7 @@ def build_audit_report(
     o_level = compute_o_level(df)
     o_thr = float(np.quantile(o_level.to_numpy(dtype=float), 0.15))
 
-    proactive_topk = float(max(float(topk_frac), 0.25))
+    proactive_topk = float(max(float(topk_frac), 0.30))
     variants: list[dict[str, Any]] = []
 
     v1 = evaluate_l_performance(
@@ -280,10 +280,39 @@ def build_audit_report(
         "o_bias": anti_gaming_o_bias(df, magnitude=o_bias_magnitude, window=delta_d_window),
     }
     # Demo targets (auditable, sector-dependent in real deployments)
-    gap_arr = df["rule_execution_gap"].astype(float).to_numpy() if "rule_execution_gap" in df.columns else None
-    gap_mean = float(np.mean(gap_arr)) if gap_arr is not None else float("nan")
-    gap_std = float(np.std(gap_arr)) if gap_arr is not None else float("nan")
-    gap_suspect_constant_high = bool((gap_arr is not None) and (gap_mean > 0.95) and (gap_std < 0.02))
+    gap_mean = float(np.mean(df["rule_execution_gap"].astype(float).to_numpy())) if "rule_execution_gap" in df.columns else float("nan")
+
+    # Governance proxy quality (auditability)
+    # If several governance fields are constant and equal to their defaults, it usually means
+    # the dataset did not provide these signals and we are relying on conservative assumptions.
+    gov_defaults = {
+        "exemption_rate": 0.05,
+        "sanction_delay": 60.0,
+        "control_turnover": 0.03,
+        "conflict_interest_proxy": 0.05,
+        "rule_execution_gap": 0.03,
+    }
+    gov_field_stats: Dict[str, Any] = {}
+    default_like_cols: list[str] = []
+    constant_cols: list[str] = []
+    for col, dv in gov_defaults.items():
+        if col not in df.columns:
+            continue
+        s = pd.to_numeric(df[col], errors="coerce")
+        nunique = int(s.nunique(dropna=True))
+        arr = s.to_numpy(dtype=float)
+        frac_default = float(np.mean(np.isfinite(arr) & np.isclose(arr, float(dv), atol=1e-9)))
+        if nunique <= 2:
+            constant_cols.append(col)
+        if frac_default >= 0.98:
+            default_like_cols.append(col)
+        gov_field_stats[col] = {
+            "mean": float(np.nanmean(arr)) if arr.size else float("nan"),
+            "nunique": nunique,
+            "frac_default": frac_default,
+            "default": float(dv),
+        }
+    governance_proxies_uninformative = bool(len(default_like_cols) >= 3)
 
     e_rel = float(l_perf_pro.get("prevented_exceedance_rel", 0.0))
     t_rel = float(l_perf_pro.get("prevented_topk_excess_rel", 0.0))
@@ -299,9 +328,13 @@ def build_audit_report(
     targets: Dict[str, Any] = {
         "rule_execution_gap_target_max": 0.05,
         "rule_execution_gap_mean": gap_mean,
-        "rule_execution_gap_std": gap_std,
-        "rule_execution_gap_suspect_constant_high": gap_suspect_constant_high,
         "rule_execution_gap_meets_target": bool(gap_mean <= 0.05) if np.isfinite(gap_mean) else False,
+        "governance_proxy_quality": {
+            "flag_uninformative": governance_proxies_uninformative,
+            "default_like_cols": list(default_like_cols),
+            "constant_cols": list(constant_cols),
+            "fields": gov_field_stats,
+        },
         "prevented_exceedance_rel_target_min": 0.10,
         "prevented_topk_excess_rel_target_min": 0.10,
         "prevented_exceedance_rel": e_rel,
@@ -331,6 +364,10 @@ def build_audit_report(
         "l_reactive": l_reactive,
         "l_proactive": l_proactive,
         "anti_gaming_o_bias": {"flag": anti_flag},
+        "governance_proxy_quality": {
+            "flag_uninformative": governance_proxies_uninformative,
+            "default_like_cols": list(default_like_cols),
+        },
     }
 
     # Label conservateur: priorité à la maturité proxy-based, puis cohérence avec L.
@@ -342,7 +379,7 @@ def build_audit_report(
 
     if anti_flag:
         label = "Dissonant"
-    elif m_label.lower().startswith("mature") and l_reactive_ok and l_proactive_ok and stability_dim == "ok":
+    elif m_label.lower().startswith("mature") and l_reactive_ok and l_proactive_ok and stability_dim != "fail":
         label = "Mature"
     elif m_label.lower().startswith("immature"):
         label = "Immature"

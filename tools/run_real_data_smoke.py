@@ -13,8 +13,6 @@ from amplification_barometer.audit_report import build_audit_report, write_audit
 from amplification_barometer.calibration import Thresholds, derive_thresholds
 from amplification_barometer.html_report import render_audit_html
 from amplification_barometer.real_data_adapters import (
-    aiops_phase2_to_proxies,
-    borg_traces_to_proxies,
     ensure_datetime_index,
     finance_ohlcv_to_proxies,
     has_required_proxies,
@@ -32,7 +30,7 @@ def _load_thresholds(*, window: int) -> Optional[Thresholds]:
     return derive_thresholds(stable_df, window=window)
 
 
-def _discover_inputs(repo_root: Path) -> List[Path]:
+def _discover_inputs(repo_root: Path, *, include_root_proxies: bool = True) -> List[Path]:
     candidates: List[Path] = []
     for sub in ("data/real", "data/real_fixtures"):
         p = repo_root / sub
@@ -61,20 +59,6 @@ def _to_proxies(df: pd.DataFrame) -> pd.DataFrame:
         df2 = ensure_datetime_index(df2)
         vol_col = "volume" if "volume" in df2.columns else None
         return finance_ohlcv_to_proxies(df2, price_col="close", volume_col=vol_col)
-
-    # Borg traces style (CPU request/usage)
-    cols = {c.lower() for c in df.columns}
-    if {"avg_cpu", "max_cpu"}.issubset(cols):
-        ren = {c: c.lower() for c in df.columns}
-        df2 = df.rename(columns=ren)
-        # req_cpu and req_mem may be missing. Adapter handles low coverage.
-        return borg_traces_to_proxies(df2, bucket_seconds=60, tz="UTC")
-
-    # AIOps phase2 style
-    if {"timestamp", "value"}.issubset(cols):
-        ren = {c: c.lower() for c in df.columns}
-        df2 = df.rename(columns=ren)
-        return aiops_phase2_to_proxies(df2)
 
     raise ValueError("Unsupported real-data format. Provide proxies columns or OHLCV columns.")
 
@@ -148,11 +132,12 @@ def _report_row(report_dict: Dict[str, object], *, dataset: str, scenario: str, 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Real data smoke: convert + audit + HTML report.")
     ap.add_argument("--out-dir", type=str, default="_ci_out/real_data")
-    ap.add_argument("--inputs", nargs="*", default=None, help="Optional list of input files (CSV/Parquet). If omitted, the script scans data/real and data/real_fixtures.")
     ap.add_argument("--window", type=int, default=5)
     ap.add_argument("--scenarios", type=int, default=1, help="Number of additional scenario slices per dataset (full dataset is included by default).")
     ap.add_argument("--segment-len", type=int, default=0, help="Segment length for scenario slices. 0 = auto.")
     ap.add_argument("--seed", type=int, default=1337)
+    ap.add_argument("--inputs", nargs="*", default=None, help="Optional explicit list of CSV/Parquet inputs (proxies or OHLCV). If set, auto-discovery is skipped.")
+    ap.add_argument("--include-root-proxies", action="store_true", help="Also include repo-root *_proxies.csv files when auto-discovering inputs.")
     ap.add_argument("--no-full", action="store_true", help="Do not include the full dataset report, only scenario slices.")
     args = ap.parse_args()
 
@@ -162,11 +147,13 @@ def main() -> int:
 
     thresholds = _load_thresholds(window=int(args.window))
 
-    inputs = [Path(p) for p in args.inputs] if args.inputs else _discover_inputs(repo_root)
-    inputs = [p if p.is_absolute() else (repo_root / p) for p in inputs]
+    if args.inputs:
+        inputs = [Path(p) for p in args.inputs]
+    else:
+        inputs = _discover_inputs(repo_root, include_root_proxies=bool(args.include_root_proxies))
     if not inputs:
         note = {
-            "note": "No real data files found under data/real or data/real_fixtures.",
+            "note": "No real data files found under data/real, data/real_fixtures (and optionally repo-root *_proxies.csv).",
             "how_to": "Drop CSV/Parquet with proxies or OHLCV columns.",
             "hint": "To test multiple real scenarios, use --scenarios N and optionally --segment-len.",
         }
