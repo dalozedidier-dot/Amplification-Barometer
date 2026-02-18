@@ -333,7 +333,20 @@ def borg_traces_to_proxies(
     out["diversity_proxy"] = np.log1p(agg["user_diversity"])
     out["recovery_time_proxy"] = rec_run.astype(float)
 
-    out["rule_execution_gap"] = gap.clip(0.0, 1.0)
+    # Governance proxy: rule_execution_gap
+    # Original implementation used abs(req-avg)/req which explodes when req is missing or near zero,
+    # and then gets clipped to 1.0 (false "governance collapse"). We make it robust:
+    # - if requests coverage is low, fall back to a conservative, auditable proxy based on failure persistence
+    # - otherwise keep the original gap definition.
+    req_total = (agg["req_cpu"] + agg["req_mem"]).astype(float)
+    req_coverage = float(np.mean((req_total > 0.0).astype(float)))
+    if req_coverage < 0.80:
+        # Failure persistence as "execution gap" proxy (0..1), small when incidents are rare/short.
+        exec_gap = (agg["failed_rate"] > 0.0).astype(float).rolling(10, min_periods=3).mean().fillna(0.0)
+    else:
+        exec_gap = gap
+
+    out["rule_execution_gap"] = exec_gap.clip(0.0, 1.0)
     out["control_turnover"] = robust_z(agg["user_diversity"]).abs().clip(0.0, 1.0)
     out["sanction_delay"] = 60.0
     out["exemption_rate"] = 0.05

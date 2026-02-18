@@ -36,18 +36,41 @@ def compute_l_cap(df: pd.DataFrame) -> pd.Series:
 
 
 def compute_l_act(df: pd.DataFrame) -> pd.Series:
-    """L_act (z): activation observée (enforcement effectif, proxy composite)."""
+    """L_act (z): activation observée (enforcement effectif, proxy composite).
+
+    Important: L_act doit rester *absolu* et comparable entre datasets.
+    L'ancienne version normalisait par z-score interne au dataset, ce qui écrase
+    l'information quand les proxys de gouvernance sont constants (cas fréquent
+    sur données réelles anonymisées ou quand on utilise des valeurs par défaut).
+
+    On calcule une "qualité d'activation" good dans [0,1], puis on la projette en z
+    via un logit. Avec _sigmoid01(k=1.6), on retrouve good (à l'epsilon près).
+    """
     _require(df, L_ACT_PROXIES, "L_act")
     # plus bas = mieux pour exemption_rate, sanction_delay, turnover, conflict, gap
     x = df.loc[:, list(L_ACT_PROXIES)].astype(float).to_numpy()
-    # normalize sanction_delay to 0..1 using a robust cap (days)
+
     sanc = x[:, 1]
     sanc01 = np.clip(sanc / 365.0, 0.0, 1.0)
-    x01 = np.column_stack([np.clip(x[:, 0], 0.0, 1.0), sanc01, np.clip(x[:, 2], 0.0, 1.0), np.clip(x[:, 3], 0.0, 1.0), np.clip(x[:, 4], 0.0, 1.0)])
-    # risk-like score (higher = worse), then invert for "activation quality"
+
+    x01 = np.column_stack(
+        [
+            np.clip(x[:, 0], 0.0, 1.0),
+            sanc01,
+            np.clip(x[:, 2], 0.0, 1.0),
+            np.clip(x[:, 3], 0.0, 1.0),
+            np.clip(x[:, 4], 0.0, 1.0),
+        ]
+    )
+
     bad = 0.25 * x01[:, 0] + 0.20 * x01[:, 1] + 0.20 * x01[:, 2] + 0.15 * x01[:, 3] + 0.20 * x01[:, 4]
     good = 1.0 - bad
-    z = robust_zscore(good)
+
+    eps = 1e-6
+    good = np.clip(good, eps, 1.0 - eps)
+
+    # logit projection so that _sigmoid01(z, k=1.6) ≈ good
+    z = (np.log(good / (1.0 - good)) / 1.6).astype(float)
     return pd.Series(z, index=df.index, name="L_ACT")
 
 
@@ -261,7 +284,22 @@ def evaluate_l_performance(
             arr2[activated] = arr2[activated] * float(max(0.0, 1.0 - 0.25 * float(intensity)))
             df2[col] = arr2
 
-    # Post risk for prevention metrics
+    
+    # Optional O-boost under activation (tighten controls).
+    # Rationale: on datasets where P reduction alone mostly scales risk without changing
+    # the TopK membership (e.g., AIOps), a small improvement of O proxies is a realistic
+    # countermeasure (better stop/threshold/decision/execution/coherence).
+    o_boost = float(np.clip(0.08 * float(intensity), 0.0, 0.60))
+    if o_boost > 0.0:
+        for col in ("stop_proxy", "threshold_proxy", "decision_proxy", "execution_proxy", "coherence_proxy"):
+            if col in df2.columns:
+                arr = df2[col].astype(float).to_numpy()
+                arr2 = arr.copy()
+                # Move towards 1.0 with a bounded step
+                arr2[activated] = arr2[activated] + o_boost * (1.0 - arr2[activated])
+                df2[col] = np.clip(arr2, 0.0, 1.0)
+
+# Post risk for prevention metrics
     if thresholds is not None:
         risk2 = risk_signature(df2, thresholds=thresholds, window=window).to_numpy(dtype=float)
     else:

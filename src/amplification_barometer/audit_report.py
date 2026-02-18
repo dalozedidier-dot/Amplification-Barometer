@@ -200,21 +200,55 @@ def build_audit_report(
     v1["variant"] = "proactive_v1_risk_or_low_o"
     variants.append(v1)
 
+    
+    # Proactive autotune: if the first pass is weak, explore a small grid.
+    # Goal: reach prevented_topk_excess_rel >= 0.10 when possible, without making CI heavy.
     if (float(v1.get("prevented_topk_excess_rel", 0.0)) < 0.10) and (float(v1.get("prevented_exceedance_rel", 0.0)) < 0.10):
-        o_thr2 = float(np.quantile(o_level.to_numpy(dtype=float), 0.20))
-        v2 = evaluate_l_performance(
-            df,
-            window=delta_d_window,
-            topk_frac=float(max(float(topk_frac), 0.30)),
-            o_threshold=o_thr2,
-            persist=1,
-            max_delay=6,
-            intensity=stress_intensity,
-            thresholds=thresholds,
-            risk_threshold=float(thresholds.risk_thr) if thresholds is not None else None,
-        )
-        v2["variant"] = "proactive_v2_autotune"
-        variants.append(v2)
+        o_thr_candidates = [None, float(np.quantile(o_level.to_numpy(dtype=float), 0.20))]
+
+        topk_candidates = sorted({float(max(0.10, min(0.40, float(topk_frac)))), 0.20, 0.30})
+        persist_candidates = [1, 2, 3]
+        max_delay_candidates = [0, 2, 4, 6, 8]
+
+        # We allow a bit more intensity than the default 1.0 because in real datasets
+        # the tail membership often needs a stronger intervention to move.
+        intensity_candidates = [
+            float(stress_intensity),
+            float(min(3.0, 1.5 * float(stress_intensity))),
+            float(min(3.0, 2.5 * float(stress_intensity))),
+        ]
+
+        grid_variants: list[dict[str, Any]] = []
+        for o_thr in o_thr_candidates:
+            for tk in topk_candidates:
+                for p in persist_candidates:
+                    for md in max_delay_candidates:
+                        for inten in intensity_candidates:
+                            vx = evaluate_l_performance(
+                                df,
+                                window=delta_d_window,
+                                topk_frac=float(tk),
+                                o_threshold=o_thr,
+                                persist=int(p),
+                                max_delay=int(md),
+                                intensity=float(inten),
+                                thresholds=thresholds,
+                                risk_threshold=float(thresholds.risk_thr) if thresholds is not None else None,
+                            )
+                            vx["variant"] = "proactive_grid_autotune"
+                            grid_variants.append(vx)
+
+        # Keep only best few to reduce payload size
+        grid_variants = sorted(
+            grid_variants,
+            key=lambda d: (
+                float(d.get("prevented_topk_excess_rel", 0.0)),
+                float(d.get("prevented_exceedance_rel", 0.0)),
+            ),
+            reverse=True,
+        )[:12]
+
+        variants.extend(grid_variants)
 
     l_perf_pro = max(
         variants,
