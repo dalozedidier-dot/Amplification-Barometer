@@ -313,28 +313,28 @@ def build_audit_report(
             "default": float(dv),
         }
     # Detect placeholder-like governance. This happens when a sector dataset was generated
-# before endogenization: governance columns are ~1.0 + noise and sanction_delay ~1.
-placeholder_like = False
-try:
-    gap_raw = pd.to_numeric(df.get("rule_execution_gap"), errors="coerce").to_numpy(dtype=float)
-    turnover_raw = pd.to_numeric(df.get("control_turnover"), errors="coerce").to_numpy(dtype=float)
-    sanc_raw = pd.to_numeric(df.get("sanction_delay"), errors="coerce").to_numpy(dtype=float)
-    if gap_raw.size and turnover_raw.size and sanc_raw.size:
-        gap_m = float(np.nanmean(gap_raw))
-        turn_m = float(np.nanmean(turnover_raw))
-        sanc_m = float(np.nanmean(sanc_raw))
-        placeholder_like = bool(
-            np.isfinite(gap_m)
-            and np.isfinite(turn_m)
-            and np.isfinite(sanc_m)
-            and (gap_m > 0.5)
-            and (turn_m > 0.5)
-            and (sanc_m < 5.0)
-        )
-except Exception:
+    # before endogenization: governance columns are ~1.0 + noise and sanction_delay ~1.
     placeholder_like = False
+    try:
+        gap_raw = pd.to_numeric(df.get("rule_execution_gap"), errors="coerce").to_numpy(dtype=float)
+        turnover_raw = pd.to_numeric(df.get("control_turnover"), errors="coerce").to_numpy(dtype=float)
+        sanc_raw = pd.to_numeric(df.get("sanction_delay"), errors="coerce").to_numpy(dtype=float)
+        if gap_raw.size and turnover_raw.size and sanc_raw.size:
+            gap_m = float(np.nanmean(gap_raw))
+            turn_m = float(np.nanmean(turnover_raw))
+            sanc_m = float(np.nanmean(sanc_raw))
+            placeholder_like = bool(
+                np.isfinite(gap_m)
+                and np.isfinite(turn_m)
+                and np.isfinite(sanc_m)
+                and (gap_m > 0.5)
+                and (turn_m > 0.5)
+                and (sanc_m < 5.0)
+            )
+    except Exception:
+        placeholder_like = False
 
-governance_proxies_uninformative = bool((len(default_like_cols) >= 3) or placeholder_like)
+    governance_proxies_uninformative = bool((len(default_like_cols) >= 3) or placeholder_like)
 
 
     e_rel = float(l_perf_pro.get("prevented_exceedance_rel", 0.0))

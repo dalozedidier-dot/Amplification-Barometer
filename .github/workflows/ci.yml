@@ -1,4 +1,4 @@
-name: CI and Canonical Tests
+name: CI
 
 on:
   push:
@@ -9,8 +9,7 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,59 +20,32 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Install
         run: |
           set -e
           python -m pip install --upgrade pip setuptools wheel
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install -e .
+          python -m pip install pytest
 
-          # Install a known-good scientific base first (avoids sdists/builds).
-          python -m pip install \
-            "numpy>=1.26" \
-            "pandas>=2.0" \
-            "matplotlib>=3.8" \
-            "scipy>=1.11" \
-            "pytest>=8.0" \
-            "statsmodels>=0.14"
+      - name: Run tests
+        env:
+          PYTHONPATH: src
+        run: |
+          set -e
+          pytest -q
 
-          # Then install repo-declared deps (should be Python 3.12 compatible).
-          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; \
-          elif [ -f 04_Code/requirements.txt ]; then python -m pip install -r 04_Code/requirements.txt; fi
-
-          if [ -f requirements-dev.txt ]; then python -m pip install -r requirements-dev.txt; fi
-
-          # If the repo is a package, install it editable.
-          if [ -f pyproject.toml ]; then python -m pip install -e .; fi
-
-      - name: Run canonical suite
+      - name: Smoke audit demo
+        env:
+          PYTHONPATH: src
         run: |
           set -e
           mkdir -p _ci_out
-          python -V | tee _ci_out/python_version.txt
-          pip -V | tee _ci_out/pip_version.txt
-          pip list | tee _ci_out/pip_list.txt
+          python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out/demo --no-html-report
 
-          if [ -f run_all_tests.py ]; then
-            python run_all_tests.py 2>&1 | tee _ci_out/run_all_tests.log
-          elif [ -f 04_Code/pipeline/run_all_tests.py ]; then
-            python 04_Code/pipeline/run_all_tests.py 2>&1 | tee _ci_out/run_all_tests.log
-          else
-            echo "No run_all_tests.py found. Falling back to synthetic demo." | tee _ci_out/run_all_tests.log
-            if [ -f 04_Code/pipeline/run_synthetic_demo.py ] && [ -f 03_Data/synthetic/synthetic_minimal.csv ]; then
-              python 04_Code/pipeline/run_synthetic_demo.py --input 03_Data/synthetic/synthetic_minimal.csv --outdir _ci_out/demo 2>&1 | tee -a _ci_out/run_all_tests.log
-            else
-              echo "Synthetic demo not available either." | tee -a _ci_out/run_all_tests.log
-              exit 1
-            fi
-          fi
-
-          # Copy results folder if produced by scripts.
-          if [ -d 05_Results ]; then
-            cp -R 05_Results _ci_out/05_Results
-          fi
-
-      - name: Upload artifacts
+      - name: Upload artefacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: ci_artifacts_${{ github.run_id }}
+          name: ci_out
           path: _ci_out
-          if-no-files-found: warn

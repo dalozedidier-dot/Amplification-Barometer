@@ -1,12 +1,16 @@
-Ce patch ajoute trois workflows GitHub Actions.
+# Notes workflows
 
-1) CI and Canonical Tests (ci.yml)
-Déclenché sur push, pull_request, et workflow_dispatch (bouton Run workflow).
+Le dépôt contient trois workflows principaux sous `.github/workflows/`.
 
-2) Manual ORI-C Runs (manual_runs.yml)
-Déclenché via workflow_dispatch, avec choix de suite.
+1) `ci.yml`
+- Déclenchements: push sur main, pull_request, workflow_dispatch.
+- Étapes: installation, pytest, exécution demo audit, upload `_ci_out`.
 
-3) Nightly Canonical Run (nightly.yml)
-Déclenché par schedule et aussi via workflow_dispatch.
+2) `real_data_smoke.yml`
+- Déclenchements: workflow_dispatch, schedule.
+- Produit des rapports sur fixtures et proxys réels.
 
-Tous les workflows uploadent un artefact _ci_out contenant logs et résultats.
+3) `real_data_finance_ia.yml`
+- Déclenchements: workflow_dispatch, schedule.
+- Smoke sur adaptateurs finance et IA.
+

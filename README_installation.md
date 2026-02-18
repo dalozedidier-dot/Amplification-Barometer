@@ -1,54 +1,25 @@
-# Installation de l'environnement ORI C
+# Installation
 
-## Méthode Conda
+Python 3.12 recommandé.
 
-Créer l'environnement:
+## Environnement virtuel (pip)
+
 ```bash
-conda env create -f environment.yml
-```
-
-Activer:
-```bash
-conda activate ori_c_framework
-```
-
-Vérifier:
-```bash
-python -c "import numpy; print(numpy.__version__)"
-```
-
-## Méthode pip
-
-Créer un environnement virtuel:
-```bash
-python -m venv ori_c_env
-```
-
-Activer.
-Linux ou macOS:
-```bash
-source ori_c_env/bin/activate
-```
-Windows:
-```bash
-ori_c_env\Scripts\activate
-```
-
-Installer:
-```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+pip install -e .
 ```
 
-## Exécuter les démos
+## Vérification
 
-ORI C:
 ```bash
-pip install -r 04_Code/requirements.txt
-python 04_Code/pipeline/run_ori_c_demo.py --outdir 05_Results/ori_c_demo
-python 04_Code/pipeline/tests_causaux.py --outdir 05_Results/ori_c_demo
+PYTHONPATH=src pytest -q
+PYTHONPATH=src python tools/run_audit.py --all-synthetic --synthetic-dir data/synthetic --out-dir _ci_out/demo
 ```
 
-Robustesse CSV:
-```bash
-python 04_Code/pipeline/run_robustness.py --input 03_Data/synthetic/synthetic_with_transition.csv --outdir 05_Results
-```
+## Remarques
+
+- Les sorties vont dans `_ci_out/` par défaut.
+- Ne pas committer `_ci_out/` ni les archives zip d’artefacts.
