@@ -324,9 +324,11 @@ def evaluate_l_performance(
 
     exceed0 = risk > rt
     exceed1 = risk2 > rt
+
+    baseline_exceedance_rate = float(np.mean(exceed0.astype(float)))
     prevented_exceedance = 0.0
-    if float(np.mean(exceed0.astype(float))) > 1e-12:
-        prevented_exceedance = float(np.mean(exceed0.astype(float)) - np.mean(exceed1.astype(float))) / float(np.mean(exceed0.astype(float)))
+    if baseline_exceedance_rate > 1e-12:
+        prevented_exceedance = float(baseline_exceedance_rate - float(np.mean(exceed1.astype(float)))) / float(baseline_exceedance_rate)
         prevented_exceedance = float(np.clip(prevented_exceedance, 0.0, 1.0))
 
     # TopK tail metrics (anti-gaming): indices are defined by the *baseline* risk.
@@ -334,8 +336,13 @@ def evaluate_l_performance(
     # - topk_overlap: membership stability of the tail (legacy diagnostic)
     # - prevented_topk_excess_rel: relative reduction of *excess risk* above the threshold
     #   on the baseline TopK indices (prevention signal even if membership is unchanged).
+    n = int(np.asarray(risk, dtype=float).size)
+    topk_target_k = max(1, int(np.ceil(float(topk_frac) * float(n)))) if n > 0 else 0
+
     m0 = _topk_mask(risk, frac=float(topk_frac))
     m1 = _topk_mask(risk2, frac=float(topk_frac))
+
+    baseline_topk_count = int(np.sum(m0.astype(int)))
 
     inter = float(np.sum(m0 & m1))
     denom = float(np.sum(m0))
@@ -366,9 +373,13 @@ def evaluate_l_performance(
         "risk_threshold": rt,
         "o_threshold": o_thr,
         "topk_frac": float(topk_frac),
+        "baseline_exceedance_rate": float(baseline_exceedance_rate),
         "prevented_exceedance": float(prevented_exceedance),
         "prevented_exceedance_rel": float(prevented_exceedance),
         "topk_overlap": float(topk_overlap),
+        "baseline_topk_target_k": int(topk_target_k),
+        "baseline_topk_count": int(baseline_topk_count),
+        "baseline_topk_excess_mean": float(excess0),
         "prevented_topk_excess_rel": float(prevented_topk_excess_rel),
         "e_reduction_rel": float(e_reduction_rel),
         "activation_delay_steps": activation_delay_steps,

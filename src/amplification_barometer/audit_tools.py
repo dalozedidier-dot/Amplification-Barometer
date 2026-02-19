@@ -84,14 +84,33 @@ def _spearman_rank_corr(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _topk_jaccard(a: np.ndarray, b: np.ndarray, k: int) -> float:
-    """Jaccard entre ensembles Top-K (plus grands)."""
+    """Jaccard entre ensembles Top-K (plus grands), robuste aux égalités.
+
+    Si les valeurs de risque sont constantes (ou contiennent de nombreuses égalités),
+    un Top-K basé sur np.argsort peut varier arbitrairement. Ici, on définit le Top-K
+    via un seuil (k-ième plus grande valeur) et on inclut toutes les égalités.
+    """
     if k <= 0:
         return 1.0
-    ia = set(np.argsort(a)[-k:])
-    ib = set(np.argsort(b)[-k:])
+
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    n = int(a.size)
+    if n <= 0:
+        return 1.0
+
+    kk = max(1, min(int(k), n))
+
+    thr_a = float(np.partition(a, n - kk)[n - kk])
+    thr_b = float(np.partition(b, n - kk)[n - kk])
+
+    ia = set(np.flatnonzero(a >= thr_a).tolist())
+    ib = set(np.flatnonzero(b >= thr_b).tolist())
+
     inter = len(ia.intersection(ib))
     union = len(ia.union(ib)) or 1
     return float(inter / union)
+
 
 
 def audit_score_stability(

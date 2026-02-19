@@ -9,7 +9,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-REPORT_VERSION = "0.4.12"
+REPORT_VERSION = "0.4.13"
 
 from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
 from .calibration import Thresholds, derive_thresholds, risk_signature
@@ -155,7 +155,9 @@ def build_audit_report(
         "topk_indices": topk,
     }
 
-    stability = audit_score_stability(df, windows=stability_windows, topk_frac=topk_frac)
+    stability_windows_eff = [int(delta_d_window)] + [int(w) for w in stability_windows if int(w) != int(delta_d_window)]
+    stability = audit_score_stability(df, windows=stability_windows_eff, topk_frac=topk_frac)
+    stability["windows_used"] = list(stability_windows_eff)
 
     # Compare robust vs standard normalization on the same risk series (diagnostic)
     risk_std = pd.Series(standard_zscore(risk.to_numpy(dtype=float)), index=risk.index, name="RISK_STD")
@@ -339,14 +341,40 @@ def build_audit_report(
 
     e_rel = float(l_perf_pro.get("prevented_exceedance_rel", 0.0))
     t_rel = float(l_perf_pro.get("prevented_topk_excess_rel", 0.0))
-    if t_rel >= e_rel:
+
+    baseline_exceedance_rate = float(l_perf_pro.get("baseline_exceedance_rate", 0.0))
+    baseline_topk_excess_mean = float(l_perf_pro.get("baseline_topk_excess_mean", 0.0))
+    baseline_topk_target_k = int(l_perf_pro.get("baseline_topk_target_k", 0))
+    baseline_topk_count = int(l_perf_pro.get("baseline_topk_count", 0))
+
+    testable_exceedance = bool(baseline_exceedance_rate > 1e-12)
+    testable_topk_excess = bool(baseline_topk_excess_mean > 1e-12)
+    prevented_testable = bool(testable_exceedance or testable_topk_excess)
+
+    if testable_topk_excess and (not testable_exceedance):
         prevented_primary_metric = "prevented_topk_excess_rel"
         prevented_primary_value = t_rel
-    else:
+    elif testable_exceedance and (not testable_topk_excess):
         prevented_primary_metric = "prevented_exceedance_rel"
         prevented_primary_value = e_rel
+    elif prevented_testable:
+        if t_rel >= e_rel:
+            prevented_primary_metric = "prevented_topk_excess_rel"
+            prevented_primary_value = t_rel
+        else:
+            prevented_primary_metric = "prevented_exceedance_rel"
+            prevented_primary_value = e_rel
+    else:
+        # Aucun dépassement ni excès sous les thresholds: prévention non testable sur cette fenêtre.
+        if t_rel >= e_rel:
+            prevented_primary_metric = "prevented_topk_excess_rel"
+            prevented_primary_value = t_rel
+        else:
+            prevented_primary_metric = "prevented_exceedance_rel"
+            prevented_primary_value = e_rel
 
-    prevented_meets_target = bool((t_rel >= 0.10) or (e_rel >= 0.10))
+    prevented_meets_target = bool(prevented_testable and ((t_rel >= 0.10) or (e_rel >= 0.10)))
+    prevented_primary_state = "n/a" if (not prevented_testable) else ("ok" if prevented_meets_target else "fail")
 
     targets: Dict[str, Any] = {
         "rule_execution_gap_target_max": 0.05,
@@ -366,7 +394,17 @@ def build_audit_report(
         "proactive_topk_excess_rel": float(l_perf_pro.get("prevented_topk_excess_rel", 0.0)),
         "prevented_primary_metric": prevented_primary_metric,
         "prevented_primary_value": prevented_primary_value,
-        "prevented_exceedance_meets_target": bool(e_rel >= 0.10),
+        "prevented_primary_state": str(prevented_primary_state),
+        "prevented_testability": {
+            "testable": bool(prevented_testable),
+            "testable_exceedance": bool(testable_exceedance),
+            "testable_topk_excess": bool(testable_topk_excess),
+            "baseline_exceedance_rate": float(baseline_exceedance_rate),
+            "baseline_topk_excess_mean": float(baseline_topk_excess_mean),
+            "baseline_topk_target_k": int(baseline_topk_target_k),
+            "baseline_topk_count": int(baseline_topk_count),
+        },
+        "prevented_exceedance_meets_target": bool(testable_exceedance and (e_rel >= 0.10)),
         "prevented_meets_target": prevented_meets_target,
         "proactive_topk_frac": proactive_topk,
         "proactive_o_threshold": float(o_thr),

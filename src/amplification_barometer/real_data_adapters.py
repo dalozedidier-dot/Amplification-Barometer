@@ -267,8 +267,8 @@ def _finance_bars_to_proxies(bars: pd.DataFrame) -> pd.DataFrame:
     out["scale_proxy"] = np.log1p(bars["vol"].astype(float))
     out["speed_proxy"] = np.log1p(bars["n_trades"].astype(float))
     out["leverage_proxy"] = bars["volatility"].astype(float)
-    out["autonomy_proxy"] = 1.0 - _rolling_autocorr(bars["ret"], window=20).abs()
-    out["replicability_proxy"] = 1.0 - (bars["n_trades"].rolling(50, min_periods=10).std() / (bars["n_trades"].rolling(50, min_periods=10).mean() + 1e-12)).fillna(0.0)
+    out["autonomy_proxy"] = (1.0 - _rolling_autocorr(bars["ret"], window=20).abs()).clip(0.0, 1.0)
+    out["replicability_proxy"] = (1.0 - (bars["n_trades"].rolling(50, min_periods=10).std() / (bars["n_trades"].rolling(50, min_periods=10).mean() + 1e-12)).fillna(0.0)).replace([np.inf, -np.inf], np.nan).fillna(0.0).clip(0.0, 1.0)
 
     out["stop_proxy"] = 1.0 - robust_z(bars["volatility"]).clip(lower=-3, upper=3) / 3.0
     out["threshold_proxy"] = 1.0 - robust_z(bars["abs_ret"]).clip(lower=-3, upper=3) / 3.0
@@ -359,8 +359,8 @@ def borg_traces_to_proxies(
     out["scale_proxy"] = np.log1p(agg["req_cpu"] + agg["req_mem"])
     out["speed_proxy"] = np.log1p(agg["n_rows"])
     out["leverage_proxy"] = (agg["max_cpu"] / (agg["avg_cpu"] + 1e-12)).clip(lower=0.0)
-    out["autonomy_proxy"] = 1.0 - _rolling_autocorr(agg["avg_cpu"], window=20).abs()
-    out["replicability_proxy"] = 1.0 - (agg["avg_cpu"].rolling(30, min_periods=10).std() / (agg["avg_cpu"].rolling(30, min_periods=10).mean() + 1e-12)).fillna(0.0)
+    out["autonomy_proxy"] = (1.0 - _rolling_autocorr(agg["avg_cpu"], window=20).abs()).clip(0.0, 1.0)
+    out["replicability_proxy"] = (1.0 - (agg["avg_cpu"].rolling(30, min_periods=10).std() / (agg["avg_cpu"].rolling(30, min_periods=10).mean() + 1e-12)).fillna(0.0)).replace([np.inf, -np.inf], np.nan).fillna(0.0).clip(0.0, 1.0)
 
     out["stop_proxy"] = 1.0 - agg["failed_rate"].clip(0.0, 1.0)
     out["threshold_proxy"] = 1.0 - robust_z(overuse).clip(lower=-3, upper=3) / 3.0
@@ -438,8 +438,8 @@ def aiops_phase2_to_proxies(
     out["scale_proxy"] = np.log1p(v.abs())
     out["speed_proxy"] = np.log1p(dv + 1e-12)
     out["leverage_proxy"] = vol
-    out["autonomy_proxy"] = 1.0 - _rolling_autocorr(v, window=20).abs()
-    out["replicability_proxy"] = 1.0 - (vol / (v.abs().rolling(30, min_periods=10).mean() + 1e-12)).fillna(0.0)
+    out["autonomy_proxy"] = (1.0 - _rolling_autocorr(v, window=20).abs()).clip(0.0, 1.0)
+    out["replicability_proxy"] = (1.0 - (vol / (v.abs().rolling(30, min_periods=10).mean() + 1e-12)).fillna(0.0)).replace([np.inf, -np.inf], np.nan).fillna(0.0).clip(0.0, 1.0)
 
     out["stop_proxy"] = 1.0 - label
     out["threshold_proxy"] = 1.0 - robust_z(resid).clip(lower=-3, upper=3) / 3.0
@@ -539,8 +539,8 @@ def univariate_csv_to_proxies(
     out["scale_proxy"] = np.log1p(v.abs())
     out["speed_proxy"] = np.log1p(dv + 1e-12)
     out["leverage_proxy"] = vol
-    out["autonomy_proxy"] = 1.0 - _rolling_autocorr(v, window=20).abs()
-    out["replicability_proxy"] = 1.0 - (vol / (v.abs().rolling(30, min_periods=10).mean() + 1e-12)).fillna(0.0)
+    out["autonomy_proxy"] = (1.0 - _rolling_autocorr(v, window=20).abs()).clip(0.0, 1.0)
+    out["replicability_proxy"] = (1.0 - (vol / (v.abs().rolling(30, min_periods=10).mean() + 1e-12)).fillna(0.0)).replace([np.inf, -np.inf], np.nan).fillna(0.0).clip(0.0, 1.0)
 
     out["stop_proxy"] = 1.0 - label
     out["threshold_proxy"] = 1.0 - robust_z(resid).clip(lower=-3, upper=3) / 3.0
