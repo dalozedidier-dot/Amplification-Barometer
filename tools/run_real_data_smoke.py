@@ -52,27 +52,28 @@ def _read_any(path: Path) -> pd.DataFrame:
 
 
 def _to_proxies(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert various real data formats into the proxies format expected by the barometer."""
+
     # Already proxies
     if has_required_proxies(df):
         return ensure_datetime_index(df)
 
+    cols = {str(c).strip().lower() for c in df.columns}
+
     # OHLCV style
-    cols = {c.lower() for c in df.columns}
     if {"open", "high", "low", "close"}.issubset(cols):
-        ren = {c: c.lower() for c in df.columns}
+        ren = {c: str(c).strip().lower() for c in df.columns}
         df2 = df.rename(columns=ren)
         df2 = ensure_datetime_index(df2)
         vol_col = "volume" if "volume" in df2.columns else None
         return finance_ohlcv_to_proxies(df2, price_col="close", volume_col=vol_col)
 
+    # Univariate timestamp,value style
+    if {"timestamp", "value"}.issubset(cols) or {"date", "value"}.issubset(cols) or {"time", "value"}.issubset(cols):
+        df2 = df.rename(columns={c: str(c).strip().lower() for c in df.columns})
+        return univariate_csv_to_proxies(df2)
 
-# Univariate timestamp,value style
-cols2 = {c.lower() for c in df.columns}
-if {"timestamp", "value"}.issubset(cols2) or {"date", "value"}.issubset(cols2) or {"time", "value"}.issubset(cols2):
-    df2 = df.rename(columns={c: c.lower() for c in df.columns})
-    return univariate_csv_to_proxies(df2)
-
-    raise ValueError("Unsupported real-data format. Provide proxies columns or OHLCV columns.")
+    raise ValueError("Unsupported real-data format. Provide proxies columns or OHLCV columns or timestamp,value.")
 
 
 def _scenario_slices(
@@ -107,10 +108,8 @@ def _scenario_slices(
     if segment_len < 10:
         return out
 
-    # Pick start indices without replacement when possible.
     max_start = max(0, n_points - segment_len)
     if max_start == 0:
-        # Only one possible slice
         out.append(("seg01", df.iloc[:segment_len]))
         return out
 
@@ -126,11 +125,14 @@ def _report_row(report_dict: Dict[str, object], *, dataset: str, scenario: str, 
     targets = dict(report_dict.get("targets") or {})
     stability = dict(report_dict.get("stability") or {})
     verdict = dict(report_dict.get("verdict") or {})
+    dims = verdict.get("dimensions") or {}
+    stability_dim = (dims.get("stability") or {}) if isinstance(dims, dict) else {}
+
     return {
         "dataset": dataset,
         "scenario": scenario,
         "n_points": int(n_points),
-        "stability_state": (verdict.get("dimensions") or {}).get("stability", {}).get("state", ""),
+        "stability_state": str(stability_dim.get("state", "")),
         "stability_score": float(stability.get("spearman_mean_risk", float("nan"))),
         "rule_execution_gap_mean": float(targets.get("rule_execution_gap_mean", float("nan"))),
         "prevented_exceedance_rel": float(targets.get("prevented_exceedance_rel", float("nan"))),
@@ -145,11 +147,25 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Real data smoke: convert + audit + HTML report.")
     ap.add_argument("--out-dir", type=str, default="_ci_out/real_data")
     ap.add_argument("--window", type=int, default=5)
-    ap.add_argument("--scenarios", type=int, default=1, help="Number of additional scenario slices per dataset (full dataset is included by default).")
+    ap.add_argument(
+        "--scenarios",
+        type=int,
+        default=1,
+        help="Number of additional scenario slices per dataset (full dataset is included by default).",
+    )
     ap.add_argument("--segment-len", type=int, default=0, help="Segment length for scenario slices. 0 = auto.")
     ap.add_argument("--seed", type=int, default=1337)
-    ap.add_argument("--inputs", nargs="*", default=None, help="Optional explicit list of CSV/Parquet inputs (proxies or OHLCV). If set, auto-discovery is skipped.")
-    ap.add_argument("--include-root-proxies", action="store_true", help="Also include repo-root *_proxies.csv files when auto-discovering inputs.")
+    ap.add_argument(
+        "--inputs",
+        nargs="*",
+        default=None,
+        help="Optional explicit list of CSV/Parquet inputs (proxies, univariate, or OHLCV). If set, auto-discovery is skipped.",
+    )
+    ap.add_argument(
+        "--include-root-proxies",
+        action="store_true",
+        help="Also include repo-root *_proxies.csv files when auto-discovering inputs.",
+    )
     ap.add_argument("--no-full", action="store_true", help="Do not include the full dataset report, only scenario slices.")
     args = ap.parse_args()
 
@@ -163,10 +179,11 @@ def main() -> int:
         inputs = [Path(p) for p in args.inputs]
     else:
         inputs = _discover_inputs(repo_root, include_root_proxies=bool(args.include_root_proxies))
+
     if not inputs:
         note = {
             "note": "No real data files found under data/real, data/real_fixtures (and optionally repo-root *_proxies.csv).",
-            "how_to": "Drop CSV/Parquet with proxies or OHLCV columns.",
+            "how_to": "Drop CSV/Parquet with proxies, univariate timestamp,value, or OHLCV columns.",
             "hint": "To test multiple real scenarios, use --scenarios N and optionally --segment-len.",
         }
         (out / "real_data_smoke_note.json").write_text(json.dumps(note, indent=2), encoding="utf-8")
