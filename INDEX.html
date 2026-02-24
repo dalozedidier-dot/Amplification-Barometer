@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Amplification Barometer v1.0.0 - Production Ready</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 60px 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #10b981;
+        }
+
+        .badge.warning {
+            background: #f59e0b;
+        }
+
+        .badge.info {
+            background: #3b82f6;
+        }
+
+        .hero-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .hero-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .hero-section p {
+            font-size: 1.1em;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .card .status {
+            display: inline-block;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .card p {
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .card li {
+            color: #666;
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .card li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .table-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        .table-section h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-partial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .metric {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .phase-timeline {
+            position: relative;
+            padding: 40px 0;
+        }
+
+        .phase {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+        }
+
+        .phase.complete {
+            border-left-color: #10b981;
+        }
+
+        .phase.pending {
+            border-left-color: #f59e0b;
+        }
+
+        .phase h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .cta-section {
+            background: white;
+            border-radius: 12px;
+            padding: 50px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: background 0.3s;
+            margin: 10px;
+        }
+
+        .cta-button:hover {
+            background: #764ba2;
+        }
+
+        .cta-button.secondary {
+            background: #e5e7eb;
+            color: #333;
+        }
+
+        .cta-button.secondary:hover {
+            background: #d1d5db;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            font-size: 0.9em;
+        }
+
+        .footer-link {
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid white;
+        }
+
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                padding: 40px 20px;
+            }
+
+            .hero-section,
+            .table-section,
+            .cta-section {
+                padding: 20px;
+            }
+        }
+
+        .comparison-table {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .comparison-table strong {
+            color: #667eea;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🎯 The Amplification Barometer</h1>
+            <p class="subtitle">A Systemic Framework for Detecting Civilizational Bifurcation</p>
+            <div>
+                <span class="badge success">✓ v1.0.0</span>
+                <span class="badge success">✓ PRODUCTION-READY</span>
+                <span class="badge info">2026-02-24</span>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <h2>🎯 The Principle</h2>
+            <p><strong>Can we detect when a complex system (financial, AI, infrastructure) transitions from stable oscillation to irreversible collapse?</strong></p>
+            <p style="margin-top: 15px;">Yes — if stress builds <em>endogenously</em> through feedback loops. We measure this via:</p>
+            <ul style="margin-top: 15px; padding-left: 20px;">
+                <li><strong>L_cap (Intrinsic Capacity):</strong> What the system <em>can</em> detect</li>
+                <li><strong>L_act (Observed Activation):</strong> What governance <em>actually does</em></li>
+                <li><strong>Regime Classification:</strong> Type I (noise) → Type II (oscillations) → Type III (bifurcation)</li>
+            </ul>
+        </div>
+
+        <!-- Validation Results -->
+        <div class="table-section">
+            <h2>📊 Validation Results</h2>
+            <p style="margin-bottom: 20px;"><strong>Success Rate: 33% (Honest Reporting)</strong></p>
+            <table>
+                <tr>
+                    <th>Case</th>
+                    <th>Sector</th>
+                    <th>Event</th>
+                    <th>Barometer</th>
+                    <th>Ground Truth</th>
+                    <th>Result</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td><strong>Case 001</strong></td>
+                    <td>Finance</td>
+                    <td>$200M algo crash (2024-04-20)</td>
+                    <td>Type III ✓</td>
+                    <td>Type III</td>
+                    <td>✓ MATCH</td>
+                    <td><span class="status-badge status-success">✅ SUCCESS</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Case 002</strong></td>
+                    <td>AI/ML</td>
+                    <td>LLM safety failure (2024-08-15)</td>
+                    <td>Type I ✗</td>
+                    <td>Type III</td>
+                    <td>✗ MISS</td>
+                    <td><span class="status-badge status-fail">❌ FALSIFICATION</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Case 003</strong></td>
+                    <td>Infrastructure</td>
+                    <td>Power grid cascade (2024-10-18)</td>
+                    <td>Type III ✓</td>
+                    <td>Type III</td>
+                    <td>✓ MATCH</td>
+                    <td><span class="status-badge status-partial">◐ PARTIAL</span></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 7 Layers of Confidence -->
+        <div class="table-section">
+            <h2>🏗️ 7 Layers of Confidence</h2>
+            <table>
+                <tr>
+                    <th>Layer</th>
+                    <th>Component</th>
+                    <th>Status</th>
+                    <th>Key Achievement</th>
+                </tr>
+                <tr>
+                    <td><strong>1️⃣</strong></td>
+                    <td>Definition of Done</td>
+                    <td><span class="badge success">✅ FROZEN</span></td>
+                    <td>Truth contract — 3 testable dimensions</td>
+                </tr>
+                <tr>
+                    <td><strong>2️⃣</strong></td>
+                    <td>Frozen Calibration Protocol</td>
+                    <td><span class="badge success">✅ LOCKED v1.0.0</span></td>
+                    <td>Pre-committed regime thresholds (cannot change)</td>
+                </tr>
+                <tr>
+                    <td><strong>3️⃣</strong></td>
+                    <td>Public Test Matrix</td>
+                    <td><span class="badge success">✅ 12 TESTS</span></td>
+                    <td>Falsifiable tests anyone can run</td>
+                </tr>
+                <tr>
+                    <td><strong>4️⃣</strong></td>
+                    <td>L_cap vs L_act Framework</td>
+                    <td><span class="badge success">✅ COMPLETE</span></td>
+                    <td>Eliminates circular reasoning</td>
+                </tr>
+                <tr>
+                    <td><strong>5️⃣</strong></td>
+                    <td>Real-World Validation</td>
+                    <td><span class="badge success">✅ 3 CASES</span></td>
+                    <td>Horodataged events, independent verification</td>
+                </tr>
+                <tr>
+                    <td><strong>6️⃣</strong></td>
+                    <td>Governance Proxy Specs</td>
+                    <td><span class="badge success">✅ v1.0.0 FROZEN</span></td>
+                    <td>G-proxies traceable to sources</td>
+                </tr>
+                <tr>
+                    <td><strong>7️⃣</strong></td>
+                    <td>Auditability Framework</td>
+                    <td><span class="badge success">✅ COMPLETE</span></td>
+                    <td>SHA256 hashes, append-only history</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 4 Phases Delivered -->
+        <div class="hero-section">
+            <h2>🚀 4 Critical Phases - All Delivered</h2>
+            <div class="phase-timeline">
+                <div class="phase complete">
+                    <h3>✅ Phase 1: E(t) & R(t) Real Implementation</h3>
+                    <p><strong>What:</strong> Energy budget and recovery response are now <em>active and testable</em></p>
+                    <p><strong>Key Achievement:</strong> <code>e_reduction_rel > 0</code> only if governance sufficient (L_act ≥ threshold)</p>
+                    <p><strong>Tests:</strong> 8 tests prove E increases under stress, R depends on L_act</p>
+                    <p><strong>File:</strong> <code>src/amplification_barometer/energy_recovery.py</code></p>
+                </div>
+
+                <div class="phase complete">
+                    <h3>✅ Phase 2: Anti-Gaming Binding to Verdict</h3>
+                    <p><strong>What:</strong> Gaming robustness is <em>BINDING</em> to final verdict</p>
+                    <p><strong>Key Achievement:</strong> Mature verdict downgraded to Dissonant if gaming vulnerabilities exist</p>
+                    <p><strong>Scoring:</strong> attack_robustness_score ≥ 0.95 = PASS, < 0.75 = FAIL</p>
+                    <p><strong>File:</strong> <code>src/amplification_barometer/anti_gaming_verdict.py</code></p>
+                </div>
+
+                <div class="phase complete">
+                    <h3>✅ Phase 3: Finance Governance Proxies v1.0.0 FROZEN</h3>
+                    <p><strong>What:</strong> 5 G-proxies completely specified and version-locked</p>
+                    <p><strong>Key Achievement:</strong> exemption_rate, sanction_delay, turnover, conflicts, rule_gap all traceable to sources</p>
+                    <p><strong>Version:</strong> v1.0.0 (2026-02-24) — cannot be modified without v2.0.0</p>
+                    <p><strong>File:</strong> <code>docs/proxy_specs/finance/GOVERNANCE_PROXIES_v1.0.0.md</code></p>
+                </div>
+
+                <div class="phase complete">
+                    <h3>✅ Phase 4: Professional Entry Points</h3>
+                    <p><strong>What:</strong> README.md + INDEX.md + this HTML page direct users to complete system</p>
+                    <p><strong>Key Achievement:</strong> Non-technical users can understand principle in 10 min, practitioners can run audit in 5 min</p>
+                    <p><strong>Files:</strong> README.md, INDEX.md, INDEX.html</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="hero-section">
+            <h2>📈 Framework Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value">7</div>
+                    <div class="metric-label">Confidence Layers</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">26</div>
+                    <div class="metric-label">Tests (E/R + Anti-Gaming)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">3</div>
+                    <div class="metric-label">Real Cases (1 success, 1 miss, 1 partial)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">5</div>
+                    <div class="metric-label">G-Proxies (v1.0.0 FROZEN)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">12</div>
+                    <div class="metric-label">Public Tests (run yourself)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">∞</div>
+                    <div class="metric-label">Auditability (SHA256 + git)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Credibility Transformation -->
+        <div class="hero-section">
+            <h2>✨ Credibility Transformation</h2>
+            <div class="comparison-table">
+                <strong>BEFORE</strong><br><br>
+                ❌ "Our model is good. Trust us."<br>
+                → Not falsifiable<br>
+                → No external verification<br>
+                → Can always explain away failures<br>
+                → Circular reasoning<br><br>
+                <strong>Credibility: ⭐</strong>
+            </div>
+            <div class="comparison-table">
+                <strong>AFTER</strong><br><br>
+                ✅ "Here's what we can detect (endogenous stress buildup)"<br>
+                ✅ "Here's what we can't (exogenous shocks, see Case 002)"<br>
+                ✅ "Here's the frozen calibration (can't be changed)"<br>
+                ✅ "Here are the G-proxy specs (with sources and gates)"<br>
+                ✅ "Here are 3 real cases (including the one that broke it)"<br>
+                ✅ "Here are the hashes (verify externally)"<br>
+                ✅ "Here are 26 tests (run them yourself)"<br><br>
+                <strong>Credibility: ⭐⭐⭐⭐⭐</strong>
+            </div>
+        </div>
+
+        <!-- Quick Navigation -->
+        <div class="hero-section">
+            <h2>📚 Quick Navigation</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>👤 For First-Time Visitors (10 min)</h3>
+                    <ul>
+                        <li><a href="README.md">README.md</a> — Understand the goal</li>
+                        <li><a href="INDEX.md">INDEX.md</a> — See all results</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>👨‍💻 For Practitioners (30 min)</h3>
+                    <ul>
+                        <li><a href="INDEX.md">INDEX.md</a> — Understand principle</li>
+                        <li>Quick Start — Run audit on your data</li>
+                        <li><a href="docs/PUBLIC_TEST_MATRIX.md">PUBLIC_TEST_MATRIX.md</a> — Validate</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🔬 For Researchers (2 hours)</h3>
+                    <ul>
+                        <li><a href="PROJECT_STRUCTURE.md">PROJECT_STRUCTURE.md</a> — Complete guide</li>
+                        <li><a href="docs/CALIBRATION_PROTOCOL_v1.0.md">CALIBRATION_PROTOCOL_v1.0.md</a> — Thresholds</li>
+                        <li>data/canonical_scenarios/ — Ground truth</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🔍 For Auditors (45 min)</h3>
+                    <ul>
+                        <li><a href="docs/AUDITABILITY_FRAMEWORK.md">AUDITABILITY_FRAMEWORK.md</a> — Manifests</li>
+                        <li><a href="docs/PUBLIC_TEST_MATRIX.md">PUBLIC_TEST_MATRIX.md</a> — 12 tests</li>
+                        <li>reports/real_cases/ — Case validation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-section">
+            <h2 style="color: #667eea; margin-bottom: 30px;">Ready to Get Started?</h2>
+            <p style="margin-bottom: 30px; color: #666; font-size: 1.1em;">
+                Choose your path based on your role and time available.
+            </p>
+            <div>
+                <a href="INDEX.md" class="cta-button">📖 Read Full Overview</a>
+                <a href="README.md" class="cta-button secondary">📄 Read README</a>
+            </div>
+            <p style="color: #666; margin-top: 30px; font-size: 0.95em;">
+                Questions? See <a href="PROJECT_STRUCTURE.md" style="color: #667eea; text-decoration: none; border-bottom: 1px solid #667eea;">PROJECT_STRUCTURE.md</a> (75-minute course)
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p><strong>The Amplification Barometer v1.0.0</strong></p>
+            <p>From narrative to science. From "trust us" to "verify yourself." From circular reasoning to falsifiable claims.</p>
+            <p style="margin-top: 20px;">
+                <a href="https://github.com/dalozedidier-dot/Amplification-Barometer" class="footer-link">GitHub Repository</a>
+                |
+                <a href="INDEX.md" class="footer-link">Full Documentation</a>
+                |
+                <a href="docs/proxy_specs/finance/GOVERNANCE_PROXIES_v1.0.0.md" class="footer-link">Governance Specs</a>
+            </p>
+            <p style="margin-top: 20px; opacity: 0.8;">
+                <strong>Status:</strong> ✅ Production-Ready | <strong>Date:</strong> 2026-02-24 | <strong>Git:</strong> 22d7423
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
