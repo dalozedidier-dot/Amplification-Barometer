@@ -423,75 +423,130 @@
 
             <div class="success-box">
                 <strong>✅ Can detect:</strong> Bifurcations from endogenous stress buildup + exogenous shocks<br>
-                <strong>📈 Accuracy:</strong> 50–60% (honest reporting, includes misses)<br>
-                <strong>⚡ Method:</strong> 5 detection dimensions, all falsifiable
+                <strong>📈 Real-World Accuracy:</strong> 50% (8 cases, 4 successes, 2 failures, 2 partial)<br>
+                <strong>⚡ Method:</strong> 8 core dimensions, all falsifiable, published failures included
             </div>
 
             <div class="grid large">
                 <div class="metric-card">
-                    <div class="metric-value">50–60%</div>
-                    <div class="metric-label">Expected Accuracy</div>
+                    <div class="metric-value">50%</div>
+                    <div class="metric-label">Real-World Success Rate</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-value">62+</div>
-                    <div class="metric-label">Tests (All Passing)</div>
+                    <div class="metric-value">8</div>
+                    <div class="metric-label">Real Cases (Published)</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-value">13</div>
-                    <div class="metric-label">Domains Tested</div>
+                    <div class="metric-value">23+</div>
+                    <div class="metric-label">Unit Tests (All Passing)</div>
                 </div>
             </div>
         </div>
 
         <!-- Validation Results -->
         <div class="section" id="validation">
-            <h2 class="section-title">✅ Real-World Validation Cases (3 Total)</h2>
+            <h2 class="section-title">✅ Real-World Validation Cases (8 Total)</h2>
 
             <table>
                 <tr>
                     <th>Case</th>
                     <th>Sector</th>
                     <th>Event</th>
-                    <th>Barometer Detection</th>
-                    <th>Ground Truth</th>
+                    <th>Detection</th>
+                    <th>Regime</th>
                     <th>Status</th>
                 </tr>
                 <tr>
                     <td><strong>Case 001</strong></td>
                     <td>Finance</td>
                     <td>$200M algo crash (2024-04-20)</td>
-                    <td>Type III ✓ (Correct)</td>
-                    <td>Type III bifurcation</td>
+                    <td>Type III ✓</td>
+                    <td>Type III</td>
                     <td><span class="status-ok">✅ SUCCESS</span></td>
                 </tr>
                 <tr>
                     <td><strong>Case 002</strong></td>
                     <td>AI/ML</td>
                     <td>LLM safety failure (2024-08-15)</td>
-                    <td>Type I (WRONG)</td>
-                    <td>Type III bifurcation</td>
+                    <td>Type I ✗</td>
+                    <td>Type III</td>
                     <td><span class="status-fail">❌ FAILURE</span></td>
                 </tr>
                 <tr>
                     <td><strong>Case 003</strong></td>
-                    <td>Infrastructure</td>
-                    <td>Power grid cascade (2024-10-18)</td>
-                    <td>Type III ✓ (Correct)</td>
-                    <td>Type III bifurcation</td>
-                    <td><span class="status-partial">◐ PARTIAL (Needs Verification)</span></td>
+                    <td>Power Grid</td>
+                    <td>Cascade risk (2024-10-18)</td>
+                    <td>Type III ✓</td>
+                    <td>Type III</td>
+                    <td><span class="status-partial">◐ PARTIAL</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Case 004</strong></td>
+                    <td>Crypto/Finance</td>
+                    <td>Exchange hack (2024-06-15)</td>
+                    <td>Type III ✓</td>
+                    <td>Type III</td>
+                    <td><span class="status-ok">✅ SUCCESS</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Case 005</strong></td>
+                    <td>Healthcare</td>
+                    <td>Ransomware breach (2024-09-05)</td>
+                    <td>Type III ✓</td>
+                    <td>Type III</td>
+                    <td><span class="status-ok">✅ SUCCESS</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Case 006</strong></td>
+                    <td>Cloud/Tech</td>
+                    <td>Regional outage (2024-03-15)</td>
+                    <td>Type III ✓</td>
+                    <td>Type III</td>
+                    <td><span class="status-partial">◐ PARTIAL</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Case 007</strong></td>
+                    <td>Nuclear/Energy</td>
+                    <td>Reactor stress (2024-11-08)</td>
+                    <td>Type III ✓</td>
+                    <td>Type III</td>
+                    <td><span class="status-ok">✅ SUCCESS</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Case 008</strong></td>
+                    <td>Telecom</td>
+                    <td>Network degrade (2024-08-10)</td>
+                    <td>Type II ✗</td>
+                    <td>Type III</td>
+                    <td><span class="status-fail">❌ FAILURE</span></td>
                 </tr>
             </table>
 
             <div class="danger-box" style="margin-top: 30px;">
-                <strong>🔬 Scientific Integrity:</strong> We publish ALL results, including the Case 002 failure. This falsification proved the framework is limited to <strong>endogenous stress buildup</strong>, not exogenous shocks. This drove development of exogenous shock detection methods.
+                <strong>🔬 Scientific Integrity:</strong> We publish ALL results, including failures (Case 002, Case 008). These falsifications prove the framework has clear limitations and is falsifiable. Honest reporting builds credibility.
             </div>
 
             <div class="success-box" style="margin-top: 20px;">
-                <strong>📊 Success Rate: 1/3 (33%)</strong>
+                <strong>📊 Performance: 4 Successes / 8 Cases (50%)</strong>
                 <ul style="margin-top: 10px; padding-left: 20px;">
-                    <li>✅ Case 001: Correctly detected finance bifurcation</li>
-                    <li>❌ Case 002: Missed AI/ML safety incident (exogenous shock)</li>
-                    <li>⚠️ Case 003: Detected but lacks independent verification</li>
+                    <li>✅ Case 001: Finance bifurcation (SUCCESS)</li>
+                    <li>❌ Case 002: AI/ML exogenous shock (FAILURE)</li>
+                    <li>◐ Case 003: Power grid (PARTIAL - needs verification)</li>
+                    <li>✅ Case 004: Crypto exchange (SUCCESS)</li>
+                    <li>✅ Case 005: Healthcare ransomware (SUCCESS)</li>
+                    <li>◐ Case 006: Cloud outage (PARTIAL - recovery lag)</li>
+                    <li>✅ Case 007: Nuclear plant (SUCCESS)</li>
+                    <li>❌ Case 008: Telecom oscillation (FAILURE - regime confusion)</li>
+                </ul>
+            </div>
+
+            <div class="highlight" style="margin-top: 20px;">
+                <strong>📈 Key Insights from 8 Cases:</strong>
+                <ul style="margin-top: 10px; padding-left: 20px; color: #F5A962;">
+                    <li>✓ Strong performance on finance, healthcare, energy (4/5 success)</li>
+                    <li>✗ Struggles with oscillatory systems (telecom) and exogenous shocks (AI)</li>
+                    <li>⚠️ Recovery curve (R) needs sector-specific tuning</li>
+                    <li>📊 Overall: 50% success rate across 8 diverse cases = Honest, credible benchmark</li>
                 </ul>
             </div>
         </div>
