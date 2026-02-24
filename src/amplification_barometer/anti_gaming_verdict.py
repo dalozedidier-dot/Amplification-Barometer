@@ -1,9 +1,14 @@
-"""Anti-Gaming Verdict Binding
+"""Anti-Gaming Verdict Binding + Exogenous Shock Detection
 
-This module integrates the 5-attack anti-gaming suite into the final verdict,
-making it BINDING: verdicts can be invalidated or downgraded if gaming vulnerabilities exist.
+This module integrates:
+1. The 5-attack anti-gaming suite (endogenous gaming detection)
+2. Exogenous shock detection (detects bifurcations from external shocks)
 
-Key principle: A "Mature" verdict is only credible if the system cannot be gamed.
+Making BOTH dimensions BINDING to the final verdict.
+
+Key principle: A "Mature" verdict is only credible if:
+- The system cannot be gamed (anti-gaming pass)
+- The system is not under exogenous shock (shock risk low)
 """
 
 from __future__ import annotations
@@ -38,6 +43,28 @@ class GamingVerdictDimension:
     undetected_attacks: List[str]  # Names of attacks that passed undetected
     vulnerabilities: List[str]  # Human-readable vulnerability list
     binding_verdict: str  # "PASS" | "CAUTION" | "FAIL"
+
+
+@dataclass(frozen=True)
+class ExogenousShockVerdictDimension:
+    """Exogenous shock detection dimension (catches bifurcations from external shocks)."""
+    shock_risk_score: float  # 0.0 (safe) to 1.0 (high shock risk)
+    shock_detected: bool  # Any shock detected
+    shock_assessment: str  # "SAFE" | "LOW_RISK" | "MODERATE_RISK" | "HIGH_RISK"
+    methods_triggered: List[str]  # Which detection methods fired
+    binding_verdict: str  # "SAFE" | "CAUTION" | "ALERT"
+
+    @property
+    def risk_level(self) -> str:
+        """Human-readable risk level."""
+        if self.shock_risk_score > 0.7:
+            return "CRITICAL"
+        elif self.shock_risk_score > 0.5:
+            return "HIGH"
+        elif self.shock_risk_score > 0.3:
+            return "MODERATE"
+        else:
+            return "LOW"
 
 
 def compute_attack_robustness_score(
@@ -158,17 +185,51 @@ def apply_gaming_gate_to_verdict(
         return original_verdict, "Gaming verdict unknown"
 
 
+def create_exogenous_shock_dimension(
+    shock_risk_score: float,
+    shock_detected: bool,
+    shock_assessment: str,
+    methods_triggered: List[str],
+) -> ExogenousShockVerdictDimension:
+    """Create exogenous shock dimension from detection results."""
+
+    # Binding verdict based on risk
+    if shock_risk_score > 0.7:
+        binding_verdict = "ALERT"
+    elif shock_risk_score > 0.4:
+        binding_verdict = "CAUTION"
+    else:
+        binding_verdict = "SAFE"
+
+    return ExogenousShockVerdictDimension(
+        shock_risk_score=float(shock_risk_score),
+        shock_detected=bool(shock_detected),
+        shock_assessment=shock_assessment,
+        methods_triggered=methods_triggered,
+        binding_verdict=binding_verdict,
+    )
+
+
 @dataclass(frozen=True)
 class MultiDimensionalVerdict:
-    """Complete multidimensional verdict with all dimensions scored."""
+    """Complete multidimensional verdict with ALL dimensions scored.
+
+    Dimensions:
+    1. L_cap/L_act (capacity + activation)
+    2. E/R (energy + recovery - endogenous stress)
+    3. Gaming (can system be gamed?)
+    4. Exogenous shocks (is system under attack?)
+    5. Stability (data quality)
+    """
 
     # Original dimensions (from l_operator)
     label: str  # Original verdict
     cap_score: float
     act_score: float
 
-    # New dimensions
+    # Dimensions
     gaming_dimension: GamingVerdictDimension
+    shock_dimension: ExogenousShockVerdictDimension
     e_reduction_rel: float  # From energy_recovery
     stability_score: float  # Spearman correlation
 
@@ -192,6 +253,14 @@ class MultiDimensionalVerdict:
                 "undetected": self.gaming_dimension.undetected_attacks,
                 "binding_verdict": self.gaming_dimension.binding_verdict,
                 "vulnerabilities": self.gaming_dimension.vulnerabilities,
+            },
+            "exogenous_shocks": {
+                "shock_risk_score": float(self.shock_dimension.shock_risk_score),
+                "shock_detected": bool(self.shock_dimension.shock_detected),
+                "shock_assessment": self.shock_dimension.shock_assessment,
+                "methods_triggered": self.shock_dimension.methods_triggered,
+                "binding_verdict": self.shock_dimension.binding_verdict,
+                "risk_level": self.shock_dimension.risk_level,
             },
             "energy": {
                 "e_reduction_rel": float(self.e_reduction_rel),
@@ -258,19 +327,50 @@ def build_multidimensional_verdict(
     attacks: List[AttackResult],
     e_reduction_rel: float = 0.0,
     stability_score: float = 0.5,
+    shock_risk_score: float = 0.0,
+    shock_detected: bool = False,
+    shock_assessment: str = "SAFE",
+    methods_triggered: List[str] = None,
 ) -> MultiDimensionalVerdict:
     """
-    Build complete multidimensional verdict with gaming binding.
+    Build complete multidimensional verdict with ALL dimensions:
+    - Gaming binding
+    - Exogenous shock detection
+    - Energy/Recovery
+    - Stability
 
     Returns: Fully scored MultiDimensionalVerdict with final verdict applied.
     """
+    if methods_triggered is None:
+        methods_triggered = []
+
     # Compute gaming dimension
     gaming_dim = compute_attack_robustness_score(attacks)
+
+    # Compute exogenous shock dimension
+    shock_dim = create_exogenous_shock_dimension(
+        shock_risk_score=shock_risk_score,
+        shock_detected=shock_detected,
+        shock_assessment=shock_assessment,
+        methods_triggered=methods_triggered,
+    )
 
     # Apply gaming gate to original verdict
     gated_verdict, gate_reason = apply_gaming_gate_to_verdict(original_label, gaming_dim)
 
-    # Compute credibility
+    # Apply shock gate to verdict (if HIGH shock risk, downgrade)
+    if shock_dim.shock_risk_score > 0.7:
+        if gated_verdict == "Mature":
+            gated_verdict = "Dissonant"
+            gate_reason += " | Downgraded due to HIGH exogenous shock risk"
+        elif gated_verdict == "Dissonant":
+            gated_verdict = "Immature"
+            gate_reason += " | Downgraded to Immature due to HIGH exogenous shock risk"
+
+    # Compute credibility (now including shock factor)
+    # Shock risk reduces credibility: 0.2 weight
+    shock_01 = 1.0 - np.clip(shock_risk_score, 0.0, 1.0)  # Invert: high shock = low credibility
+
     credibility = compute_credibility_score(
         cap_score=cap_score,
         act_score=act_score,
@@ -278,12 +378,15 @@ def build_multidimensional_verdict(
         e_reduction_rel=e_reduction_rel,
         stability_score=stability_score,
     )
+    # Adjust credibility down if high shock risk
+    credibility = credibility * (0.8 + 0.2 * shock_01)  # Shock can reduce credibility up to 20%
 
     return MultiDimensionalVerdict(
         label=original_label,
         cap_score=cap_score,
         act_score=act_score,
         gaming_dimension=gaming_dim,
+        shock_dimension=shock_dim,
         e_reduction_rel=e_reduction_rel,
         stability_score=stability_score,
         final_verdict=gated_verdict,
