@@ -1,0 +1,206 @@
+version: "v0.1.0"
+sector: "finance"
+notes:
+  purpose: "Proxy specifications for financial systems (banking, trading, payments)"
+  normalization_default: "mad_z"
+  missing_policy: "raise"
+  range_rationale: |
+    Ranges calibrated on 2023-2025 financial stress data, market microstructure studies,
+    and regulatory capital adequacy frameworks. Adapted for automated/algorithmic trading.
+
+families:
+  P:  # Power and scaling capacity
+    description: "Speed, leverage, autonomy of financial operations"
+    proxies:
+      scale_proxy:
+        definition: "Transaction volume relative to risk-adjusted capital"
+        expected_range: [0.0, 2.5]
+        risk_direction: "up_risk"
+        source: "trading_logs"
+        frequency: "daily"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "High growth in volume without capital buffer is risk"
+      speed_proxy:
+        definition: "Order-to-execution latency (inverse, so lower latency = higher proxy)"
+        expected_range: [0.1, 2.0]
+        risk_direction: "up_risk"
+        source: "exchange_feeds"
+        frequency: "daily"
+        manipulability_test: "detect_volatility_clamp"
+        finance_notes: "HFT risk: faster execution without controls"
+      leverage_proxy:
+        definition: "Debt-to-equity ratio (normalized)"
+        expected_range: [0.0, 3.0]
+        risk_direction: "up_risk"
+        source: "balance_sheet"
+        frequency: "quarterly"
+        manipulability_test: "detect_out_of_range"
+        finance_notes: "Above 2.0 indicates regulatory concern in Basel III"
+      autonomy_proxy:
+        definition: "Fraction of trades executed autonomously without human review"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "trade_audit_logs"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+        finance_notes: "Above 0.7 signals reliance on algorithms"
+      replicability_proxy:
+        definition: "Strategy replicability across counterparties and venues"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "trade_flow_analysis"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "High replicability = crowded trade = systemic risk"
+
+  O:  # Orientation and stop capacity
+    description: "Risk controls and circuit breakers"
+    proxies:
+      stop_proxy:
+        definition: "Position limit enforcement (fraction of limits respected)"
+        expected_range: [0.5, 1.0]
+        risk_direction: "down_risk"
+        source: "risk_systems"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+        finance_notes: "Below 0.8 signals control degradation"
+      threshold_proxy:
+        definition: "VaR/stress threshold clarity and enforceability"
+        expected_range: [0.5, 1.0]
+        risk_direction: "down_risk"
+        source: "policy_registry"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Threshold ambiguity = delayed action"
+      decision_proxy:
+        definition: "Decision latency for risk escalation (inverse)"
+        expected_range: [0.3, 1.0]
+        risk_direction: "down_risk"
+        source: "incident_response_logs"
+        frequency: "weekly"
+        manipulability_test: "detect_volatility_clamp"
+        finance_notes: "Below 0.5 = risk decisions slow"
+      execution_proxy:
+        definition: "Execution fidelity of stop/limits"
+        expected_range: [0.6, 1.0]
+        risk_direction: "down_risk"
+        source: "trade_logs_verification"
+        frequency: "daily"
+        manipulability_test: "detect_volatility_clamp"
+        finance_notes: "Slippage or bypass = red flag"
+      coherence_proxy:
+        definition: "Coherence between stated risk policy and observed trading"
+        expected_range: [0.4, 1.0]
+        risk_direction: "down_risk"
+        source: "compliance_audits"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Divergence = gaming or loss of control"
+
+  E:  # Externalities stock
+    description: "Market impact, contagion, and lasting damage"
+    proxies:
+      impact_proxy:
+        definition: "Market impact per unit notional (basis points)"
+        expected_range: [0.0, 3.0]
+        risk_direction: "up_risk"
+        source: "market_data_feeds"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+        finance_notes: "Above 1.0 bps per 100M suggests concentration"
+      propagation_proxy:
+        definition: "Contagion to correlated markets (cross-asset spillover)"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "cross_asset_correlation"
+        frequency: "daily"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Rising spillover = systemic stress"
+      hysteresis_proxy:
+        definition: "Persistence of widened spreads post-event"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "post_event_analysis"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "High persistence = structural market damage"
+
+  R:  # Resilience
+    description: "Recovery margins, redundancy, and safeguards"
+    proxies:
+      margin_proxy:
+        definition: "Capital buffer vs minimum regulatory requirement"
+        expected_range: [0.1, 2.0]
+        risk_direction: "down_risk"
+        source: "regulatory_filings"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+        finance_notes: "Below 1.0x minimum = stressed"
+      redundancy_proxy:
+        definition: "Dual control systems and failover capacity"
+        expected_range: [0.3, 1.0]
+        risk_direction: "down_risk"
+        source: "system_architecture"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Below 0.5 = single points of failure"
+      diversity_proxy:
+        definition: "Funding source diversity (Herfindahl index inverse)"
+        expected_range: [0.2, 1.0]
+        risk_direction: "down_risk"
+        source: "funding_analysis"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Below 0.3 = funding cliff risk"
+      recovery_time_proxy:
+        definition: "Mean time to restore critical services post-incident"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "dr_tests"
+        frequency: "quarterly"
+        manipulability_test: "detect_out_of_range"
+        finance_notes: "Above 4 hours = material risk"
+
+  G:  # Governance
+    description: "Compliance, control environment, and executive alignment"
+    proxies:
+      exemption_rate:
+        definition: "Rate of approved exemptions to trading limits"
+        expected_range: [0.0, 0.3]
+        risk_direction: "up_risk"
+        source: "control_exceptions_registry"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Above 0.05 (5%) signals control erosion"
+      sanction_delay:
+        definition: "Median days from breach detection to disciplinary action"
+        expected_range: [0.0, 0.5]
+        risk_direction: "up_risk"
+        source: "compliance_database"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Normalized to [0, 1]: 0=instant, 1=180+ days"
+      control_turnover:
+        definition: "Quarterly turnover rate in risk/compliance teams"
+        expected_range: [0.0, 0.2]
+        risk_direction: "up_risk"
+        source: "hr_records"
+        frequency: "quarterly"
+        manipulability_test: "detect_out_of_range"
+        finance_notes: "Above 0.10 (10%/quarter) suggests instability"
+      conflict_interest_proxy:
+        definition: "Fraction of traders/risk managers with undisclosed conflicts"
+        expected_range: [0.0, 0.1]
+        risk_direction: "up_risk"
+        source: "compliance_flags"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Any disclosure lag is red flag"
+      rule_execution_gap:
+        definition: "Gap between policy and observed execution (audit samples)"
+        expected_range: [0.0, 0.2]
+        risk_direction: "up_risk"
+        source: "trading_audit_samples"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        finance_notes: "Target < 0.05 (5%) for mature regime"
