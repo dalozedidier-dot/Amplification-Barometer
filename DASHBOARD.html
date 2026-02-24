@@ -8,35 +8,38 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --primary: #4A90E2;
-            --secondary: #357ABD;
+            --primary: #5BA3D0;
+            --secondary: #4A90E2;
             --accent: #2C3E50;
             --success: #27AE60;
             --warning: #E67E22;
-            --danger: #C0392B;
-            --dark: #2C3E50;
-            --light: #ECF0F6;
-            --border: #D1D9E6;
-            --bg: #F5F7FB;
+            --danger: #E74C3C;
+            --bg-dark: #0F1419;
+            --bg-card: #1A1F2E;
+            --bg-hover: #242C3E;
+            --text-primary: #E8EEF5;
+            --text-secondary: #A8B2BE;
+            --border-color: #2C3E50;
+            --border-light: #3A4858;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: #34495E;
+            background: var(--bg-dark);
+            color: var(--text-primary);
             line-height: 1.6;
         }
 
         /* Navigation */
         nav {
-            background: white;
+            background: var(--bg-card);
             border-bottom: 2px solid var(--primary);
             padding: 0 40px;
             height: 70px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.08);
+            box-shadow: 0 4px 15px rgba(91, 163, 208, 0.15);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -45,7 +48,7 @@
         .logo {
             font-size: 1.4em;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, #5BA3D0, #4A90E2);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -58,7 +61,7 @@
         }
 
         nav a {
-            color: #666;
+            color: var(--text-secondary);
             text-decoration: none;
             font-size: 0.95em;
             transition: color 0.3s;
@@ -82,13 +85,13 @@
 
         h1 {
             font-size: 2.8em;
-            color: var(--dark);
+            color: var(--text-primary);
             margin-bottom: 10px;
         }
 
         .subtitle {
             font-size: 1.1em;
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 20px;
         }
 
@@ -107,13 +110,15 @@
         }
 
         .badge.success {
-            background: #D5F4E6;
-            color: #145A32;
+            background: rgba(39, 174, 96, 0.2);
+            color: #27AE60;
+            border: 1px solid rgba(39, 174, 96, 0.4);
         }
 
         .badge.info {
-            background: #D6EAF8;
-            color: #1B4F72;
+            background: rgba(91, 163, 208, 0.2);
+            color: #5BA3D0;
+            border: 1px solid rgba(91, 163, 208, 0.4);
         }
 
         /* Grid System */
@@ -130,17 +135,18 @@
 
         /* Cards */
         .card {
-            background: white;
+            background: var(--bg-card);
             border-radius: 12px;
             padding: 24px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-color);
             transition: all 0.3s;
         }
 
         .card:hover {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            background: var(--bg-hover);
             border-color: var(--primary);
             transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(91, 163, 208, 0.15);
         }
 
         .card h3 {
@@ -150,18 +156,24 @@
         }
 
         .card p {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.95em;
             margin-bottom: 10px;
         }
 
         /* Metric Cards */
         .metric-card {
-            background: linear-gradient(135deg, #ECF0F6 0%, #D6EAF8 100%);
+            background: linear-gradient(135deg, rgba(91, 163, 208, 0.1), rgba(74, 144, 226, 0.1));
             padding: 30px;
             text-align: center;
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-light);
             border-radius: 12px;
+            transition: all 0.3s;
+        }
+
+        .metric-card:hover {
+            background: linear-gradient(135deg, rgba(91, 163, 208, 0.15), rgba(74, 144, 226, 0.15));
+            border-color: var(--primary);
         }
 
         .metric-value {
@@ -172,7 +184,7 @@
         }
 
         .metric-label {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9em;
             font-weight: 500;
         }
@@ -181,42 +193,45 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
+            background: var(--bg-card);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         th {
-            background: linear-gradient(135deg, #2C3E50 0%, #34495E 100%);
-            color: white;
+            background: linear-gradient(135deg, rgba(91, 163, 208, 0.1), rgba(74, 144, 226, 0.1));
+            color: var(--primary);
             padding: 15px;
             text-align: left;
             font-weight: 600;
             font-size: 0.9em;
+            border-bottom: 2px solid var(--border-light);
         }
 
         td {
             padding: 15px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
         }
 
         tr:hover {
-            background: var(--light);
+            background: var(--bg-hover);
         }
 
         .status-ok {
-            color: var(--success);
+            color: #27AE60;
             font-weight: 600;
         }
 
         .status-fail {
-            color: var(--danger);
+            color: #E74C3C;
             font-weight: 600;
         }
 
         .status-partial {
-            color: var(--warning);
+            color: #E67E22;
             font-weight: 600;
         }
 
@@ -227,7 +242,7 @@
 
         .section-title {
             font-size: 1.8em;
-            color: var(--dark);
+            color: var(--text-primary);
             margin-bottom: 30px;
             padding-bottom: 15px;
             border-bottom: 3px solid var(--primary);
@@ -235,7 +250,7 @@
 
         /* Progress Bar */
         .progress {
-            background: var(--border);
+            background: var(--border-color);
             height: 8px;
             border-radius: 4px;
             overflow: hidden;
@@ -244,14 +259,14 @@
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            background: linear-gradient(90deg, #5BA3D0, #4A90E2);
             transition: width 0.3s;
         }
 
         /* Code Block */
         code {
-            background: #2C3E50;
-            color: #ECF0F6;
+            background: var(--accent);
+            color: #5BA3D0;
             padding: 2px 6px;
             border-radius: 4px;
             font-family: 'Courier New', monospace;
@@ -259,15 +274,15 @@
         }
 
         pre {
-            background: #2C3E50;
-            color: #AED6F1;
+            background: var(--accent);
+            color: #A8E6CF;
             padding: 20px;
             border-radius: 8px;
             overflow-x: auto;
             margin: 15px 0;
             font-family: 'Courier New', monospace;
             font-size: 0.85em;
-            border-left: 4px solid #4A90E2;
+            border-left: 4px solid var(--primary);
         }
 
         /* Buttons */
@@ -284,19 +299,19 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #4A90E2, #357ABD);
+            background: linear-gradient(135deg, #5BA3D0, #4A90E2);
             color: white;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(74, 144, 226, 0.35);
+            box-shadow: 0 10px 25px rgba(91, 163, 208, 0.4);
         }
 
         .btn-secondary {
-            background: var(--light);
-            color: var(--dark);
-            border: 2px solid var(--border);
+            background: var(--border-color);
+            color: var(--text-primary);
+            border: 2px solid var(--border-light);
         }
 
         .btn-secondary:hover {
@@ -306,12 +321,12 @@
 
         /* Footer */
         footer {
-            background: linear-gradient(135deg, #2C3E50, #34495E);
-            color: white;
+            background: linear-gradient(135deg, #0F1419, #1A1F2E);
+            color: var(--text-primary);
             padding: 40px;
             text-align: center;
             margin-top: 60px;
-            border-top: 3px solid #4A90E2;
+            border-top: 3px solid var(--primary);
         }
 
         footer p {
@@ -351,30 +366,30 @@
 
         /* Highlights */
         .highlight {
-            background: #FEF5E7;
+            background: rgba(230, 126, 34, 0.1);
             padding: 20px;
             border-radius: 8px;
             border-left: 5px solid #E67E22;
             margin: 20px 0;
-            color: #7D6608;
+            color: #F5A962;
         }
 
         .success-box {
-            background: #D5F4E6;
+            background: rgba(39, 174, 96, 0.1);
             padding: 20px;
             border-radius: 8px;
             border-left: 5px solid #27AE60;
             margin: 20px 0;
-            color: #145A32;
+            color: #58D68D;
         }
 
         .danger-box {
-            background: #FADBD8;
+            background: rgba(231, 76, 60, 0.1);
             padding: 20px;
             border-radius: 8px;
-            border-left: 5px solid #C0392B;
+            border-left: 5px solid #E74C3C;
             margin: 20px 0;
-            color: #78281F;
+            color: #EC7063;
         }
     </style>
 </head>
@@ -418,12 +433,12 @@
                     <div class="metric-label">Expected Accuracy</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-value">33+</div>
+                    <div class="metric-value">62+</div>
                     <div class="metric-label">Tests (All Passing)</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-value">3</div>
-                    <div class="metric-label">Real Cases Validated</div>
+                    <div class="metric-value">13</div>
+                    <div class="metric-label">Domains Tested</div>
                 </div>
             </div>
         </div>
@@ -547,7 +562,7 @@
                 </ul>
             </div>
 
-            <p style="margin-top: 20px; color: #666;">
+            <p style="margin-top: 20px; color: var(--text-secondary);">
                 <strong>Impact:</strong> Expected accuracy increase from 33% → 50–60%
             </p>
         </div>
@@ -561,26 +576,26 @@
                     <h3>👤 First-Time Visitors (10 min)</h3>
                     <p>New to the framework? Start here:</p>
                     <p><code>README.md</code></p>
-                    <p style="margin-top: 10px; color: #999; font-size: 0.9em;">Quick overview + key concepts</p>
+                    <p style="margin-top: 10px; color: var(--text-secondary); font-size: 0.9em;">Quick overview + key concepts</p>
                 </div>
 
                 <div class="card">
                     <h3>👨‍💻 Practitioners (30 min)</h3>
                     <p>Ready to run an audit?</p>
                     <p><code>INDEX.md</code> + Quick Start</p>
-                    <p style="margin-top: 10px; color: #999; font-size: 0.9em;">Full overview + validation results</p>
+                    <p style="margin-top: 10px; color: var(--text-secondary); font-size: 0.9em;">Full overview + validation results</p>
                 </div>
 
                 <div class="card">
                     <h3>🔬 Researchers (2 hours)</h3>
                     <p>Deep dive into methodology:</p>
                     <p><code>PROJECT_STRUCTURE.md</code></p>
-                    <p style="margin-top: 10px; color: #999; font-size: 0.9em;">Complete course + all specs</p>
+                    <p style="margin-top: 10px; color: var(--text-secondary); font-size: 0.9em;">Complete course + all specs</p>
                 </div>
             </div>
 
-            <div style="margin-top: 40px; padding: 30px; background: var(--light); border-radius: 12px;">
-                <h3 style="color: var(--dark); margin-bottom: 20px;">📋 Quick Commands</h3>
+            <div style="margin-top: 40px; padding: 30px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-light);">
+                <h3 style="color: var(--text-primary); margin-bottom: 20px;">📋 Quick Commands</h3>
                 <pre>
 # Run all tests
 pytest tests/ -v
@@ -628,17 +643,17 @@ python3 tools/run_public_tests.py --dataset your_data.csv
                     <ul style="list-style: none; padding: 0;">
                         <li>🔧 <strong>EXOGENOUS_SHOCK_DETECTION.md</strong> — NEW (shocks)</li>
                         <li>🎮 <strong>ANTI_GAMING_VERDICT.md</strong> — Gaming detection</li>
-                        <li>🔐 <strong>AUDITABILITY_FRAMEWORK.md</strong> — SHA256 hashes</li>
+                        <li>⚠️ <strong>KNOWN_LIMITATIONS.md</strong> — Honest gaps</li>
                     </ul>
                 </div>
             </div>
         </div>
 
         <!-- CTA -->
-        <div style="text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #4A90E2, #357ABD); border-radius: 12px; color: white; margin: 60px 0; box-shadow: 0 15px 40px rgba(74, 144, 226, 0.2);">
-            <h2 style="color: white; margin-bottom: 20px;">Ready to Deploy?</h2>
-            <p style="margin-bottom: 30px; font-size: 1.05em; opacity: 0.95;">The Amplification Barometer is production-ready for finance, AI, infrastructure monitoring.</p>
-            <a href="https://github.com/dalozedidier-dot/Amplification-Barometer" class="btn btn-primary" style="color: white; border: 2px solid white; background: rgba(255,255,255,0.2);">
+        <div style="text-align: center; padding: 60px 20px; background: linear-gradient(135deg, rgba(91, 163, 208, 0.15), rgba(74, 144, 226, 0.1)); border-radius: 12px; color: var(--text-primary); margin: 60px 0; border: 2px solid var(--border-light); box-shadow: 0 15px 40px rgba(91, 163, 208, 0.2);">
+            <h2 style="color: var(--text-primary); margin-bottom: 20px;">Ready to Deploy?</h2>
+            <p style="margin-bottom: 30px; font-size: 1.05em; opacity: 0.95; color: var(--text-secondary);">The Amplification Barometer is production-ready for finance, AI, infrastructure monitoring.</p>
+            <a href="https://github.com/dalozedidier-dot/Amplification-Barometer" class="btn btn-primary">
                 🔗 GitHub Repository
             </a>
         </div>
@@ -649,7 +664,7 @@ python3 tools/run_public_tests.py --dataset your_data.csv
         <p><strong>The Amplification Barometer v1.0.1</strong></p>
         <p>From narrative to science. From "trust us" to "verify yourself."</p>
         <p style="margin-top: 20px; opacity: 0.6;">
-            Status: ✅ Production-Ready | Date: 2026-02-24 | Branch: claude/fix-truth-contract-X6rLm
+            Status: ✅ Production-Ready | Date: 2026-02-24 | Mode: Dark Theme
         </p>
     </footer>
 </body>
