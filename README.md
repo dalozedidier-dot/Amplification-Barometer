@@ -6,6 +6,12 @@
 
 ---
 
+## 🎯 **[👉 OPEN INTERACTIVE DASHBOARD: INDEX.html](INDEX.html)**
+
+*Professional visual overview — Open in web browser (or serve locally with `python3 -m http.server 8080`)*
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. **First Time Here?**

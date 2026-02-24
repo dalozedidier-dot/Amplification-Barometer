@@ -5,6 +5,12 @@
 
 ---
 
+## 🎯 **[👉 OPEN INTERACTIVE DASHBOARD: INDEX.html](INDEX.html)**
+
+*Visual overview with charts, metrics, and navigation — Open in web browser*
+
+---
+
 ## 🎯 The Principle
 
 > **Can we detect when a complex system (financial, AI, infrastructure) transitions from stable oscillation to irreversible collapse?**
