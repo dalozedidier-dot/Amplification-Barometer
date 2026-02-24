@@ -445,14 +445,14 @@
 
         <!-- Validation Results -->
         <div class="section" id="validation">
-            <h2 class="section-title">✅ Real-World Validation</h2>
+            <h2 class="section-title">✅ Real-World Validation Cases (3 Total)</h2>
 
             <table>
                 <tr>
                     <th>Case</th>
                     <th>Sector</th>
                     <th>Event</th>
-                    <th>Detection</th>
+                    <th>Barometer Detection</th>
                     <th>Ground Truth</th>
                     <th>Status</th>
                 </tr>
@@ -460,31 +460,172 @@
                     <td><strong>Case 001</strong></td>
                     <td>Finance</td>
                     <td>$200M algo crash (2024-04-20)</td>
-                    <td>Type III ✓</td>
-                    <td>Type III</td>
+                    <td>Type III ✓ (Correct)</td>
+                    <td>Type III bifurcation</td>
                     <td><span class="status-ok">✅ SUCCESS</span></td>
                 </tr>
                 <tr>
                     <td><strong>Case 002</strong></td>
                     <td>AI/ML</td>
                     <td>LLM safety failure (2024-08-15)</td>
-                    <td>Exogenous shock</td>
-                    <td>Type III</td>
-                    <td><span class="status-partial">◐ DETECTABLE</span></td>
+                    <td>Type I (WRONG)</td>
+                    <td>Type III bifurcation</td>
+                    <td><span class="status-fail">❌ FAILURE</span></td>
                 </tr>
                 <tr>
                     <td><strong>Case 003</strong></td>
                     <td>Infrastructure</td>
                     <td>Power grid cascade (2024-10-18)</td>
-                    <td>Type III ✓</td>
-                    <td>Type III</td>
-                    <td><span class="status-partial">◐ PARTIAL</span></td>
+                    <td>Type III ✓ (Correct)</td>
+                    <td>Type III bifurcation</td>
+                    <td><span class="status-partial">◐ PARTIAL (Needs Verification)</span></td>
                 </tr>
             </table>
 
-            <div class="highlight" style="margin-top: 30px;">
-                <strong>⚠️ Important:</strong> We publish ALL results, including misses. This is how science works.
-                Case 002 failure drove development of exogenous shock detection.
+            <div class="danger-box" style="margin-top: 30px;">
+                <strong>🔬 Scientific Integrity:</strong> We publish ALL results, including the Case 002 failure. This falsification proved the framework is limited to <strong>endogenous stress buildup</strong>, not exogenous shocks. This drove development of exogenous shock detection methods.
+            </div>
+
+            <div class="success-box" style="margin-top: 20px;">
+                <strong>📊 Success Rate: 1/3 (33%)</strong>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li>✅ Case 001: Correctly detected finance bifurcation</li>
+                    <li>❌ Case 002: Missed AI/ML safety incident (exogenous shock)</li>
+                    <li>⚠️ Case 003: Detected but lacks independent verification</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- All Tests Summary -->
+        <div class="section">
+            <h2 class="section-title">🧪 Complete Test Coverage (23 Tests)</h2>
+
+            <div style="margin-bottom: 30px;">
+                <p style="color: var(--text-secondary); margin-bottom: 20px;"><strong>All test suites passing:</strong> Unit tests + scenario tests + anti-gaming tests</p>
+            </div>
+
+            <table>
+                <tr>
+                    <th>Category</th>
+                    <th>Test Name</th>
+                    <th>Purpose</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td rowspan="8"><strong>Core Framework (8 tests)</strong></td>
+                    <td>S1: Stability</td>
+                    <td>Spearman ≥0.85, Jaccard ≥0.80</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>S2: Proxy Ranges</td>
+                    <td>All proxies within bounds</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>S3: Composite Validity</td>
+                    <td>No NaN, inf, null values</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>S4: E Monotone</td>
+                    <td>Energy strictly increasing</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>S5: Type I Signature</td>
+                    <td>Noise contained (&lt; 0.10)</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>S6: Type II Signature</td>
+                    <td>Oscillation detected</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>S7: Type III Signature</td>
+                    <td>Bifurcation detected</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>S8: Noise Robustness</td>
+                    <td>All 20 noise variants stable</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td rowspan="5"><strong>Anti-Gaming (5 tests)</strong></td>
+                    <td>AG1: O-Family Bias</td>
+                    <td>Detect output family gaming</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>AG2: Volatility Clamp</td>
+                    <td>Detect volatility suppression</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>AG3: Out-of-Range Gaming</td>
+                    <td>Detect proxy manipulation</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>AG4: Multi-Proxy Attack</td>
+                    <td>Detect coordinated gaming</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>AG5: Reporting Delay</td>
+                    <td>Detect temporal gaming</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td rowspan="8"><strong>Exogenous Shock (8 tests)</strong></td>
+                    <td>EX1: Volatility Spike</td>
+                    <td>Detect sharp volatility increases</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>EX2: Structural Break</td>
+                    <td>Detect regime shifts</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>EX3: Anomaly Detection</td>
+                    <td>Detect outliers &gt; 3σ</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>EX4: Coordinated Shift</td>
+                    <td>Detect multi-proxy shocks</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>EX5-EX8: Comprehensive Tests</td>
+                    <td>Shock assessment pipeline</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td rowspan="2"><strong>Real-World Scenarios (2 tests)</strong></td>
+                    <td>Real Data Finance</td>
+                    <td>Q2 2024 volatility data</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+                <tr>
+                    <td>Real Data Infrastructure</td>
+                    <td>Grid degradation + cascade</td>
+                    <td><span class="status-ok">✅ PASS</span></td>
+                </tr>
+            </table>
+
+            <div class="success-box" style="margin-top: 30px;">
+                <strong>✅ Test Summary</strong>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li>✅ 8/8 core framework tests passing (100%)</li>
+                    <li>✅ 5/5 anti-gaming tests passing (100%)</li>
+                    <li>✅ 8/8 exogenous shock tests passing (100%)</li>
+                    <li>✅ 2/2 real-world scenario tests passing (100%)</li>
+                    <li><strong>Total: 23/23 tests PASSING</strong></li>
+                </ul>
             </div>
         </div>
 
@@ -582,8 +723,8 @@
                 <div class="card">
                     <h3>👨‍💻 Practitioners (30 min)</h3>
                     <p>Ready to run an audit?</p>
-                    <p><code>INDEX.md</code> + Quick Start</p>
-                    <p style="margin-top: 10px; color: var(--text-secondary); font-size: 0.9em;">Full overview + validation results</p>
+                    <p><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/INDEX.html" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📖 Full Index</a></p>
+                    <p style="margin-top: 10px; color: var(--text-secondary); font-size: 0.9em;">Complete overview + validation results</p>
                 </div>
 
                 <div class="card">
@@ -624,7 +765,7 @@ python3 tools/run_public_tests.py --dataset your_data.csv
                     <h3>Core Framework</h3>
                     <ul style="list-style: none; padding: 0;">
                         <li>📄 <strong>README.md</strong> — Quick start</li>
-                        <li>📖 <strong>INDEX.md</strong> — Overview</li>
+                        <li>📖 <strong><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/INDEX.html" target="_blank" style="color: var(--primary); text-decoration: none;">INDEX.html</a></strong> — Overview</li>
                         <li>🎓 <strong>PROJECT_STRUCTURE.md</strong> — Complete course</li>
                     </ul>
                 </div>
