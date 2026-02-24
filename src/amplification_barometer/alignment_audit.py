@@ -162,11 +162,104 @@ def stress_signature_suite(df: pd.DataFrame, specs: TheoryAuditMap) -> Dict[str,
     }
 
 
+def run_anti_gaming_quick_checks(df: pd.DataFrame, specs: TheoryAuditMap) -> Dict[str, Any]:
+    """
+    Quick anti-gaming checks integrated into main audit.
+
+    Tests 3 critical gaming vectors:
+    1. O-family simultaneous boost + @(t) drop
+    2. P volatility collapse + E growth
+    3. Proxy range violations
+
+    Returns {"gaming_suspicion": "ok" | "fail", "details": {...}}
+    """
+    checks: List[Dict[str, Any]] = []
+
+    # Check 1: O-family bias (artificial boost of stop/threshold/decision/execution/coherence)
+    o_cols = [c for c in ["stop_proxy", "threshold_proxy", "decision_proxy", "execution_proxy", "coherence_proxy"]
+              if c in df.columns]
+    if o_cols and len(df) > 20:
+        levels = compute_levels_from_specs(df, specs)
+        sig = compute_at_delta(levels, smooth_win=7)
+        at = sig["at"]
+        o_level = levels["O_level"]
+
+        # Check for sudden jump in O + drop in @(t)
+        o_first_half = np.nanmean(o_level[:len(o_level)//2])
+        o_second_half = np.nanmean(o_level[len(o_level)//2:])
+        at_first_half = np.nanmean(at[:len(at)//2])
+        at_second_half = np.nanmean(at[len(at)//2:])
+
+        o_boost = o_second_half - o_first_half
+        at_drop = at_second_half - at_first_half
+
+        # Suspicious if both O↑ and @↓ simultaneously
+        o_bias_suspicious = (o_boost > 0.1) and (at_drop < -0.15)
+        checks.append({
+            "check": "o_family_bias",
+            "suspicious": bool(o_bias_suspicious),
+            "o_boost": float(o_boost),
+            "at_drop": float(at_drop),
+        })
+
+    # Check 2: P volatility collapse while E grows
+    p_cols = [c for c in ["scale_proxy", "speed_proxy", "leverage_proxy", "autonomy_proxy", "replicability_proxy"]
+              if c in df.columns]
+    if p_cols and len(df) > 20:
+        levels = compute_levels_from_specs(df, specs)
+        er = compute_e_r(levels)
+        p_level = levels["P_level"]
+        e_stock = er["e_stock"]
+
+        p_vol_first = float(np.nanstd(p_level[:len(p_level)//2]))
+        p_vol_second = float(np.nanstd(p_level[len(p_level)//2:]))
+        e_growth = float((e_stock[-1] - e_stock[0]) / (np.abs(e_stock[0]) + 1e-9))
+
+        # Suspicious if vol↓ and E↑
+        vol_suppression = p_vol_first > 0 and p_vol_second < p_vol_first * 0.5
+        vol_clamp_suspicious = vol_suppression and e_growth > 0.1
+        checks.append({
+            "check": "volatility_clamp",
+            "suspicious": bool(vol_clamp_suspicious),
+            "p_vol_ratio": float(p_vol_second / (p_vol_first + 1e-9)),
+            "e_growth": float(e_growth),
+        })
+
+    # Check 3: Out-of-range proxies (critical)
+    out_of_range_count = 0
+    for fam, famspec in specs.families.items():
+        for name, ps in famspec.proxies.items():
+            if name not in df.columns:
+                continue
+            lo, hi = ps.expected_range
+            x = df[name].to_numpy(dtype=float)
+            bad = np.where((x < lo) | (x > hi))[0]
+            out_of_range_count += len(bad)
+
+    range_gaming_suspicious = out_of_range_count > 0
+    checks.append({
+        "check": "range_violations",
+        "suspicious": bool(range_gaming_suspicious),
+        "out_of_range_count": int(out_of_range_count),
+    })
+
+    # Overall verdict
+    gaming_suspicious = any(c.get("suspicious", False) for c in checks)
+    gaming_verdict = "fail" if gaming_suspicious else "ok"
+
+    return {
+        "gaming_suspicion": gaming_verdict,
+        "gaming_score": float(sum(1 for c in checks if c.get("suspicious")) / max(1, len(checks))),
+        "details": checks,
+    }
+
+
 def multidim_verdict(
     *,
     stability: Dict[str, Any],
     proxy_ranges: Dict[str, Any],
     stress: Dict[str, Any],
+    anti_gaming: Dict[str, Any],
     turnover_target_ok: Optional[bool] = None,
     gap_target_ok: Optional[bool] = None,
 ) -> Dict[str, Any]:
@@ -195,6 +288,9 @@ def multidim_verdict(
     if gap_target_ok is not None:
         dims["governance_gap_target"] = "ok" if gap_target_ok else "fail"
 
+    # Anti-gaming verdict
+    dims["anti_gaming"] = anti_gaming.get("gaming_suspicion", "unknown")
+
     return {"dimensions": dims}
 
 
@@ -210,6 +306,7 @@ def run_alignment_audit(
     proxy_ranges = validate_proxy_ranges(df, specs)
     stability = stability_audit_rank(df, specs)
     stress = stress_signature_suite(df, specs)
+    anti_gaming = run_anti_gaming_quick_checks(df, specs)
 
     # Governance targets if columns exist
     turnover_ok = None
@@ -223,6 +320,7 @@ def run_alignment_audit(
         stability=stability,
         proxy_ranges=proxy_ranges,
         stress=stress,
+        anti_gaming=anti_gaming,
         turnover_target_ok=turnover_ok,
         gap_target_ok=gap_ok,
     )
@@ -245,6 +343,7 @@ def run_alignment_audit(
         "proxy_ranges": proxy_ranges,
         "stability": stability,
         "stress_signatures": stress,
+        "anti_gaming": anti_gaming,
         "verdict": verdict,
     }
 
@@ -273,6 +372,14 @@ def write_alignment_outputs(report: Dict[str, Any], out_dir: str | Path, name: s
     md.append(f"- stable: {st.get('stable')}\n")
     md.append(f"- spearman_min: {st.get('spearman_min')}\n")
     md.append(f"- jaccard_min: {st.get('jaccard_min')}\n")
+    md.append("\n## Anti-Gaming Checks\n")
+    ag = report.get("anti_gaming") or {}
+    md.append(f"- gaming_suspicion: {ag.get('gaming_suspicion', 'unknown')}\n")
+    md.append(f"- gaming_score: {ag.get('gaming_score', 0.0):.2f}\n")
+    if ag.get("details"):
+        md.append("- Checks:\n")
+        for check in ag["details"]:
+            md.append(f"  - {check.get('check', 'unknown')}: {check.get('suspicious', False)}\n")
     md_path.write_text("".join(md), encoding="utf-8")
 
     return {"json": str(json_path), "md": str(md_path)}
