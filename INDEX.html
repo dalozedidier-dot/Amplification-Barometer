@@ -578,31 +578,31 @@
                 <div class="card">
                     <h3>👤 For First-Time Visitors (10 min)</h3>
                     <ul>
-                        <li><a href="README.md">README.md</a> — Understand the goal</li>
-                        <li><a href="INDEX.md">INDEX.md</a> — See all results</li>
+                        <li><strong>README.md</strong> — Understand the goal</li>
+                        <li><strong>INDEX.md</strong> — See all results</li>
                     </ul>
                 </div>
                 <div class="card">
                     <h3>👨‍💻 For Practitioners (30 min)</h3>
                     <ul>
-                        <li><a href="INDEX.md">INDEX.md</a> — Understand principle</li>
+                        <li><strong>INDEX.md</strong> — Understand principle</li>
                         <li>Quick Start — Run audit on your data</li>
-                        <li><a href="docs/PUBLIC_TEST_MATRIX.md">PUBLIC_TEST_MATRIX.md</a> — Validate</li>
+                        <li><strong>docs/PUBLIC_TEST_MATRIX.md</strong> — Validate</li>
                     </ul>
                 </div>
                 <div class="card">
                     <h3>🔬 For Researchers (2 hours)</h3>
                     <ul>
-                        <li><a href="PROJECT_STRUCTURE.md">PROJECT_STRUCTURE.md</a> — Complete guide</li>
-                        <li><a href="docs/CALIBRATION_PROTOCOL_v1.0.md">CALIBRATION_PROTOCOL_v1.0.md</a> — Thresholds</li>
+                        <li><strong>PROJECT_STRUCTURE.md</strong> — Complete guide</li>
+                        <li><strong>docs/CALIBRATION_PROTOCOL_v1.0.md</strong> — Thresholds</li>
                         <li>data/canonical_scenarios/ — Ground truth</li>
                     </ul>
                 </div>
                 <div class="card">
                     <h3>🔍 For Auditors (45 min)</h3>
                     <ul>
-                        <li><a href="docs/AUDITABILITY_FRAMEWORK.md">AUDITABILITY_FRAMEWORK.md</a> — Manifests</li>
-                        <li><a href="docs/PUBLIC_TEST_MATRIX.md">PUBLIC_TEST_MATRIX.md</a> — 12 tests</li>
+                        <li><strong>docs/AUDITABILITY_FRAMEWORK.md</strong> — Manifests</li>
+                        <li><strong>docs/PUBLIC_TEST_MATRIX.md</strong> — 12 tests</li>
                         <li>reports/real_cases/ — Case validation</li>
                     </ul>
                 </div>
@@ -613,15 +613,24 @@
         <div class="cta-section">
             <h2 style="color: #667eea; margin-bottom: 30px;">Ready to Get Started?</h2>
             <p style="margin-bottom: 30px; color: #666; font-size: 1.1em;">
-                Choose your path based on your role and time available.
+                <strong>Open these files in the repository:</strong>
             </p>
-            <div>
-                <a href="INDEX.md" class="cta-button">📖 Read Full Overview</a>
-                <a href="README.md" class="cta-button secondary">📄 Read README</a>
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; text-align: left; margin: 20px auto; max-width: 500px;">
+                <p style="margin: 10px 0;"><code>📖 INDEX.md</code> — Full overview</p>
+                <p style="margin: 10px 0;"><code>📄 README.md</code> — Quick start</p>
+                <p style="margin: 10px 0;"><code>📚 PROJECT_STRUCTURE.md</code> — Complete course</p>
             </div>
             <p style="color: #666; margin-top: 30px; font-size: 0.95em;">
-                Questions? See <a href="PROJECT_STRUCTURE.md" style="color: #667eea; text-decoration: none; border-bottom: 1px solid #667eea;">PROJECT_STRUCTURE.md</a> (75-minute course)
+                <strong>Run these commands:</strong>
             </p>
+            <div style="background: #1f2937; color: #e5e7eb; padding: 15px; border-radius: 8px; text-align: left; margin: 20px auto; max-width: 600px; overflow-x: auto; font-family: monospace; font-size: 0.9em;">
+                # Run tests<br>
+                pytest tests/test_energy_recovery.py -v<br>
+                pytest tests/test_anti_gaming_verdict.py -v<br>
+                <br>
+                # Run audit<br>
+                python3 tools/run_alignment_audit.py --dataset your_data.csv --sector finance
+            </div>
         </div>
 
         <!-- Footer -->
@@ -629,14 +638,17 @@
             <p><strong>The Amplification Barometer v1.0.0</strong></p>
             <p>From narrative to science. From "trust us" to "verify yourself." From circular reasoning to falsifiable claims.</p>
             <p style="margin-top: 20px;">
-                <a href="https://github.com/dalozedidier-dot/Amplification-Barometer" class="footer-link">GitHub Repository</a>
+                <a href="https://github.com/dalozedidier-dot/Amplification-Barometer" class="footer-link" target="_blank">🔗 GitHub Repository</a>
                 |
-                <a href="INDEX.md" class="footer-link">Full Documentation</a>
+                📚 Full Documentation (see INDEX.md)
                 |
-                <a href="docs/proxy_specs/finance/GOVERNANCE_PROXIES_v1.0.0.md" class="footer-link">Governance Specs</a>
+                📊 Governance Specs (see docs/proxy_specs/finance/GOVERNANCE_PROXIES_v1.0.0.md)
             </p>
             <p style="margin-top: 20px; opacity: 0.8;">
-                <strong>Status:</strong> ✅ Production-Ready | <strong>Date:</strong> 2026-02-24 | <strong>Git:</strong> 22d7423
+                <strong>Status:</strong> ✅ Production-Ready | <strong>Date:</strong> 2026-02-24 | <strong>Branch:</strong> claude/fix-truth-contract-X6rLm
+            </p>
+            <p style="margin-top: 15px; opacity: 0.7; font-size: 0.85em;">
+                <strong>This file:</strong> Open locally or serve via HTTP for full functionality
             </p>
         </footer>
     </div>
