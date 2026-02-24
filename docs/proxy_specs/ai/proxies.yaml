@@ -1,0 +1,206 @@
+version: "v0.1.0"
+sector: "ai"
+notes:
+  purpose: "Proxy specifications for AI/ML systems (LLMs, autonomous agents, recommender systems)"
+  normalization_default: "mad_z"
+  missing_policy: "raise"
+  range_rationale: |
+    Ranges calibrated on capability scaling studies, safety research, and deployment feedback.
+    Emphasizes autonomy amplification, generalization, and cascade risk.
+
+families:
+  P:  # Power and scaling capacity
+    description: "Model scale, capability, and autonomy growth"
+    proxies:
+      scale_proxy:
+        definition: "Model scale (parameters/FLOPs relative to baseline)"
+        expected_range: [0.1, 3.0]
+        risk_direction: "up_risk"
+        source: "model_registry"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Exponential scaling observed 2020-2024; >2x baseline is high-growth"
+      speed_proxy:
+        definition: "Inference speed and deployment frequency (ops/sec normalized)"
+        expected_range: [0.0, 2.5]
+        risk_direction: "up_risk"
+        source: "inference_logs"
+        frequency: "daily"
+        manipulability_test: "detect_volatility_clamp"
+        ai_notes: "Higher deployment frequency = more opportunities for divergence"
+      leverage_proxy:
+        definition: "Capability gain per unit compute (task coverage breadth)"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "benchmark_suite"
+        frequency: "weekly"
+        manipulability_test: "detect_out_of_range"
+        ai_notes: "Task coverage beyond training distribution increases risk"
+      autonomy_proxy:
+        definition: "Fraction of decisions made without human in loop"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "deployment_logs"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+        ai_notes: "Above 0.6 = significant autonomy; enables fast amplification"
+      replicability_proxy:
+        definition: "Reproducibility across contexts and users"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "user_feedback_telemetry"
+        frequency: "daily"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "High replicability = same failure mode across population"
+
+  O:  # Orientation and stop capacity
+    description: "Alignment, containment, and emergency shutdown capability"
+    proxies:
+      stop_proxy:
+        definition: "Emergency shutdown effectiveness (time to full stop)"
+        expected_range: [0.3, 1.0]
+        risk_direction: "down_risk"
+        source: "shutdown_tests"
+        frequency: "weekly"
+        manipulability_test: "detect_out_of_range"
+        ai_notes: "Below 0.5 (>10 min to full shutdown) = concerning"
+      threshold_proxy:
+        definition: "Clarity of behavioral boundaries and corner cases"
+        expected_range: [0.2, 1.0]
+        risk_direction: "down_risk"
+        source: "safety_specs"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Vague instructions = misalignment drift"
+      decision_proxy:
+        definition: "Quality of refusal/escalation logic"
+        expected_range: [0.3, 1.0]
+        risk_direction: "down_risk"
+        source: "adversarial_tests"
+        frequency: "weekly"
+        manipulability_test: "detect_volatility_clamp"
+        ai_notes: "Adversarial jailbreaks indicate weak decision boundaries"
+      execution_proxy:
+        definition: "Fidelity of alignment intent during execution"
+        expected_range: [0.4, 1.0]
+        risk_direction: "down_risk"
+        source: "output_monitoring"
+        frequency: "daily"
+        manipulability_test: "detect_volatility_clamp"
+        ai_notes: "Drift from intended behavior = execution gap"
+      coherence_proxy:
+        definition: "Consistency of behavior across sessions and contexts"
+        expected_range: [0.3, 1.0]
+        risk_direction: "down_risk"
+        source: "consistency_tests"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Inconsistency = potential emergence of unintended behavior"
+
+  E:  # Externalities stock
+    description: "Network effects, misinformation, irreversible impacts"
+    proxies:
+      impact_proxy:
+        definition: "Potential for single-model output to affect large population"
+        expected_range: [0.0, 2.5]
+        risk_direction: "up_risk"
+        source: "user_reach_metrics"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+        ai_notes: "Recommendation systems to 100M+ users = high impact"
+      propagation_proxy:
+        definition: "Cascade likelihood if output contains error/bias"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "network_analysis"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Social networks amplify errors; measured via retweet/share risk"
+      hysteresis_proxy:
+        definition: "Persistence of false beliefs/behaviors post-correction"
+        expected_range: [0.0, 1.5]
+        risk_direction: "up_risk"
+        source: "correction_studies"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Backfire effect: corrections can entrench false beliefs"
+
+  R:  # Resilience
+    description: "Redundancy, interpretability, and rollback capacity"
+    proxies:
+      margin_proxy:
+        definition: "Safety margin in capability distribution (distance to failure)"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "stress_test_suite"
+        frequency: "weekly"
+        manipulability_test: "detect_out_of_range"
+        ai_notes: "Measured via adversarial robustness; below 0.3 = near saturation"
+      redundancy_proxy:
+        definition: "Availability of fallback/baseline system"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "deployment_architecture"
+        frequency: "daily"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "No fallback = single point of failure"
+      diversity_proxy:
+        definition: "Ensemble diversity if multi-model deployment"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "model_correlation"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Low diversity = correlated failures"
+      recovery_time_proxy:
+        definition: "Time to revert to safe configuration post-incident"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "rollback_tests"
+        frequency: "monthly"
+        manipulability_test: "detect_out_of_range"
+        ai_notes: "Normalized: 0=instant, 1=24+ hours"
+
+  G:  # Governance
+    description: "Oversight, stakeholder alignment, and policy adherence"
+    proxies:
+      exemption_rate:
+        definition: "Rate of deployment without full safety review"
+        expected_range: [0.0, 0.2]
+        risk_direction: "up_risk"
+        source: "release_logs"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Above 0.05 (5%) indicates safety review gaps"
+      sanction_delay:
+        definition: "Median days from safety issue to remediation"
+        expected_range: [0.0, 0.5]
+        risk_direction: "up_risk"
+        source: "incident_tracking"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Normalized: 0=immediate, 1=60+ days"
+      control_turnover:
+        definition: "Quarterly turnover in safety/alignment team"
+        expected_range: [0.0, 0.15]
+        risk_direction: "up_risk"
+        source: "hr_records"
+        frequency: "quarterly"
+        manipulability_test: "detect_out_of_range"
+        ai_notes: "High turnover = expertise loss"
+      conflict_interest_proxy:
+        definition: "Pressure to deploy despite safety concerns"
+        expected_range: [0.0, 0.15]
+        risk_direction: "up_risk"
+        source: "governance_surveys"
+        frequency: "quarterly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Market pressure overriding safety = structural misalignment"
+      rule_execution_gap:
+        definition: "Gap between stated safety policy and observed deployment"
+        expected_range: [0.0, 0.3]
+        risk_direction: "up_risk"
+        source: "audit_samples"
+        frequency: "weekly"
+        manipulability_test: "detect_step_jump"
+        ai_notes: "Target < 0.05 for mature governance"
