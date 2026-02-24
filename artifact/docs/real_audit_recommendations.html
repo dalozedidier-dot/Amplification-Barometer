@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Recommendations for passage to a real audit | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Recommendations for passage to a real audit" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/real_audit_recommendations.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/real_audit_recommendations.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Recommendations for passage to a real audit" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Recommendations for passage to a real audit","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/real_audit_recommendations.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="recommendations-for-passage-to-a-real-audit">Recommendations for passage to a real audit</h1>
+
+<p>This repository demonstrates partial auditability on synthetic data:
+reproducible regime discrimination, stability checks, stress tests, anti-gaming heuristics, and L(t) performance metrics.</p>
+
+<h2 id="immediate-improvements">Immediate improvements</h2>
+
+<ol>
+  <li>Boost prevented_exceedance &gt; 10% with proactive L activation
+    <ul>
+      <li>Use a proactive trigger: activate L when risk is high OR when O(t) is degraded (low O_level)</li>
+      <li>Track prevention using both:
+        <ul>
+          <li>prevented_exceedance_rel (count-based)</li>
+          <li>prevented_topk_excess_rel (tail severity reduction, more stable)</li>
+        </ul>
+      </li>
+      <li>Keep persistence and max_delay explicit to limit false positives</li>
+    </ul>
+  </li>
+  <li>Recalibrate weights on anonymized incidents (and exogenous shocks when available)
+    <ul>
+      <li>Collect incident windows with damage_weight and, if possible, u_exog (shock intensity)</li>
+      <li>Run tools/recalibrate_weights.py to generate a versioned JSON proposal (audit-friendly)</li>
+      <li>Review and pin any change in a pull request</li>
+    </ul>
+  </li>
+  <li>Calibrate AI on real E(t) shocks (anonymized)
+    <ul>
+      <li>For AI-like systems, externalities E(t) are often driven by network waves</li>
+      <li>Provide a u_exog series derived from audit logs (rate-limits, incident bursts, propagation anomalies)</li>
+      <li>Validate that E proxies (propagation/hysteresis/impact) respond in the expected direction and latency</li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="extensions">Extensions</h2>
+
+<ul>
+  <li>Dataset 2027+ and biotech instantiation
+    <ul>
+      <li>finance: shocks primarily on P(t)</li>
+      <li>AI: shocks primarily on E(t) network propagation</li>
+      <li>biotech: shocks on E(t) with stronger hysteresis and recovery costs</li>
+    </ul>
+  </li>
+  <li>Fully endogenize G(t)
+    <ul>
+      <li>governance proxies are derived from P/O/E pressure (rule_execution_gap target &lt; 5% in mature regimes)</li>
+      <li>avoid injecting G as an independent synthetic time series</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="global-validity-statement-demo">Global validity statement (demo)</h2>
+
+<ul>
+  <li>This demo shows reproducible tests and audit-friendly artefacts, but it is not an empirical proof</li>
+  <li>Main residual risks:
+    <ul>
+      <li>absence of real quantified cases</li>
+      <li>remaining arbitrariness in weights without enough incidents (mitigate via incident + u_exog anchoring)</li>
+    </ul>
+  </li>
+  <li>Next iteration should expand sector coverage and integrate real-anonymized incident windows</li>
+</ul>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/real_audit_recommendations.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

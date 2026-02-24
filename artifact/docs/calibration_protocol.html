@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Calibration Protocol v0.1.0 | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Calibration Protocol v0.1.0" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/calibration_protocol.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/calibration_protocol.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Calibration Protocol v0.1.0" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Calibration Protocol v0.1.0","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/calibration_protocol.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="calibration-protocol-v010">Calibration Protocol v0.1.0</h1>
+
+<p><strong>Effective:</strong> 2026-02-24
+<strong>Status:</strong> Published &amp; Locked</p>
+
+<hr />
+
+<h2 id="purpose">Purpose</h2>
+
+<p>This document locks down the calibration of the Amplification Barometer. It specifies:</p>
+
+<ol>
+  <li><strong>Canonical stress scenarios</strong> used for testing</li>
+  <li><strong>Fixed thresholds &amp; tolerances</strong> for regime detection</li>
+  <li><strong>Expected signatures</strong> (Type I, II, III) and their empirical benchmarks</li>
+  <li><strong>Reproducibility criteria</strong> to ensure audits are repeatable</li>
+</ol>
+
+<p>Once published, this protocol applies to all audits. Changes require version bump + justification.</p>
+
+<hr />
+
+<h2 id="canonical-stress-scenarios">Canonical Stress Scenarios</h2>
+
+<h3 id="scenario-1-type-i-noise">Scenario 1: Type I (Noise)</h3>
+
+<p><strong>Intent:</strong> Pure stochastic variation, no systematic drift.</p>
+
+<p><strong>Generation:</strong></p>
+<ul>
+  <li>Duration: 200 steps</li>
+  <li>All proxies: Normal(μ=baseline, σ=0.1 × baseline)</li>
+  <li>No trends, no shocks</li>
+</ul>
+
+<p><strong>Expected signatures:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">@(t)</code> mean &lt; 2.0, std &lt; 0.5</li>
+  <li><code class="language-plaintext highlighter-rouge">E_stock</code> final ≈ E_stock initial (no cumulative drift)</li>
+  <li><code class="language-plaintext highlighter-rouge">regime_signature</code> = “type_I_noise”</li>
+  <li><code class="language-plaintext highlighter-rouge">Δd(t)</code> sign alternates (no persistent trend)</li>
+</ul>
+
+<p><strong>Pass threshold:</strong></p>
+<ul>
+  <li>Spearman stability ≥ 0.85</li>
+  <li>Jaccard topk ≥ 0.80</li>
+</ul>
+
+<p><strong>Test:</strong> Run audit on this scenario. If <code class="language-plaintext highlighter-rouge">regime_signature != type_I_noise</code>, FAIL.</p>
+
+<hr />
+
+<h3 id="scenario-2-type-ii-oscillations">Scenario 2: Type II (Oscillations)</h3>
+
+<p><strong>Intent:</strong> Cyclical stress with recovery; system oscillates around equilibrium.</p>
+
+<p><strong>Generation:</strong></p>
+<ul>
+  <li>Duration: 200 steps</li>
+  <li>Inject P oscillations: <code class="language-plaintext highlighter-rouge">scale_proxy += 0.3 * sin(2π * t / period)</code> with period=40 steps</li>
+  <li>O responds with lag: <code class="language-plaintext highlighter-rouge">stop_proxy -= 0.15 * sin(2π * (t-10) / period)</code> (10-step lag)</li>
+  <li>E grows slowly: <code class="language-plaintext highlighter-rouge">impact_proxy += 0.02 * t</code> (linear)</li>
+  <li>R fluctuates: <code class="language-plaintext highlighter-rouge">recovery_time_proxy</code> oscillates with same period</li>
+</ul>
+
+<p><strong>Expected signatures:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">Δd(t)</code> sign <strong>alternates</strong> ≥60% of tail window (last 30 steps)</li>
+  <li><code class="language-plaintext highlighter-rouge">R_tail_mean</code> (last 30 steps) &gt; 0.40 (recovery partial but present)</li>
+  <li><code class="language-plaintext highlighter-rouge">O_saturation_low_frac</code> &lt; 0.5 (O is not saturated at bottom)</li>
+  <li><code class="language-plaintext highlighter-rouge">at_divergence_tail_frac</code> &lt; 0.5 (@ does not persistently diverge)</li>
+  <li><code class="language-plaintext highlighter-rouge">regime_signature</code> = “type_II_oscillations”</li>
+</ul>
+
+<p><strong>Pass threshold:</strong></p>
+<ul>
+  <li>At least 1 full cycle visible</li>
+  <li>Alternating Δd pattern clearly visible</li>
+</ul>
+
+<p><strong>Test:</strong> Run audit. If <code class="language-plaintext highlighter-rouge">regime_signature != type_II_oscillations</code> OR <code class="language-plaintext highlighter-rouge">Δd</code> sign-changes &lt; 60%, FAIL.</p>
+
+<hr />
+
+<h3 id="scenario-3-type-iii-bifurcation">Scenario 3: Type III (Bifurcation)</h3>
+
+<p><strong>Intent:</strong> System enters irreversible stress; composites diverge, E accumulates, R degrades.</p>
+
+<p><strong>Generation:</strong></p>
+<ul>
+  <li>Duration: 200 steps</li>
+  <li>Phase 1 (t=0-80): Baseline oscillation like Type II</li>
+  <li>Phase 2 (t=80-200): <strong>Structural shift</strong>
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">scale_proxy</code> jumps +0.5 and stays high (step function)</li>
+      <li><code class="language-plaintext highlighter-rouge">speed_proxy</code> drifts upward continuously</li>
+      <li><code class="language-plaintext highlighter-rouge">stop_proxy</code> collapses (steps down gradually to 0.2)</li>
+      <li><code class="language-plaintext highlighter-rouge">E_level</code> jumps then accumulates (non-reversible)</li>
+      <li><code class="language-plaintext highlighter-rouge">R_level</code> degrades and doesn’t recover</li>
+    </ul>
+  </li>
+</ul>
+
+<p><strong>Expected signatures:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">at_divergence_tail_frac</code> ≥ 0.50 (@ consistently above 90th percentile in tail)</li>
+  <li><code class="language-plaintext highlighter-rouge">persistence_dE_dt_tail_pos_frac</code> ≥ 0.60 (dE/dt positive in tail, accumulating)</li>
+  <li><code class="language-plaintext highlighter-rouge">e_irreversibility_ratio</code> ≥ 0.90 (E_stock[-1] / max(E_stock) close to 1)</li>
+  <li><code class="language-plaintext highlighter-rouge">r_tail_mean</code> &lt; 0.30 (R depressed in tail)</li>
+  <li><code class="language-plaintext highlighter-rouge">regime_signature</code> = “type_III_bifurcation”</li>
+</ul>
+
+<p><strong>Pass threshold:</strong></p>
+<ul>
+  <li>All 4 signature metrics above thresholds</li>
+  <li>Visual inspection confirms divergence + accumulation</li>
+</ul>
+
+<p><strong>Test:</strong> Run audit. If any metric below threshold OR <code class="language-plaintext highlighter-rouge">regime_signature != type_III_bifurcation</code>, FAIL.</p>
+
+<hr />
+
+<h3 id="scenario-4-hybrid-type-ii--type-iii-transition">Scenario 4: Hybrid (Type II → Type III transition)</h3>
+
+<p><strong>Intent:</strong> System starts oscillating, then bifurcates; tests transition detection.</p>
+
+<p><strong>Generation:</strong></p>
+<ul>
+  <li>Duration: 300 steps</li>
+  <li>Phase 1 (t=0-150): Type II oscillations</li>
+  <li>Phase 2 (t=150-300): Gradually morph to Type III
+    <ul>
+      <li>P amplitude increases</li>
+      <li>O recovery weakens</li>
+      <li>E accumulation accelerates</li>
+      <li>R structural degradation begins</li>
+    </ul>
+  </li>
+</ul>
+
+<p><strong>Expected signatures:</strong></p>
+<ul>
+  <li>Phase 1 (t=0-150): <code class="language-plaintext highlighter-rouge">regime_signature</code> = “type_II_oscillations”</li>
+  <li>Phase 2 (t=200-300): <code class="language-plaintext highlighter-rouge">regime_signature</code> = “type_III_bifurcation”</li>
+  <li>Transition visible: transition point (regime change) occurs around t=150±30</li>
+</ul>
+
+<p><strong>Pass threshold:</strong></p>
+<ul>
+  <li>Regime changes between phases</li>
+  <li>No false oscillation in Phase 2 tail</li>
+</ul>
+
+<p><strong>Test:</strong> Run audit on full window. If regime doesn’t change between phases, FAIL.</p>
+
+<hr />
+
+<h2 id="scenario-variants-noise-robustness">Scenario Variants (Noise Robustness)</h2>
+
+<p>For each of the 4 canonical scenarios, generate 5 noise variants:</p>
+
+<p><strong>Noise levels:</strong> σ_noise ∈ {0.05, 0.10, 0.15, 0.20, 0.25} × baseline proxy std</p>
+
+<p><strong>Rule:</strong> Verdict should be same across all noise levels (robust to noise).</p>
+
+<p><strong>Test:</strong> Run all 20 variants (4 × 5). Verdicts must agree on regime_signature.</p>
+
+<hr />
+
+<h2 id="fixed-thresholds-for-regime-detection">Fixed Thresholds for Regime Detection</h2>
+
+<p>These thresholds are <strong>locked</strong> and must not change without version bump.</p>
+
+<h3 id="type-i-detection">Type I Detection</h3>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">regime</span> <span class="o">=</span> <span class="s">"type_I_noise"</span> <span class="k">if</span> <span class="p">(</span>
+    <span class="n">at_divergence_tail_frac</span> <span class="o">&lt;</span> <span class="mf">0.30</span> <span class="ow">and</span>
+    <span class="n">persistence_dE_dt_tail_pos_frac</span> <span class="o">&lt;</span> <span class="mf">0.50</span> <span class="ow">and</span>
+    <span class="n">e_irreversibility_ratio</span> <span class="o">&lt;</span> <span class="mf">0.70</span>
+<span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="type-ii-detection">Type II Detection</h3>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">regime</span> <span class="o">=</span> <span class="s">"type_II_oscillations"</span> <span class="k">if</span> <span class="p">(</span>
+    <span class="n">at_divergence_tail_frac</span> <span class="o">&lt;</span> <span class="mf">0.50</span> <span class="ow">and</span>
+    <span class="n">persistence_dE_dt_tail_pos_frac</span> <span class="o">&gt;=</span> <span class="mf">0.50</span> <span class="ow">and</span>
+    <span class="n">e_irreversibility_ratio</span> <span class="o">&lt;</span> <span class="mf">0.80</span>
+<span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="type-iii-detection">Type III Detection</h3>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">regime</span> <span class="o">=</span> <span class="s">"type_III_bifurcation"</span> <span class="k">if</span> <span class="p">(</span>
+    <span class="n">at_divergence_tail_frac</span> <span class="o">&gt;=</span> <span class="mf">0.50</span> <span class="ow">and</span>
+    <span class="n">persistence_dE_dt_tail_pos_frac</span> <span class="o">&gt;=</span> <span class="mf">0.60</span> <span class="ow">and</span>
+    <span class="n">e_irreversibility_ratio</span> <span class="o">&gt;=</span> <span class="mf">0.90</span>
+<span class="p">)</span>
+</code></pre></div></div>
+
+<p>Default: “type_I_noise”</p>
+
+<hr />
+
+<h2 id="anti-gaming-threshold">Anti-Gaming Threshold</h2>
+
+<p><strong>Gaming detection:</strong> Gaming suspicion score = (detected attacks) / (total attacks)</p>
+
+<ul>
+  <li><strong>Pass:</strong> gaming_suspicion_score ≥ 1.0 (all attacks detected)</li>
+  <li><strong>Fail:</strong> gaming_suspicion_score &lt; 1.0 (any attack undetected)</li>
+</ul>
+
+<hr />
+
+<h2 id="stability-thresholds">Stability Thresholds</h2>
+
+<p><strong>Pass:</strong> Spearman min ≥ 0.85 AND Jaccard topk ≥ 0.80</p>
+
+<p>(These are conservative: 85% rank correlation + 80% topk overlap across window variations [5, 7, 9])</p>
+
+<hr />
+
+<h2 id="governance-targets">Governance Targets</h2>
+
+<p><strong>Maturity thresholds</strong> (optional in Phase 1, mandatory in Phase 2):</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">rule_execution_gap</code> ≤ 0.05 (5%)</li>
+  <li><code class="language-plaintext highlighter-rouge">control_turnover</code> ≤ 0.05 (5%)</li>
+</ul>
+
+<p>Systems exceeding these flags as governance risk.</p>
+
+<hr />
+
+<h2 id="ci-artifact-expected-vs-observed">CI Artifact: Expected vs Observed</h2>
+
+<p>For each canonical scenario run:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"scenario"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type_ii_oscillations_base"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"seed"</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"noise_level"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"expected"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"regime_signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type_II_oscillations"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"anti_gaming"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"observed"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"regime_signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type_II_oscillations"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"anti_gaming"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"match"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-02-24T..."</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"audit_json"</span><span class="p">:</span><span class="w"> </span><span class="s2">"reports/calibration/scenario_output.json"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Publish a CSV table with all 20 runs (4 scenarios × 5 noise levels).</p>
+
+<hr />
+
+<h2 id="reproducibility--versioning">Reproducibility &amp; Versioning</h2>
+
+<p><strong>Calibration version:</strong> v0.1.0 (locked with this document)</p>
+
+<p><strong>Code version pinned:</strong> src/amplification_barometer/ commit hash in manifest</p>
+
+<p><strong>Scenario seeds:</strong> Fixed seeds for deterministic generation (see data/canonical_scenarios/README.md)</p>
+
+<p><strong>Any change</strong> to thresholds, scenarios, or logic requires:</p>
+<ol>
+  <li>New calibration version (e.g., v0.2.0)</li>
+  <li>Re-run all 20 variants</li>
+  <li>Publish new expected vs observed table</li>
+  <li>Justify in changelog</li>
+</ol>
+
+<hr />
+
+<h2 id="related-documents">Related Documents</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">docs/DEFINITION_OF_DONE.md</code> – Truth contract</li>
+  <li><code class="language-plaintext highlighter-rouge">data/canonical_scenarios/README.md</code> – Scenario generation code</li>
+  <li><code class="language-plaintext highlighter-rouge">docs/proxy_specs/</code> – Sector-specific specs</li>
+  <li><code class="language-plaintext highlighter-rouge">tools/run_alignment_audit.py</code> – Main audit entrypoint</li>
+</ul>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/calibration_protocol.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Dashboard interactif | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Dashboard interactif" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/DASHBOARD.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/DASHBOARD.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Dashboard interactif" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Dashboard interactif","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/DASHBOARD.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="dashboard-interactif">Dashboard interactif</h1>
+
+<p>Le dashboard est optionnel. Il ne doit pas être une dépendance obligatoire de la librairie.</p>
+
+<p>Installation
+pip install -r requirements-dashboard.txt</p>
+
+<p>Lancement
+python apps/barometer_dash.py –dataset data/synthetic/stable_regime.csv</p>
+
+<p>Ce dashboard lit un dataset de proxys, exécute un audit d alignement, puis affiche :</p>
+<ul>
+  <li>séries @(t) et Δd(t)</li>
+  <li>L_cap et L_act si colonnes présentes, sinon placeholders</li>
+  <li>table de métriques d audit</li>
+</ul>
+
+<p>Le but est démonstratif. Pour production, brancher des sources sectorielles versionnées et un export d artefacts.</p>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/DASHBOARD.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

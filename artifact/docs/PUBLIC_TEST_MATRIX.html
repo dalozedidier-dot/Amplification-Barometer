@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Public Test Matrix: How to Know the Barometer Says True | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Public Test Matrix: How to Know the Barometer Says True" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/PUBLIC_TEST_MATRIX.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/PUBLIC_TEST_MATRIX.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Public Test Matrix: How to Know the Barometer Says True" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Public Test Matrix: How to Know the Barometer Says True","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/PUBLIC_TEST_MATRIX.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="public-test-matrix-how-to-know-the-barometer-says-true">Public Test Matrix: How to Know the Barometer Says True</h1>
+
+<p><strong>Version:</strong> v0.1.0
+<strong>Published:</strong> 2026-02-24
+<strong>Scope:</strong> Minimal but sufficient falsifiability</p>
+
+<hr />
+
+<h2 id="purpose">Purpose</h2>
+
+<p>This document publishes a <strong>public checklist</strong> of tests that, when passed, allow the Amplification Barometer to claim “it tells the truth.”</p>
+
+<p>This is <strong>not</strong> an internal spec. This is our commitment to the outside world: here are the specific tests we run; here’s what falsifies our claim.</p>
+
+<hr />
+
+<h2 id="test-matrix-minimal-sufficient-set">Test Matrix: Minimal Sufficient Set</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Test</th>
+      <th>Input</th>
+      <th>Pass Criterion</th>
+      <th>Fail If</th>
+      <th>Reference</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>S1</strong></td>
+      <td><strong>Stability under variation</strong></td>
+      <td>Synthetic noise scenario</td>
+      <td>Spearman ≥ 0.85, Jaccard topk ≥ 0.80 across windows [5,7,9]</td>
+      <td>Either metric &lt; threshold</td>
+      <td><code class="language-plaintext highlighter-rouge">calibration_protocol.md</code></td>
+    </tr>
+    <tr>
+      <td><strong>S2</strong></td>
+      <td><strong>Proxy ranges enforced</strong></td>
+      <td>Any real or synthetic dataset</td>
+      <td>Zero out-of-range proxy values (except documented exemptions)</td>
+      <td>Any proxy outside [expected_lo, expected_hi]</td>
+      <td><code class="language-plaintext highlighter-rouge">proxies.yaml</code> + <code class="language-plaintext highlighter-rouge">proxy_specs/</code></td>
+    </tr>
+    <tr>
+      <td><strong>S3</strong></td>
+      <td><strong>Composites are finite</strong></td>
+      <td>Any dataset</td>
+      <td>P, O, E, R, G, @(t), Δd(t) all finite (no NaN, inf)</td>
+      <td>Any NaN or inf in outputs</td>
+      <td><code class="language-plaintext highlighter-rouge">alignment_audit.py</code></td>
+    </tr>
+    <tr>
+      <td><strong>S4</strong></td>
+      <td><strong>E is monotone-increasing</strong></td>
+      <td>Any dataset</td>
+      <td>E_stock cumsum never decreases</td>
+      <td>Negative dE in any window</td>
+      <td><code class="language-plaintext highlighter-rouge">alignment_audit.py</code></td>
+    </tr>
+    <tr>
+      <td><strong>S5</strong></td>
+      <td><strong>Type I: Noise contained</strong></td>
+      <td>Synthetic pure noise (200 steps)</td>
+      <td>@(t) mean &lt; 2.0, E_stock final ≈ initial, regime=”type_I_noise”</td>
+      <td>E drifts or regime ≠ type_I</td>
+      <td><code class="language-plaintext highlighter-rouge">canonical_scenarios/type_i_noise_base.csv</code></td>
+    </tr>
+    <tr>
+      <td><strong>S6</strong></td>
+      <td><strong>Type II: Oscillation signature</strong></td>
+      <td>Synthetic oscillations (200 steps)</td>
+      <td>Δd(t) sign alternates ≥60% tail, R_tail mean &gt; 0.40, regime=”type_II_oscillations”</td>
+      <td>Any signature metric fails</td>
+      <td><code class="language-plaintext highlighter-rouge">canonical_scenarios/type_ii_oscillations_base.csv</code></td>
+    </tr>
+    <tr>
+      <td><strong>S7</strong></td>
+      <td><strong>Type III: Bifurcation signature</strong></td>
+      <td>Synthetic bifurcation (200 steps)</td>
+      <td>@(t) divergence ≥50%, E_stock irreversibility ≥0.90, R_tail &lt; 0.30, regime=”type_III_bifurcation”</td>
+      <td>Any metric below threshold</td>
+      <td><code class="language-plaintext highlighter-rouge">canonical_scenarios/type_iii_bifurcation_base.csv</code></td>
+    </tr>
+    <tr>
+      <td><strong>S8</strong></td>
+      <td><strong>Noise robustness</strong></td>
+      <td>All 4 scenario types × 5 noise levels (20 total)</td>
+      <td>Regime verdict same across all noise variants</td>
+      <td>Regime changes with noise level</td>
+      <td><code class="language-plaintext highlighter-rouge">canonical_scenarios/</code> (all files)</td>
+    </tr>
+    <tr>
+      <td><strong>AG1</strong></td>
+      <td><strong>O-family bias detection</strong></td>
+      <td>Dataset with artificial O boost (+15%) from t=150</td>
+      <td>Gaming verdict=”fail”</td>
+      <td>Gaming verdict=”ok”</td>
+      <td><code class="language-plaintext highlighter-rouge">run_alignment_audit.py</code> (anti_gaming dimension)</td>
+    </tr>
+    <tr>
+      <td><strong>AG2</strong></td>
+      <td><strong>Volatility clamp detection</strong></td>
+      <td>Dataset with P std suppressed by 50% from t=150</td>
+      <td>Gaming verdict=”fail”</td>
+      <td>Gaming verdict=”ok”</td>
+      <td><code class="language-plaintext highlighter-rouge">run_alignment_audit.py</code> (anti_gaming dimension)</td>
+    </tr>
+    <tr>
+      <td><strong>AG3</strong></td>
+      <td><strong>Out-of-range gaming detection</strong></td>
+      <td>Dataset with proxies pushed &gt;expected_hi from t=150</td>
+      <td>Gaming verdict=”fail”</td>
+      <td>Gaming verdict=”ok”</td>
+      <td><code class="language-plaintext highlighter-rouge">run_alignment_audit.py</code> (anti_gaming dimension)</td>
+    </tr>
+    <tr>
+      <td><strong>AG4</strong></td>
+      <td><strong>Multi-proxy coordinated attack</strong></td>
+      <td>Dataset with simultaneous O boost + P vol clamp from t=150</td>
+      <td>Gaming verdict=”fail”</td>
+      <td>Gaming verdict=”ok”</td>
+      <td><code class="language-plaintext highlighter-rouge">run_alignment_audit.py</code> (anti_gaming dimension)</td>
+    </tr>
+    <tr>
+      <td><strong>AG5</strong></td>
+      <td><strong>Reporting delay detection</strong></td>
+      <td>Dataset with G signals artificially delayed 20 steps from t=150</td>
+      <td>Gaming verdict=”fail”</td>
+      <td>Gaming verdict=”ok”</td>
+      <td><code class="language-plaintext highlighter-rouge">run_alignment_audit.py</code> (anti_gaming dimension)</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<h2 id="execution-checklist">Execution Checklist</h2>
+
+<p>To claim “dit vrai” for a given dataset or system:</p>
+
+<h3 id="pre-audit">Pre-Audit</h3>
+<ul class="task-list">
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Proxy spec selected (baseline or sector: finance/ai/critical_infrastructure)</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />All 22 proxies present in dataset</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Data frequency matches spec (daily/weekly/monthly as applicable)</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Date column parseable (ISO-8601)</li>
+</ul>
+
+<h3 id="run-audit">Run Audit</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 tools/run_alignment_audit.py <span class="se">\</span>
+  <span class="nt">--dataset</span> &lt;data.csv&gt; <span class="se">\</span>
+  <span class="nt">--name</span> &lt;run_name&gt; <span class="se">\</span>
+  <span class="nt">--out-dir</span> reports/
+</code></pre></div></div>
+
+<h3 id="check-verdict">Check Verdict</h3>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"verdict"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"dimensions"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w"> </span><span class="err">✓</span><span class="w"> </span><span class="err">S</span><span class="mi">1</span><span class="w">
+      </span><span class="nl">"proxy_ranges"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w"> </span><span class="err">✓</span><span class="w"> </span><span class="err">S</span><span class="mi">2</span><span class="w">
+      </span><span class="nl">"regime_signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type_I_noise"</span><span class="w"> </span><span class="err">or</span><span class="w"> </span><span class="s2">"type_II_oscillations"</span><span class="w"> </span><span class="err">or</span><span class="w"> </span><span class="s2">"type_III_bifurcation"</span><span class="w"> </span><span class="err">✓</span><span class="w"> </span><span class="err">S</span><span class="mi">5</span><span class="err">/S</span><span class="mi">6</span><span class="err">/S</span><span class="mi">7</span><span class="w">
+      </span><span class="nl">"anti_gaming"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w"> </span><span class="err">✓</span><span class="w"> </span><span class="err">AG</span><span class="mi">1</span><span class="err">-AG</span><span class="mi">5</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<h3 id="publish-claim">Publish Claim</h3>
+
+<p><strong>You can publicly claim “dit vrai” if all of:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">stability: ok</code> ✓</li>
+  <li><code class="language-plaintext highlighter-rouge">proxy_ranges: ok</code> ✓</li>
+  <li><code class="language-plaintext highlighter-rouge">regime_signature ∈ [type_I_noise, type_II_oscillations, type_III_bifurcation]</code> ✓</li>
+  <li><code class="language-plaintext highlighter-rouge">anti_gaming: ok</code> ✓</li>
+</ul>
+
+<p><strong>You must claim “suspect” if:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">regime_signature</code> detected but <code class="language-plaintext highlighter-rouge">anti_gaming: fail</code> (may be gamed)</li>
+  <li>Any optional governance targets missed (not mandatory in Phase 1)</li>
+</ul>
+
+<p><strong>You must claim “not ready” if:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">stability: fail</code> (core composite unstable)</li>
+  <li><code class="language-plaintext highlighter-rouge">proxy_ranges: fail</code> (data quality issue)</li>
+  <li>Any finite/monotonicity check fails</li>
+</ul>
+
+<hr />
+
+<h2 id="falsification-examples-proof-were-scientific">Falsification Examples (Proof We’re Scientific)</h2>
+
+<h3 id="falsification-1-construct-validity">Falsification 1: Construct Validity</h3>
+<p><strong>Scenario:</strong> We claim stability ≥ 0.85, but run test <strong>S1</strong> on pure noise.
+<strong>Expected:</strong> Pass (Spearman ≥ 0.85).
+<strong>Falsified if:</strong> Spearman &lt; 0.85 → <strong>We admit the composite is unstable and fix it.</strong></p>
+
+<h3 id="falsification-2-stress-signature-failure">Falsification 2: Stress Signature Failure</h3>
+<p><strong>Scenario:</strong> We claim Type III bifurcation has @(t) tail divergence ≥ 50%.
+<strong>Expected:</strong> Test <strong>S7</strong> on synthetic bifurcation passes.
+<strong>Falsified if:</strong> @(t) divergence &lt; 30% → <strong>We acknowledge signal is too weak and recalibrate.</strong></p>
+
+<h3 id="falsification-3-anti-gaming-vulnerability">Falsification 3: Anti-Gaming Vulnerability</h3>
+<p><strong>Scenario:</strong> We claim we detect O-bias attacks.
+<strong>Expected:</strong> Test <strong>AG1</strong> on biased dataset fails gaming verdict.
+<strong>Falsified if:</strong> Gaming verdict=”ok” despite O boost → <strong>We’ve been gamed and must fix detection.</strong></p>
+
+<h3 id="falsification-4-noise-robustness-failure">Falsification 4: Noise Robustness Failure</h3>
+<p><strong>Scenario:</strong> We claim robustness to noise.
+<strong>Expected:</strong> Test <strong>S8</strong> on all 20 noise variants: all show same regime.
+<strong>Falsified if:</strong> Regime changes (e.g., type_I → type_II) with noise level → <strong>System is sensitive to noise; not reliable.</strong></p>
+
+<hr />
+
+<h2 id="what-this-matrix-does-cover">What This Matrix DOES Cover</h2>
+
+<p>✅ Construct validity (composites stable, finite, well-formed)
+✅ Canonical stress signatures (Type I, II, III discriminable)
+✅ Anti-gaming robustness (5 attack vectors detected)
+✅ Noise robustness (regime verdict consistent)</p>
+
+<h2 id="what-this-matrix-does-not-yet-cover">What This Matrix DOES NOT (Yet) Cover</h2>
+
+<p>❌ Real-world validation on timestamped events (Phase 5)
+❌ L_cap vs L_act separation (Phase 4)
+❌ Sector-specific performance (Phase 4)
+❌ Audit auditability &amp; manifest integrity (Phase 7)</p>
+
+<p>Phase 1-2 complete these. Phases 3-4 expand scope.</p>
+
+<hr />
+
+<h2 id="how-to-use-this-document">How to Use This Document</h2>
+
+<h3 id="for-internal-teams">For Internal Teams</h3>
+<p>Copy this checklist into your CI/CD pipeline:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">tests</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">"stability_audit_rank()"</span><span class="p">,</span>      <span class="c1"># S1
+</span>    <span class="s">"validate_proxy_ranges()"</span><span class="p">,</span>      <span class="c1"># S2
+</span>    <span class="s">"check_finitude()"</span><span class="p">,</span>             <span class="c1"># S3
+</span>    <span class="s">"check_e_monotonic()"</span><span class="p">,</span>          <span class="c1"># S4
+</span>    <span class="s">"run_canonical_type_i()"</span><span class="p">,</span>       <span class="c1"># S5
+</span>    <span class="s">"run_canonical_type_ii()"</span><span class="p">,</span>      <span class="c1"># S6
+</span>    <span class="s">"run_canonical_type_iii()"</span><span class="p">,</span>     <span class="c1"># S7
+</span>    <span class="s">"run_noise_variants()"</span><span class="p">,</span>         <span class="c1"># S8
+</span>    <span class="s">"run_anti_gaming_suite()"</span><span class="p">,</span>      <span class="c1"># AG1-AG5
+</span><span class="p">]</span>
+
+<span class="k">for</span> <span class="n">test</span> <span class="ow">in</span> <span class="n">tests</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">test</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">.</span><span class="n">passes</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"FAIL: </span><span class="si">{</span><span class="n">test</span><span class="si">}</span><span class="s"> -- claim 'not_ready'"</span><span class="p">)</span>
+        <span class="nb">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">"SUCCESS: All tests pass -- claim 'dit vrai' for this dataset"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="for-external-auditors">For External Auditors</h3>
+<ul>
+  <li>Download dataset and run: <code class="language-plaintext highlighter-rouge">python3 tools/run_alignment_audit.py --dataset &lt;your_data.csv&gt;</code></li>
+  <li>Check JSON output for all dimensions = “ok”</li>
+  <li>If any dimension ≠ “ok”, the “dit vrai” claim is false</li>
+  <li>Report independently to stakeholders</li>
+</ul>
+
+<h3 id="for-researchers">For Researchers</h3>
+<ul>
+  <li>Tests S1-S8 are <strong>falsifiable hypotheses</strong> about barometer behavior</li>
+  <li>If any test fails, the barometer’s core claim (construct validity) is invalidated</li>
+  <li>Publish counter-examples to challenge the claim</li>
+  <li>We commit to either:
+    <ol>
+      <li>Explaining why the test is wrong, or</li>
+      <li>Fixing the barometer</li>
+    </ol>
+  </li>
+</ul>
+
+<hr />
+
+<h2 id="version-history--regression-testing">Version History &amp; Regression Testing</h2>
+
+<p><strong>Current version:</strong> v0.1.0 (locked with Phase 1-2 implementation)</p>
+
+<p>If barometer code changes:</p>
+<ul>
+  <li>Re-run all S1-S8 + AG1-AG5</li>
+  <li>If any test <strong>fails</strong>, regression detected → version bump required</li>
+  <li>If all pass, increment patch (e.g., v0.1.0 → v0.1.1)</li>
+</ul>
+
+<p><strong>No releases without passing full matrix.</strong></p>
+
+<hr />
+
+<h2 id="related-documents">Related Documents</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">docs/DEFINITION_OF_DONE.md</code> – Detailed 3D truth contract</li>
+  <li><code class="language-plaintext highlighter-rouge">docs/calibration_protocol.md</code> – Scenario specs &amp; thresholds</li>
+  <li><code class="language-plaintext highlighter-rouge">data/canonical_scenarios/</code> – Test data (24 CSV files)</li>
+  <li><code class="language-plaintext highlighter-rouge">docs/proxy_specs/</code> – Sector-specific ranges</li>
+  <li><code class="language-plaintext highlighter-rouge">tools/run_alignment_audit.py</code> – Main audit entrypoint</li>
+  <li><code class="language-plaintext highlighter-rouge">tools/run_anti_gaming_suite.py</code> – Attack vector testing</li>
+</ul>
+
+<hr />
+
+<h2 id="call-to-action">Call to Action</h2>
+
+<p><strong>To stakeholders:</strong> If you see a dataset where this barometer produces a verdict, you now have the tools to verify or refute that claim independently. Here are the exact tests. Run them. Report findings.</p>
+
+<p><strong>To researchers:</strong> These tests are your hypothesis set. Falsify them. We will update the barometer accordingly.</p>
+
+<p><strong>To implementers:</strong> This is your SLA. Every deployment must pass this matrix. Every code change must show no regression.</p>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/PUBLIC_TEST_MATRIX.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

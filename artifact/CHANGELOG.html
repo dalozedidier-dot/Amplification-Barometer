@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Changelog | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Changelog" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/CHANGELOG.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/CHANGELOG.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Changelog" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Changelog","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/CHANGELOG.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="changelog">Changelog</h1>
+
+<h2 id="v0413">v0.4.13</h2>
+<ul>
+  <li>Fix adapters: clamp autonomy_proxy et replicability_proxy dans [0,1] (évite des proxies négatifs extrêmes).</li>
+  <li>Stabilité: baseline alignée sur delta_d_window (fenêtre utilisée pour le risque).</li>
+  <li>Diagnostics: Top-K Jaccard robuste aux égalités (Top-K défini par seuil et non argsort).</li>
+  <li>Prévention: ajout des métriques de testabilité (baseline_exceedance_rate, baseline_topk_excess_mean) et état “n/a” si non testable.</li>
+</ul>
+
+<h2 id="v0412">v0.4.12</h2>
+<ul>
+  <li>Nettoyage du dépôt pour ne conserver que Amplification-Barometer.</li>
+  <li>CI simplifiée: pytest + démo audit + upload d’artefacts.</li>
+  <li>Outils: audit synthétique, sector suite 2026, smoke real data.</li>
+</ul>
+
+<h2 id="v046">v0.4.6</h2>
+<ul>
+  <li>Décomposition E: E_level, E_stock, dE_dt, irréversibilité.</li>
+  <li>Rapports enrichis et compatibilité conservée sur les clés historiques.</li>
+</ul>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/CHANGELOG.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

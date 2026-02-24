@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Real-World Case Studies | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Real-World Case Studies" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Real-World Case Studies" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Real-World Case Studies","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="real-world-case-studies">Real-World Case Studies</h1>
+
+<p><strong>Purpose:</strong> Validate barometer against timestamped, independent events.</p>
+
+<h2 id="structure">Structure</h2>
+
+<p>Each case study is a self-contained directory:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>real_cases/
+├── README.md (this file)
+├── case_001_finance_algo_trading_2024/
+│   ├── CASE_SUMMARY.md
+│   ├── timeline.csv (dates of events + barometer readings)
+│   ├── proxies.csv (cleaned data)
+│   ├── event_dates.json (independent event timestamps)
+│   ├── audit_output.json (barometer verdict)
+│   └── analysis.md (what worked, what didn't)
+├── case_002_ai_model_deployment_2024/
+│   └── (same structure)
+├── case_003_power_grid_incident_2024/
+│   └── (same structure)
+└── VALIDATION_SUMMARY.md (aggregate across cases)
+</code></pre></div></div>
+
+<h2 id="case-requirements">Case Requirements</h2>
+
+<h3 id="minimum-criteria">Minimum Criteria</h3>
+<ol>
+  <li><strong>Independent event dates</strong> – From external source (incident reports, regulatory filings, news)</li>
+  <li><strong>Proxy data</strong> – Aligned with barometer specs (22 proxies, consistent frequency)</li>
+  <li><strong>Temporal coherence</strong> – Signal should not lag events by &gt;30% of observation window</li>
+  <li><strong>No retuning</strong> – Same proxy ranges and rules across all cases</li>
+</ol>
+
+<h3 id="optional-nice-to-have">Optional (Nice to Have)</h3>
+<ul>
+  <li>Multi-day incident (shows accumulation of E, degradation of R)</li>
+  <li>Multiple independent events in same dataset (tests regime transitions)</li>
+  <li>Real governance signals (exemptions, sanctions, turnover)</li>
+  <li>Post-incident postmortem (what actually failed)</li>
+</ul>
+
+<h2 id="template-case-summary">Template: Case Summary</h2>
+
+<div class="language-markdown highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gh"># Case: [Name] - [Date Range]</span>
+
+<span class="gu">## Facts</span>
+<span class="p">-</span> <span class="gs">**Domain:**</span> Finance / AI / Infrastructure
+<span class="p">-</span> <span class="gs">**System:**</span> [Name and brief description]
+<span class="p">-</span> <span class="gs">**Duration:**</span> [dates]
+<span class="p">-</span> <span class="gs">**Event:**</span> [What happened, in plain English]
+
+<span class="gu">## Ground Truth</span>
+<span class="p">-</span> <span class="gs">**Event Date(s):**</span> ISO-8601 dates from independent source
+<span class="p">-</span> <span class="gs">**Outcome:**</span> [What was the impact: losses, downtime, incidents?]
+<span class="p">-</span> <span class="gs">**Source:**</span> [Regulatory filing, news report, incident tracking, postmortem]
+
+<span class="gu">## Barometer Result</span>
+<span class="p">-</span> <span class="gs">**Signal Detection:**</span> [Did @(t) or E spike before/during/after event?]
+<span class="p">-</span> <span class="gs">**Lead/Lag:**</span> [Days relative to event date]
+<span class="p">-</span> <span class="gs">**Regime Detected:**</span> Type I / Type II / Type III / Missed
+<span class="p">-</span> <span class="gs">**L_cap / L_act:**</span> [Values]
+<span class="p">-</span> <span class="gs">**Verdict:**</span> Success / Miss / False Alarm / Benign
+
+<span class="gu">## Analysis</span>
+<span class="p">-</span> <span class="gs">**What it got right:**</span> ...
+<span class="p">-</span> <span class="gs">**What it missed:**</span> ...
+<span class="p">-</span> <span class="gs">**Why:**</span> Root cause analysis
+</code></pre></div></div>
+
+<h2 id="validation-rules">Validation Rules</h2>
+
+<h3 id="temporal-coherence">Temporal Coherence</h3>
+<ul>
+  <li>Signal should peak <strong>0 to +10 days</strong> before independent event date (not after)</li>
+  <li>Lag &gt;30% of window = potential post-hoc artifact</li>
+</ul>
+
+<h3 id="regime-correctness">Regime Correctness</h3>
+<ul>
+  <li>Type II scenario should show oscillations, not monotone growth</li>
+  <li>Type III should show E accumulation + O collapse, not just noise</li>
+  <li>No regime should flip with ±5% noise perturbation</li>
+</ul>
+
+<h3 id="governance-quality">Governance Quality</h3>
+<ul>
+  <li>If case shows Type III, G proxies should degrade before O collapse</li>
+  <li>If case is MISS, governance signals should explain why (high exemptions, turnover, etc.)</li>
+</ul>
+
+<h2 id="case-status-indicators">Case Status Indicators</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Meaning</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>✓</td>
+      <td>Published &amp; validated</td>
+      <td>Reference case</td>
+    </tr>
+    <tr>
+      <td>◐</td>
+      <td>Partial data or ambiguous</td>
+      <td>Pending more evidence</td>
+    </tr>
+    <tr>
+      <td>✗</td>
+      <td>Contradicts barometer claim</td>
+      <td>Post-mortem &amp; redesign</td>
+    </tr>
+    <tr>
+      <td>?</td>
+      <td>Not yet analyzed</td>
+      <td>Under investigation</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="examples-to-be-filled">Examples (To Be Filled)</h2>
+
+<h3 id="case-001-finance-">Case 001: [Finance] ✓</h3>
+<ul>
+  <li>Event: [Name]</li>
+  <li>Result: [Success / Miss / etc.]</li>
+  <li>Status: Published</li>
+</ul>
+
+<h3 id="case-002-ai-">Case 002: [AI] ◐</h3>
+<ul>
+  <li>Event: [Name]</li>
+  <li>Result: [Success / Miss / etc.]</li>
+  <li>Status: Pending</li>
+</ul>
+
+<h3 id="case-003-infrastructure-">Case 003: [Infrastructure] ✓</h3>
+<ul>
+  <li>Event: [Name]</li>
+  <li>Result: [Success / Miss / etc.]</li>
+  <li>Status: Published</li>
+</ul>
+
+<h2 id="running-validation">Running Validation</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 tools/validate_real_cases.py <span class="nt">--cases-dir</span> reports/real_cases
+</code></pre></div></div>
+
+<p>Output: <code class="language-plaintext highlighter-rouge">VALIDATION_SUMMARY.md</code> with:</p>
+<ul>
+  <li>Total cases analyzed</li>
+  <li>Success rate</li>
+  <li>Common patterns (what barometer gets right/wrong)</li>
+  <li>Identified weaknesses requiring redesign</li>
+</ul>
+
+<h2 id="adding-a-new-case">Adding a New Case</h2>
+
+<ol>
+  <li>Create <code class="language-plaintext highlighter-rouge">reports/real_cases/case_NNN_[sector]_[event]_[year]/</code></li>
+  <li>Place CASE_SUMMARY.md, proxies.csv, event_dates.json, audit_output.json</li>
+  <li>Run audit: <code class="language-plaintext highlighter-rouge">python3 tools/run_alignment_audit.py --dataset proxies.csv</code></li>
+  <li>Fill analysis.md</li>
+  <li>Update this README with new case</li>
+  <li>Run validation: <code class="language-plaintext highlighter-rouge">python3 tools/validate_real_cases.py</code></li>
+</ol>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/reports/real_cases/README.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

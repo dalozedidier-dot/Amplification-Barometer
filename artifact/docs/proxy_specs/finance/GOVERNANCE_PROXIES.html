@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Finance Sector: Governance (G) Proxy Specifications | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Finance Sector: Governance (G) Proxy Specifications" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_specs/finance/GOVERNANCE_PROXIES.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_specs/finance/GOVERNANCE_PROXIES.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Finance Sector: Governance (G) Proxy Specifications" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Finance Sector: Governance (G) Proxy Specifications","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_specs/finance/GOVERNANCE_PROXIES.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="finance-sector-governance-g-proxy-specifications">Finance Sector: Governance (G) Proxy Specifications</h1>
+
+<p><strong>Version:</strong> v1.0.0
+<strong>Sector:</strong> Finance (Algorithmic Trading &amp; Risk Management)
+<strong>Date:</strong> 2026-02-24
+<strong>Status:</strong> FROZEN</p>
+
+<hr />
+
+<h2 id="overview">Overview</h2>
+
+<p>G-proxies measure whether governance infrastructure <strong>activates</strong> in response to detected stress.
+Unlike O-proxies (what the system <em>can</em> do), G-proxies measure what governance <em>actually does</em>.</p>
+
+<p><strong>Why These 5?</strong></p>
+<ol>
+  <li><strong>exemption_rate</strong> – Are controls being bypassed?</li>
+  <li><strong>sanction_delay</strong> – How fast do violations get punished?</li>
+  <li><strong>control_turnover</strong> – Is the control team stable?</li>
+  <li><strong>conflict_interest_proxy</strong> – Undisclosed conflicts weakening oversight?</li>
+  <li><strong>rule_execution_gap</strong> – Are violations even detected?</li>
+</ol>
+
+<p>Together, they measure: <em>Is governance alert and responsive?</em></p>
+
+<hr />
+
+<h2 id="g1-exemption-rate">G1: Exemption Rate</h2>
+
+<h3 id="definition">Definition</h3>
+<p><strong>Fraction of policy requests that receive exemptions rather than compliance.</strong></p>
+
+<p>Example:</p>
+<ul>
+  <li>Risk policy: “Max leverage 5x”</li>
+  <li>Desk requests exemption: “Need 7x for this trade”</li>
+  <li>If approved → counts as 1 exemption</li>
+</ul>
+
+<h3 id="range">Range</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Level</th>
+      <th>Value</th>
+      <th>Interpretation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Excellent</strong></td>
+      <td>0.00–0.02</td>
+      <td>Controls are strict; exemptions are rare (≤2 per 100)</td>
+    </tr>
+    <tr>
+      <td><strong>Good</strong></td>
+      <td>0.02–0.05</td>
+      <td>Occasional exemptions, normal variation</td>
+    </tr>
+    <tr>
+      <td><strong>Caution</strong></td>
+      <td>0.05–0.10</td>
+      <td>Exemptions frequent; controls loosening</td>
+    </tr>
+    <tr>
+      <td><strong>Warning</strong></td>
+      <td>0.10–0.20</td>
+      <td>Widespread exemptions; controls largely ceremonial</td>
+    </tr>
+    <tr>
+      <td><strong>Critical</strong></td>
+      <td>&gt; 0.20</td>
+      <td>Exemptions more common than compliance</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="measurement">Measurement</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>exemption_rate = count(exemptions approved) / count(exemption requests)
+
+Where:
+  - exemption = written request to deviate from policy
+  - approved = exemption was granted (not rejected)
+  - requests = all exemption requests in period (approved + rejected)
+</code></pre></div></div>
+
+<h3 id="data-source">Data Source</h3>
+
+<p><strong>Primary (Preferred):</strong></p>
+<ul>
+  <li>Governance database: exemption log (date, policy, requester, approver, reason)</li>
+  <li>Export: weekly CSV with columns [date, policy_name, requester, approved_Y_N]</li>
+  <li>Frequency: weekly (more granular if available)</li>
+</ul>
+
+<p><strong>Secondary (If primary unavailable):</strong></p>
+<ul>
+  <li>Audit report: “Exceptions granted” section</li>
+  <li>Compliance memo: policy deviations</li>
+</ul>
+
+<p><strong>Missingness Protocol:</strong></p>
+<ul>
+  <li>If no exemption requests in week → rate = 0.00 (not missing)</li>
+  <li>If exemption log not available but audit says “no exemptions” → rate = 0.00 (credible)</li>
+  <li>If exemption log missing and audit silent → rate = 0.05 (conservative assumption)</li>
+</ul>
+
+<h3 id="normalization">Normalization</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>exemption_rate_normalized = exemption_rate (already in [0, 1])
+</code></pre></div></div>
+
+<h3 id="finance-specific-context">Finance-Specific Context</h3>
+
+<p><strong>Why it matters:</strong></p>
+<ul>
+  <li>Algorithmic trading desks constantly push leverage, position size, and speed limits</li>
+  <li>“Exemptions” are a pressure valve but also a danger signal</li>
+  <li>Rate spike = traders have more power than risk managers</li>
+  <li>Rate &gt; 0.10 correlates with prior incidents (2008, 2014, 2020)</li>
+</ul>
+
+<p><strong>Typical Values by Desk Type:</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Desk Type</th>
+      <th>Normal Range</th>
+      <th>Warning Threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Proprietary trading</td>
+      <td>0.02–0.05</td>
+      <td>&gt; 0.10</td>
+    </tr>
+    <tr>
+      <td>Market-making</td>
+      <td>0.03–0.08</td>
+      <td>&gt; 0.12</td>
+    </tr>
+    <tr>
+      <td>Prime brokerage</td>
+      <td>0.01–0.03</td>
+      <td>&gt; 0.08</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="audit-questions">Audit Questions</h3>
+
+<ul>
+  <li>How many exemptions were granted in the past 3 months?</li>
+  <li>For each, what policy was exempted? Was it renewed or allowed to lapse?</li>
+  <li>How many exemptions requests were <em>rejected</em>?</li>
+  <li>Who approved exemptions? (same person each time = red flag)</li>
+</ul>
+
+<hr />
+
+<h2 id="g2-sanction-delay">G2: Sanction Delay</h2>
+
+<h3 id="definition-1">Definition</h3>
+<p><strong>Median (or max) number of days between violation detection and enforcement action.</strong></p>
+
+<p>Examples:</p>
+<ul>
+  <li>Trader exceeds leverage limit on Monday</li>
+  <li>Violation detected Monday (automated or manual)</li>
+  <li>Sanction applied: verbal warning (Tue), suspension (Wed), termination (Fri)</li>
+  <li><strong>Sanction delay</strong> = first enforcement action date − violation date</li>
+</ul>
+
+<h3 id="range-1">Range</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Level</th>
+      <th>Days</th>
+      <th>Interpretation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Excellent</strong></td>
+      <td>1–3</td>
+      <td>Violations caught and addressed same day / next day</td>
+    </tr>
+    <tr>
+      <td><strong>Good</strong></td>
+      <td>3–7</td>
+      <td>Quick turnaround; reasonable investigation time</td>
+    </tr>
+    <tr>
+      <td><strong>Caution</strong></td>
+      <td>7–30</td>
+      <td>Investigation taking weeks; delayed enforcement</td>
+    </tr>
+    <tr>
+      <td><strong>Warning</strong></td>
+      <td>30–90</td>
+      <td>Enforcement glacially slow; violators unpunished for months</td>
+    </tr>
+    <tr>
+      <td><strong>Critical</strong></td>
+      <td>&gt; 90</td>
+      <td>Violations effectively unpunished (forgotten)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="measurement-1">Measurement</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sanction_delay = median(days from violation_date to first_enforcement_date)
+
+Where:
+  - violation_date = date rule broken (automated detection or audit discovery)
+  - first_enforcement_date = date of any action: warning, suspension, compensation, termination
+</code></pre></div></div>
+
+<h3 id="data-source-1">Data Source</h3>
+
+<p><strong>Primary:</strong></p>
+<ul>
+  <li>Incident tracking system: violations log with [violation_date, detection_date, action_date, action_type]</li>
+  <li>Export: weekly CSV</li>
+</ul>
+
+<p><strong>Secondary:</strong></p>
+<ul>
+  <li>Compliance memo: “Actions taken in Q1: suspension on date X for violation on date Y”</li>
+  <li>HR records: termination dates matched to underlying violations</li>
+</ul>
+
+<p><strong>Missingness Protocol:</strong></p>
+<ul>
+  <li>If no violations detected in period → delay = 1 day (conservative: assume system is working fast)</li>
+  <li>If violations exist but no enforcement recorded → delay = 365 days (worst case)</li>
+  <li>If enforcement recorded but violation date unknown → estimate from investigation_start date</li>
+</ul>
+
+<h3 id="normalization-1">Normalization</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sanction_delay_normalized = min(sanction_delay, 365) / 365
+  (scales to [0, 1], caps at 1 year)
+</code></pre></div></div>
+
+<h3 id="finance-specific-context-1">Finance-Specific Context</h3>
+
+<p><strong>Why it matters:</strong></p>
+<ul>
+  <li>Fast enforcement deters violations; slow enforcement = impunity</li>
+  <li>Delay &gt; 30 days = traders know they can break rules and face consequences much later</li>
+  <li>Regulatory view: “Delays of &gt;90 days suggest controls are not real” (Basel, Dodd-Frank guidance)</li>
+</ul>
+
+<p><strong>Typical Values by Institution:</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Institution Type</th>
+      <th>Normal Range</th>
+      <th>Warning Threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Systemically important bank</td>
+      <td>3–7 days</td>
+      <td>&gt; 30 days</td>
+    </tr>
+    <tr>
+      <td>Mid-size hedge fund</td>
+      <td>5–15 days</td>
+      <td>&gt; 60 days</td>
+    </tr>
+    <tr>
+      <td>Boutique trading firm</td>
+      <td>7–21 days</td>
+      <td>&gt; 90 days</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="audit-questions-1">Audit Questions</h3>
+
+<ul>
+  <li>What was the fastest time from violation to sanction?</li>
+  <li>What was the slowest?</li>
+  <li>What’s the typical investigation duration before action?</li>
+  <li>Are there violations with no action yet?</li>
+</ul>
+
+<hr />
+
+<h2 id="g3-control-turnover">G3: Control Turnover</h2>
+
+<h3 id="definition-2">Definition</h3>
+<p><strong>Fraction of control staff who left (fired or resigned) in the past year.</strong></p>
+
+<p>Examples:</p>
+<ul>
+  <li>Risk department has 20 people on Jan 1</li>
+  <li>2 were fired for cause in Q1</li>
+  <li>1 resigned in Q2</li>
+  <li>1 reassigned to trading in Q3</li>
+  <li><strong>Turnover</strong> = 4 / 20 = 0.20 (20% annualized)</li>
+</ul>
+
+<h3 id="range-2">Range</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Level</th>
+      <th>Ratio</th>
+      <th>Interpretation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Excellent</strong></td>
+      <td>0.00–0.05</td>
+      <td>Stable team (5% annual turnover is normal)</td>
+    </tr>
+    <tr>
+      <td><strong>Good</strong></td>
+      <td>0.05–0.10</td>
+      <td>Some natural attrition</td>
+    </tr>
+    <tr>
+      <td><strong>Caution</strong></td>
+      <td>0.10–0.20</td>
+      <td>Higher than normal; new people less experienced</td>
+    </tr>
+    <tr>
+      <td><strong>Warning</strong></td>
+      <td>0.20–0.40</td>
+      <td>Institutional knowledge leaving; team demoralized</td>
+    </tr>
+    <tr>
+      <td><strong>Critical</strong></td>
+      <td>&gt; 0.40</td>
+      <td>Wholesale exodus; no continuity</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="measurement-2">Measurement</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>control_turnover = count(terminations + resignations) / count(staff at year start)
+
+Where:
+  - terminations = fired for any reason (performance, compliance, etc.)
+  - resignations = voluntary departures
+  - excludes: retirements, transfers to other departments, unpaid leave
+</code></pre></div></div>
+
+<h3 id="data-source-2">Data Source</h3>
+
+<p><strong>Primary:</strong></p>
+<ul>
+  <li>HR records: separation log [termination_date, reason, department]</li>
+  <li>Include: both “for cause” and “voluntary”</li>
+  <li>Export: annual or quarterly aggregation</li>
+</ul>
+
+<p><strong>Secondary:</strong></p>
+<ul>
+  <li>Finance team headcount report: “Q1 headcount 20, Q2 headcount 19 (one departure)”</li>
+  <li>Org chart: compare Jan 1 roster to Dec 31 roster, identify turnover</li>
+</ul>
+
+<p><strong>Missingness Protocol:</strong></p>
+<ul>
+  <li>If HR data unavailable: estimate from LinkedIn (staff who left in year, if company profile public)</li>
+  <li>If no data at all: assume 0.10 (10% annual) as conservative middle estimate</li>
+</ul>
+
+<h3 id="normalization-2">Normalization</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>control_turnover_normalized = min(turnover, 1.0) (already in [0, 1])
+</code></pre></div></div>
+
+<h3 id="finance-specific-context-2">Finance-Specific Context</h3>
+
+<p><strong>Why it matters:</strong></p>
+<ul>
+  <li>Risk managers who have been there 5+ years know where bodies are buried (past violations, weak spots)</li>
+  <li>New risk managers can be pressured by traders (“everyone else tolerates this”)</li>
+  <li>High turnover = knowledge loss = repeat violations of same rules</li>
+</ul>
+
+<p><strong>Typical Values:</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Institution Type</th>
+      <th>Normal Range</th>
+      <th>Warning Threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Bank (stable sector)</td>
+      <td>0.05–0.15</td>
+      <td>&gt; 0.25</td>
+    </tr>
+    <tr>
+      <td>Trading firm (high-pressure)</td>
+      <td>0.10–0.25</td>
+      <td>&gt; 0.40</td>
+    </tr>
+    <tr>
+      <td>Startup exchange</td>
+      <td>0.15–0.40</td>
+      <td>&gt; 0.50</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="audit-questions-2">Audit Questions</h3>
+
+<ul>
+  <li>Who was on the risk committee 2 years ago? Who is there now?</li>
+  <li>How many risk managers left in the past year?</li>
+  <li>Were any terminated for compliance reasons?</li>
+  <li>What’s the average tenure of risk staff?</li>
+</ul>
+
+<hr />
+
+<h2 id="g4-conflict-of-interest-proxy">G4: Conflict of Interest Proxy</h2>
+
+<h3 id="definition-3">Definition</h3>
+<p><strong>Fraction of governance staff with undisclosed (or poorly disclosed) conflicts of interest.</strong></p>
+
+<p>Examples:</p>
+<ul>
+  <li>Risk manager owns personal trading account (conflict: might approve risky trades to profit personally)</li>
+  <li>Compliance officer’s spouse works on trading desk (conflict: may soften enforcement for family member)</li>
+  <li>Undisclosed conflict = didn’t fill out annual conflict questionnaire, or questionnaire lacks detail</li>
+</ul>
+
+<h3 id="range-3">Range</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Level</th>
+      <th>Ratio</th>
+      <th>Interpretation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Excellent</strong></td>
+      <td>0.00–0.05</td>
+      <td>Conflicts disclosed and managed; rare undisclosed</td>
+    </tr>
+    <tr>
+      <td><strong>Good</strong></td>
+      <td>0.05–0.15</td>
+      <td>Normal rate; conflicts disclosed and monitored</td>
+    </tr>
+    <tr>
+      <td><strong>Caution</strong></td>
+      <td>0.15–0.25</td>
+      <td>Significant fraction with conflicts; oversight questions</td>
+    </tr>
+    <tr>
+      <td><strong>Warning</strong></td>
+      <td>0.25–0.50</td>
+      <td>Most staff have undisclosed or poorly managed conflicts</td>
+    </tr>
+    <tr>
+      <td><strong>Critical</strong></td>
+      <td>&gt; 0.50</td>
+      <td>Majority compromised; no independent governance</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="measurement-3">Measurement</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>conflict_interest_proxy = count(staff with undisclosed conflicts) / count(total governance staff)
+
+Where:
+  - undisclosed = no conflict questionnaire on file, or questionnaire blank/evasive
+  - governance staff = risk, compliance, audit, internal controls (not trading)
+</code></pre></div></div>
+
+<h3 id="data-source-3">Data Source</h3>
+
+<p><strong>Primary:</strong></p>
+<ul>
+  <li>Conflict questionnaire archive (annual or onboarding)</li>
+  <li>Flag: missing questionnaire, or filled with “None” despite working in related departments</li>
+  <li>Review: spot-check 20% of staff by hand (ask: “Does this person trade on the side?”)</li>
+</ul>
+
+<p><strong>Secondary:</strong></p>
+<ul>
+  <li>HR file: note any outside affiliations</li>
+  <li>LinkedIn: personal trading accounts, external board memberships, consulting</li>
+</ul>
+
+<p><strong>Missingness Protocol:</strong></p>
+<ul>
+  <li>If no questionnaire on file → assume conflict = 1 (worst case, conservative)</li>
+  <li>If questionnaire on file but appears incomplete → spot-check with manager (“Did X disclose all conflicts?”)</li>
+  <li>If data unavailable: proxy = 0.10 (assume 10% have undisclosed conflicts, middle estimate)</li>
+</ul>
+
+<h3 id="normalization-3">Normalization</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>conflict_interest_proxy_normalized = conflict_count / total_staff (already in [0, 1])
+</code></pre></div></div>
+
+<h3 id="finance-specific-context-3">Finance-Specific Context</h3>
+
+<p><strong>Why it matters:</strong></p>
+<ul>
+  <li>Risk manager who trades personally has incentive to approve risky trades</li>
+  <li>Compliance officer with family on trading desk may soften enforcement</li>
+  <li>Undisclosed conflicts = “sleeping conflict” (may explode if exposed)</li>
+</ul>
+
+<p><strong>Typical Values:</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Institution Type</th>
+      <th>Normal Range</th>
+      <th>Warning Threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Regulated bank</td>
+      <td>0.05–0.15</td>
+      <td>&gt; 0.25</td>
+    </tr>
+    <tr>
+      <td>Hedge fund</td>
+      <td>0.10–0.30</td>
+      <td>&gt; 0.40</td>
+    </tr>
+    <tr>
+      <td>Private equity</td>
+      <td>0.15–0.40</td>
+      <td>&gt; 0.50</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="audit-questions-3">Audit Questions</h3>
+
+<ul>
+  <li>When was the last conflict questionnaire updated for each governance staffer?</li>
+  <li>Are any governance staff also traders or commission-earning?</li>
+  <li>Any family relationships between governance and trading staff?</li>
+  <li>Any governance staff who have consulting/board roles elsewhere?</li>
+</ul>
+
+<hr />
+
+<h2 id="g5-rule-execution-gap">G5: Rule Execution Gap</h2>
+
+<h3 id="definition-4">Definition</h3>
+<p><strong>Fraction of detected violations that go undetected or unaddressed.</strong></p>
+
+<p>This is tricky: we measure violations by looking at what <em>got through</em> without enforcement.</p>
+
+<p>Example:</p>
+<ul>
+  <li>Policy: “Max leverage 5x at end of day”</li>
+  <li>System records 50 breaches in past quarter</li>
+  <li>Enforcement acted on 42 breaches</li>
+  <li>8 breaches were never addressed</li>
+  <li><strong>Gap</strong> = 8 / 50 = 0.16 (16%)</li>
+</ul>
+
+<h3 id="range-4">Range</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Level</th>
+      <th>Ratio</th>
+      <th>Interpretation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Excellent</strong></td>
+      <td>0.00–0.05</td>
+      <td>Almost all violations caught and handled</td>
+    </tr>
+    <tr>
+      <td><strong>Good</strong></td>
+      <td>0.05–0.10</td>
+      <td>High detection/enforcement rate</td>
+    </tr>
+    <tr>
+      <td><strong>Caution</strong></td>
+      <td>0.10–0.20</td>
+      <td>Meaningful fraction of violations slip through</td>
+    </tr>
+    <tr>
+      <td><strong>Warning</strong></td>
+      <td>0.20–0.40</td>
+      <td>Controls have significant blind spots</td>
+    </tr>
+    <tr>
+      <td><strong>Critical</strong></td>
+      <td>&gt; 0.40</td>
+      <td>Most violations undetected or unaddressed</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="measurement-4">Measurement</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rule_execution_gap = count(violations detected but not enforced) / count(violations detected)
+
+Where:
+  - violations detected = incidents flagged by system or audit
+  - not enforced = incident closed without action (e.g., "no action needed", or forgotten)
+</code></pre></div></div>
+
+<h3 id="data-source-4">Data Source</h3>
+
+<p><strong>Primary:</strong></p>
+<ul>
+  <li>Incident tracking system: [violation_date, enforcement_status, action_type]</li>
+  <li>Query: violations with status = “closed without action” or “no follow-up”</li>
+</ul>
+
+<p><strong>Secondary:</strong></p>
+<ul>
+  <li>Audit report: “20 violations found; enforcement action taken on 18”</li>
+  <li>Compliance review: exception list</li>
+</ul>
+
+<p><strong>Missingness Protocol:</strong></p>
+<ul>
+  <li>If incident system is comprehensive: use it directly</li>
+  <li>If incident system missing: estimate from audit findings = (violations found in audit − actions taken) / violations found</li>
+  <li>If no audit data: assume gap = 0.10 (conservative estimate)</li>
+</ul>
+
+<h3 id="normalization-4">Normalization</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rule_execution_gap_normalized = gap (already in [0, 1])
+</code></pre></div></div>
+
+<h3 id="finance-specific-context-4">Finance-Specific Context</h3>
+
+<p><strong>Why it matters:</strong></p>
+<ul>
+  <li>A violation that goes unaddressed = precedent for next violation</li>
+  <li>Traders learn: “This breach was not enforced last time, so I’ll do it again”</li>
+  <li>Gap reflects both detection and enforcement capacity</li>
+</ul>
+
+<p><strong>Typical Values:</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Institution Type</th>
+      <th>Normal Range</th>
+      <th>Warning Threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Regulated bank</td>
+      <td>0.02–0.08</td>
+      <td>&gt; 0.15</td>
+    </tr>
+    <tr>
+      <td>Trading firm</td>
+      <td>0.05–0.15</td>
+      <td>&gt; 0.25</td>
+    </tr>
+    <tr>
+      <td>Startup</td>
+      <td>0.10–0.30</td>
+      <td>&gt; 0.40</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="audit-questions-4">Audit Questions</h3>
+
+<ul>
+  <li>How many violations were detected in the past quarter?</li>
+  <li>How many resulted in enforcement action?</li>
+  <li>How many were “no action needed” — who decides that?</li>
+  <li>Any violations that were discovered in audit but not in incident system?</li>
+</ul>
+
+<hr />
+
+<h2 id="integration-g-proxies-in-audit-verdict">Integration: G-Proxies in Audit Verdict</h2>
+
+<h3 id="gates-alarm-thresholds">Gates (Alarm Thresholds)</h3>
+
+<p>When computing L_act verdict, if <em>any</em> G-proxy crosses its gate:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Proxy</th>
+      <th>Gate</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>exemption_rate</td>
+      <td>&gt; 0.10</td>
+      <td>Flag as “Governance Caution” in audit output</td>
+    </tr>
+    <tr>
+      <td>sanction_delay</td>
+      <td>&gt; 90 days</td>
+      <td>Flag as “Slow Enforcement” in audit output</td>
+    </tr>
+    <tr>
+      <td>control_turnover</td>
+      <td>&gt; 0.25</td>
+      <td>Flag as “Instability Risk” in audit output</td>
+    </tr>
+    <tr>
+      <td>conflict_interest</td>
+      <td>&gt; 0.25</td>
+      <td>Flag as “Independence Risk” in audit output</td>
+    </tr>
+    <tr>
+      <td>rule_execution_gap</td>
+      <td>&gt; 0.20</td>
+      <td>Flag as “Detection Gap” in audit output</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Consequence:</strong></p>
+<ul>
+  <li>If 0 gates crossed → G status = “OK”</li>
+  <li>If 1–2 gates crossed → G status = “CAUTION” (audit still credible, but note issues)</li>
+  <li>If 3+ gates crossed → G status = “ALERT” (governance failing; verdict dims to “Partial Credibility”)</li>
+</ul>
+
+<hr />
+
+<h2 id="version-history">Version History</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Version</th>
+      <th>Date</th>
+      <th>Changes</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>v1.0.0</td>
+      <td>2026-02-24</td>
+      <td>Initial G-proxies for finance: 5 measurable indicators with ranges, sources, and gates</td>
+      <td>FROZEN</td>
+    </tr>
+  </tbody>
+</table>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/proxy_specs/finance/GOVERNANCE_PROXIES.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

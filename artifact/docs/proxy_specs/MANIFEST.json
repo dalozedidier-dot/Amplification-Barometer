@@ -1,0 +1,31 @@
+{
+  "version": "v0.1.0",
+  "published": "2026-02-24",
+  "sectors": {
+    "finance": {
+      "version": "v0.1.0",
+      "last_updated": "2026-02-24",
+      "families": ["P", "O", "E", "R", "G"],
+      "proxy_count": 22,
+      "spec_file": "finance/proxies.yaml",
+      "description": "Banking, trading, payments systems"
+    },
+    "ai": {
+      "version": "v0.1.0",
+      "last_updated": "2026-02-24",
+      "families": ["P", "O", "E", "R", "G"],
+      "proxy_count": 22,
+      "spec_file": "ai/proxies.yaml",
+      "description": "AI/ML systems, LLMs, autonomous agents"
+    },
+    "critical_infrastructure": {
+      "version": "v0.1.0",
+      "last_updated": "2026-02-24",
+      "families": ["P", "O", "E", "R", "G"],
+      "proxy_count": 22,
+      "spec_file": "critical_infrastructure/proxies.yaml",
+      "description": "Power, telecom, transportation systems"
+    }
+  },
+  "notes": "Each sector can override baseline ranges. Use run_alignment_audit.py with --sector flag to apply sector-specific specs."
+}

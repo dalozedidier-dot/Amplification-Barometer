@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Protocole pour proxys (Audit baromètre d’amplification) | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Protocole pour proxys (Audit baromètre d’amplification)" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_protocol.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_protocol.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Protocole pour proxys (Audit baromètre d’amplification)" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Protocole pour proxys (Audit baromètre d’amplification)","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_protocol.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="protocole-pour-proxys-audit-baromètre-damplification">Protocole pour proxys (Audit baromètre d’amplification)</h1>
+
+<p>Objectif: rendre les composites P(t), O(t), E(t), R(t), G(t) et les opérateurs de limite auditable, même lorsque proxys, fenêtres et pondérations comportent des choix.</p>
+
+<h2 id="1-fiche-proxy-minimale">1. Fiche proxy minimale</h2>
+
+<p>Pour chaque proxy X_i, documenter:</p>
+
+<ol>
+  <li>Définition opérationnelle (mesure concrète, unité, calcul exact)</li>
+  <li>Plage attendue (min, max) et traitement des valeurs hors plage</li>
+  <li>Sens de risque (si X_i augmente, le risque augmente ou diminue)</li>
+  <li>Source (système, fréquence, latence, disponibilité)</li>
+  <li>Tests de manipulabilité (scénarios de falsification, conditions d’alerte)</li>
+  <li>Règles valeurs manquantes et dérives (imputation interdite par défaut)</li>
+  <li>Versioning (changement de définition, changement de source, changement de fenêtre)</li>
+</ol>
+
+<h2 id="2-normalisation">2. Normalisation</h2>
+
+<p>Le dépôt applique une normalisation robuste proxy par proxy (médiane et MAD), puis agrège via pondérations versionnées.
+Cela évite que des proxys à unités différentes dominent artificiellement le composite.</p>
+
+<h2 id="3-exigence-de-stabilité-du-score">3. Exigence de stabilité du score</h2>
+
+<p>Un score composite n’est pas utilisable en audit s’il est instable. Exemples:</p>
+
+<ol>
+  <li>de faibles variations de fenêtre ou de normalisation changent fortement le classement des risques</li>
+  <li>l’ajout d’un bruit faible sur les proxys provoque des inversions fréquentes</li>
+  <li>un proxy unique domine la variance du score (risque de gaming)</li>
+</ol>
+
+<p>Le module <code class="language-plaintext highlighter-rouge">amplification_barometer.audit_tools.audit_score_stability</code> fournit une démonstration simple de ces tests.</p>
+
+<h2 id="4-séparation-limite-capacité-et-activation">4. Séparation limite capacité et activation</h2>
+
+<p>Le dépôt sépare deux composantes:</p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">L_cap</code> pour la capacité d’arrêt testée (capacité organisationnelle)</li>
+  <li><code class="language-plaintext highlighter-rouge">L_act</code> pour l’activation effective (enforcement réel, exemptions, délais, capture)</li>
+</ol>
+
+<p>Voir <code class="language-plaintext highlighter-rouge">amplification_barometer.l_operator</code>.</p>
+
+<h2 id="5-ajout-clé-pour-gt-rule_execution_gap">5. Ajout clé pour G(t): rule_execution_gap</h2>
+
+<p>Proxy</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">rule_execution_gap</code></li>
+</ul>
+
+<p>Intuition audit</p>
+<ul>
+  <li>Mesure un écart entre la règle affichée et l’exécution observée.</li>
+  <li>Cible de démonstration: &lt; 0.05 (5%).</li>
+</ul>
+
+<p>Spécification minimale</p>
+<ul>
+  <li>Définition: ratio ou score normalisé dans [0,1] où 0 est une exécution alignée et 1 une rupture totale.</li>
+  <li>Source: rapprochement politique de contrôle, logs d’exécution, décisions, sanctions.</li>
+  <li>Test anti-gaming: baisse artificielle de l’écart sans cohérence simultanée des proxys voisins (sanction_delay, exemptions, contrôle).</li>
+</ul>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/proxy_protocol.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

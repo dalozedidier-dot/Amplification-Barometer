@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Auditability Framework: Making Results Immutable | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Auditability Framework: Making Results Immutable" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/AUDITABILITY_FRAMEWORK.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/AUDITABILITY_FRAMEWORK.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Auditability Framework: Making Results Immutable" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Auditability Framework: Making Results Immutable","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/AUDITABILITY_FRAMEWORK.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="auditability-framework-making-results-immutable">Auditability Framework: Making Results Immutable</h1>
+
+<p><strong>Version:</strong> v0.1.0
+<strong>Date:</strong> 2026-02-24</p>
+
+<hr />
+
+<h2 id="purpose">Purpose</h2>
+
+<p>Once you’ve run an audit, how do you prove it wasn’t rewritten, recomputed, or cherry-picked later?</p>
+
+<p>This framework makes audit runs <strong>immutable and timestamped</strong>:</p>
+<ul>
+  <li>Every run gets a manifest with version, hash, and date</li>
+  <li>All results go into an append-only log (never overwritten)</li>
+  <li>External parties can independently verify authenticity</li>
+</ul>
+
+<p><strong>Goal:</strong> Transform “trust our last audit” into “here’s the notarized record.”</p>
+
+<hr />
+
+<h2 id="architecture">Architecture</h2>
+
+<h3 id="per-run-manifest">Per-Run Manifest</h3>
+
+<p><strong>File:</strong> <code class="language-plaintext highlighter-rouge">reports/audits/{run_id}/manifest.json</code></p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"run_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"20260224_type_iii_bifurcation_base"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-02-24T15:47:23.123Z"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"barometer_version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.1.0"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"git_commit"</span><span class="p">:</span><span class="w"> </span><span class="s2">"73676cc"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"dataset"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"filename"</span><span class="p">:</span><span class="w"> </span><span class="s2">"data/canonical_scenarios/type_iii_bifurcation_base.csv"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"a1b2c3d4e5f6..."</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"rows"</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"columns"</span><span class="p">:</span><span class="w"> </span><span class="mi">23</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"spec"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"proxies_yaml"</span><span class="p">:</span><span class="w"> </span><span class="s2">"docs/proxies.yaml"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v1.0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"f6e5d4c3b2a1..."</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"audit_parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"turnover_target"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"gap_target"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"window_sizes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">]</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"output"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"json"</span><span class="p">:</span><span class="w"> </span><span class="s2">"alignment_audit.json"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"json_sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"x9y8z7w6v5u4..."</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"md"</span><span class="p">:</span><span class="w"> </span><span class="s2">"alignment_audit.md"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"md_sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"r3q2p1o0n9m8..."</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p><strong>Components:</strong></p>
+<ul>
+  <li><strong>run_id:</strong> Unique identifier (timestamp + scenario name)</li>
+  <li><strong>timestamp:</strong> ISO-8601, UTC (can’t be faked after the fact)</li>
+  <li><strong>barometer_version:</strong> Code version running</li>
+  <li><strong>git_commit:</strong> Exact code commit hash</li>
+  <li><strong>dataset.sha256:</strong> Hash of input data (proves no tampering)</li>
+  <li><strong>spec.sha256:</strong> Hash of proxy spec used</li>
+  <li><strong>output.*_sha256:</strong> Hash of results (proves no post-hoc modification)</li>
+</ul>
+
+<h3 id="global-append-only-log">Global Append-Only Log</h3>
+
+<p><strong>File:</strong> <code class="language-plaintext highlighter-rouge">history.jsonl</code> (in repo root)</p>
+
+<pre><code class="language-jsonl">{"timestamp": "2026-02-24T15:00:00Z", "run_id": "20260224_type_i_noise_base", "verdict": "type_I_noise", "stability": "ok", "status": "published"}
+{"timestamp": "2026-02-24T15:30:00Z", "run_id": "20260224_type_ii_oscillations_base", "verdict": "type_II_oscillations", "stability": "ok", "status": "published"}
+{"timestamp": "2026-02-24T15:47:23Z", "run_id": "20260224_type_iii_bifurcation_base", "verdict": "type_III_bifurcation", "stability": "ok", "status": "published"}
+</code></pre>
+
+<p><strong>Rules:</strong></p>
+<ul>
+  <li><strong>Append-only:</strong> New lines added to end, never modified</li>
+  <li><strong>No deletions:</strong> Failed runs stay (marked with <code class="language-plaintext highlighter-rouge">status: failed</code>)</li>
+  <li><strong>Reverse chronological:</strong> Newest first when reading (but appended last)</li>
+  <li><strong>Immutable once published:</strong> A published run cannot be unpublished</li>
+</ul>
+
+<hr />
+
+<h2 id="workflow-audit--manifest--log">Workflow: Audit → Manifest → Log</h2>
+
+<h3 id="step-1-run-audit">Step 1: Run Audit</h3>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 tools/run_alignment_audit.py <span class="se">\</span>
+  <span class="nt">--dataset</span> data/canonical_scenarios/type_iii_bifurcation_base.csv <span class="se">\</span>
+  <span class="nt">--name</span> 20260224_type_iii_bifurcation_base <span class="se">\</span>
+  <span class="nt">--out-dir</span> reports/audits/
+</code></pre></div></div>
+
+<p><strong>Output:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">alignment_audit.json</code></li>
+  <li><code class="language-plaintext highlighter-rouge">alignment_audit.md</code></li>
+</ul>
+
+<h3 id="step-2-generate-manifest">Step 2: Generate Manifest</h3>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 tools/create_audit_manifest.py <span class="se">\</span>
+  <span class="nt">--dataset</span> data/canonical_scenarios/type_iii_bifurcation_base.csv <span class="se">\</span>
+  <span class="nt">--run-id</span> 20260224_type_iii_bifurcation_base <span class="se">\</span>
+  <span class="nt">--audit-dir</span> reports/audits/20260224_type_iii_bifurcation_base <span class="se">\</span>
+  <span class="nt">--out-dir</span> reports/audits/20260224_type_iii_bifurcation_base
+</code></pre></div></div>
+
+<p><strong>Output:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">manifest.json</code> (with all hashes, timestamp, versions)</li>
+</ul>
+
+<h3 id="step-3-append-to-history-log">Step 3: Append to History Log</h3>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 tools/append_to_history.py <span class="se">\</span>
+  <span class="nt">--manifest</span> reports/audits/20260224_type_iii_bifurcation_base/manifest.json <span class="se">\</span>
+  <span class="nt">--verdict</span> type_III_bifurcation <span class="se">\</span>
+  <span class="nt">--status</span> published
+</code></pre></div></div>
+
+<p><strong>Output:</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">history.jsonl</code> updated (new line appended, never edited)</li>
+</ul>
+
+<h3 id="step-4-publish">Step 4: Publish</h3>
+
+<p>Once a run is in the log, it’s public record.</p>
+
+<hr />
+
+<h2 id="verification-how-to-check-authenticity">Verification: How to Check Authenticity</h2>
+
+<h3 id="check-1-manifest-integrity">Check 1: Manifest Integrity</h3>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Verify dataset hash</span>
+<span class="nb">sha256sum </span>data/canonical_scenarios/type_iii_bifurcation_base.csv
+<span class="c"># Compare to manifest.json dataset.sha256</span>
+
+<span class="c"># Verify output hash</span>
+<span class="nb">sha256sum </span>reports/audits/.../alignment_audit.json
+<span class="c"># Compare to manifest.json output.json_sha256</span>
+</code></pre></div></div>
+
+<h3 id="check-2-code-version">Check 2: Code Version</h3>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Verify git commit</span>
+git log <span class="nt">--oneline</span> | <span class="nb">grep </span>73676cc
+<span class="c"># (Should match barometer_version.git_commit in manifest)</span>
+
+<span class="c"># Verify proxy spec version</span>
+git show 73676cc:docs/proxies.yaml | <span class="nb">sha256sum</span>
+<span class="c"># (Should match spec.sha256 in manifest)</span>
+</code></pre></div></div>
+
+<h3 id="check-3-log-integrity">Check 3: Log Integrity</h3>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Check that line for run_id is in history.jsonl</span>
+<span class="nb">grep</span> <span class="s2">"20260224_type_iii_bifurcation_base"</span> history.jsonl
+
+<span class="c"># Verify append-only (count lines, should be monotonically increasing)</span>
+<span class="nb">wc</span> <span class="nt">-l</span> history.jsonl  <span class="c"># Check in multiple snapshots</span>
+</code></pre></div></div>
+
+<h3 id="check-4-cryptographic-notarization-optional-future">Check 4: Cryptographic Notarization (Optional, Future)</h3>
+
+<p>If you want cryptographic proof that audit occurred at a specific time:</p>
+<ul>
+  <li>Sign manifest.json with GPG key</li>
+  <li>Timestamp via external service (e.g., timestamping authority)</li>
+  <li>Include signature in manifest</li>
+</ul>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"manifest"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w">
+  </span><span class="nl">"signature"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"gpg_key_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"signed_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-02-24T15:47:23Z"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"timestamp_authority"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://rfc3161.example.com/"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"timestamp_proof"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<hr />
+
+<h2 id="integration-with-cicd">Integration with CI/CD</h2>
+
+<h3 id="github-actions-example">GitHub Actions Example</h3>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">name</span><span class="pi">:</span> <span class="s">Audit &amp; Manifest</span>
+
+<span class="na">on</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">push</span><span class="pi">]</span>
+
+<span class="na">jobs</span><span class="pi">:</span>
+  <span class="na">audit</span><span class="pi">:</span>
+    <span class="na">runs-on</span><span class="pi">:</span> <span class="s">ubuntu-latest</span>
+    <span class="na">steps</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">uses</span><span class="pi">:</span> <span class="s">actions/checkout@v3</span>
+
+      <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">Run audit</span>
+        <span class="na">run</span><span class="pi">:</span> <span class="s">python3 tools/run_alignment_audit.py ...</span>
+
+      <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">Create manifest</span>
+        <span class="na">run</span><span class="pi">:</span> <span class="s">python3 tools/create_audit_manifest.py ...</span>
+
+      <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">Append to history</span>
+        <span class="na">run</span><span class="pi">:</span> <span class="s">python3 tools/append_to_history.py ...</span>
+
+      <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">Commit manifest + history</span>
+        <span class="na">run</span><span class="pi">:</span> <span class="pi">|</span>
+          <span class="s">git add reports/audits/ history.jsonl</span>
+          <span class="s">git commit -m "Audit run: ..."</span>
+          <span class="s">git push</span>
+</code></pre></div></div>
+
+<p><strong>Result:</strong> Every push triggers audit, manifest creation, and history append.
+History becomes part of the repository record.</p>
+
+<hr />
+
+<h2 id="falsifiability--break-conditions">Falsifiability &amp; Break Conditions</h2>
+
+<h3 id="false-claim-1-we-never-ran-this-test">False Claim 1: “We never ran this test”</h3>
+<p><strong>Proof:</strong> Show line in history.jsonl with timestamp</p>
+
+<h3 id="false-claim-2-results-changed-after-publication">False Claim 2: “Results changed after publication”</h3>
+<p><strong>Proof:</strong> Output hash in manifest matches file checksum</p>
+
+<h3 id="false-claim-3-were-using-different-code-than-we-say">False Claim 3: “We’re using different code than we say”</h3>
+<p><strong>Proof:</strong> Git commit hash corresponds to code version</p>
+
+<h3 id="false-claim-4-we-cherry-picked-good-runs-and-hid-bad-ones">False Claim 4: “We cherry-picked good runs and hid bad ones”</h3>
+<p><strong>Proof:</strong> All runs (passed and failed) in history.jsonl with timestamps</p>
+
+<hr />
+
+<h2 id="tools-reference">Tools Reference</h2>
+
+<h3 id="toolscreate_audit_manifestpy-implement"><code class="language-plaintext highlighter-rouge">tools/create_audit_manifest.py</code> (IMPLEMENT)</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>usage: create_audit_manifest.py
+  <span class="nt">--dataset</span> &lt;csv&gt;
+  <span class="nt">--run-id</span> &lt;str&gt;
+  <span class="nt">--audit-dir</span> &lt;<span class="nb">dir</span><span class="o">&gt;</span>
+  <span class="nt">--out-dir</span> &lt;<span class="nb">dir</span><span class="o">&gt;</span>
+</code></pre></div></div>
+<p>Creates manifest.json with hashes and metadata.</p>
+
+<h3 id="toolsappend_to_historypy-implement"><code class="language-plaintext highlighter-rouge">tools/append_to_history.py</code> (IMPLEMENT)</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>usage: append_to_history.py
+  <span class="nt">--manifest</span> &lt;json&gt;
+  <span class="nt">--verdict</span> &lt;str&gt;
+  <span class="nt">--status</span> <span class="o">[</span>published|failed|review]
+</code></pre></div></div>
+<p>Appends single line to history.jsonl (append-only).</p>
+
+<h3 id="toolsverify_auditpy-implement"><code class="language-plaintext highlighter-rouge">tools/verify_audit.py</code> (IMPLEMENT)</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>usage: verify_audit.py
+  <span class="nt">--manifest</span> &lt;json&gt;
+</code></pre></div></div>
+<p>Checks manifest integrity: hashes, versions, timestamps.</p>
+
+<hr />
+
+<h2 id="deployment-checklist">Deployment Checklist</h2>
+
+<ul class="task-list">
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Manifest JSON schema defined</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />CLI tools created (create_audit_manifest, append_to_history, verify_audit)</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />GitHub Actions workflow added</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />history.jsonl initialized in repo</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Documentation (this file) completed</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />First audit run goes through full pipeline</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />history.jsonl and manifests committed to repo</li>
+  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />External verification script tested</li>
+</ul>
+
+<hr />
+
+<h2 id="version-history">Version History</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Version</th>
+      <th>Date</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>v0.1.0</td>
+      <td>2026-02-24</td>
+      <td>Initial framework. Manifest + append-only log.</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<h2 id="related-documents">Related Documents</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">docs/DEFINITION_OF_DONE.md</code> – Truth contract</li>
+  <li><code class="language-plaintext highlighter-rouge">docs/calibration_protocol.md</code> – Audit parameters</li>
+  <li><code class="language-plaintext highlighter-rouge">docs/PUBLIC_TEST_MATRIX.md</code> – Test checklist</li>
+</ul>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/AUDITABILITY_FRAMEWORK.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

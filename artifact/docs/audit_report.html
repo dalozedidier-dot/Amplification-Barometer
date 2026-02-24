@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Audit report (template) | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Audit report (template)" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/audit_report.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/audit_report.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Audit report (template)" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Audit report (template)","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/audit_report.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="audit-report-template">Audit report (template)</h1>
+
+<p>Ce dépôt fournit un rapport d’audit minimal qui sert de preuve de vie empirique sur données synthétiques.
+Le but est de démontrer que les variables et signatures sont calculables et que les tests d’auditabilité sont exécutables.</p>
+
+<h2 id="sorties">Sorties</h2>
+
+<p>Le script <code class="language-plaintext highlighter-rouge">tools/run_audit.py</code> génère dans un dossier de sortie:</p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">audit_report.json</code> (machine readable)</li>
+  <li><code class="language-plaintext highlighter-rouge">audit_report.md</code> (résumé humain)</li>
+  <li>Optionnel: <code class="language-plaintext highlighter-rouge">at.png</code>, <code class="language-plaintext highlighter-rouge">delta_d.png</code>, <code class="language-plaintext highlighter-rouge">l_cap_l_act.png</code></li>
+</ol>
+
+<h2 id="contenu-du-json">Contenu du JSON</h2>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">summary</code> contient des statistiques simples sur P, O, E, R, G, @(t), Δd(t) et une signature de risque.</li>
+  <li><code class="language-plaintext highlighter-rouge">stability</code> contient un audit de stabilité du score.
+Si de faibles variations de fenêtre ou de bruit inversent le classement des risques, le score est déclaré instable.</li>
+  <li><code class="language-plaintext highlighter-rouge">stress_suite</code> contient une suite de scénarios standardisés.</li>
+  <li><code class="language-plaintext highlighter-rouge">maturity</code> contient une séparation explicite entre L_cap et L_act, plus une typologie de démonstration.</li>
+</ol>
+
+<h2 id="exemple-dexécution">Exemple d’exécution</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python tools/run_audit.py <span class="nt">--dataset</span> data/synthetic/bifurcation_regime.csv <span class="nt">--name</span> bifurcation <span class="nt">--out-dir</span> _ci_out <span class="nt">--plot</span>
+</code></pre></div></div>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/audit_report.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

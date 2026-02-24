@@ -1,0 +1,14 @@
+name: amplification_barometer
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pandas>=2.0
+  - numpy>=1.26
+  - matplotlib>=3.8
+  - scipy>=1.11
+  - pytest>=8.0
+  - pip
+  - pip:
+      - plotly>=5.20

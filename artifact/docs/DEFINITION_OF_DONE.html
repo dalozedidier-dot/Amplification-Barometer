@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Definition of Done: Amplification Barometer | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Definition of Done: Amplification Barometer" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/DEFINITION_OF_DONE.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/DEFINITION_OF_DONE.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Definition of Done: Amplification Barometer" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Definition of Done: Amplification Barometer","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/DEFINITION_OF_DONE.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="definition-of-done-amplification-barometer">Definition of Done: Amplification Barometer</h1>
+
+<p><strong>Version:</strong> v0.1.0
+<strong>Date:</strong> 2026-02-24
+<strong>Scope:</strong> Truth contract and falsifiability claims</p>
+
+<hr />
+
+<h2 id="purpose">Purpose</h2>
+
+<p>This document defines <strong>precisely</strong> what it means for the Amplification Barometer to claim “<strong>dit vrai</strong>” (tells the truth):</p>
+<ul>
+  <li>What are the measurable criteria?</li>
+  <li>What tests must pass?</li>
+  <li>What would falsify the claim?</li>
+  <li>What are optional vs. mandatory dimensions?</li>
+</ul>
+
+<p>This is the foundation for auditability and scientific credibility.</p>
+
+<hr />
+
+<h2 id="three-mandatory-dimensions">Three Mandatory Dimensions</h2>
+
+<h3 id="1-construct-validity-p-o-e-r-g-t-δdt">1. <strong>Construct Validity</strong> (P, O, E, R, G, @(t), Δd(t))</h3>
+
+<p><strong>Claim:</strong> The composites measure what they claim to measure, with stable behavior.</p>
+
+<h4 id="required-tests-must-pass">Required Tests (MUST PASS)</h4>
+
+<table>
+  <thead>
+    <tr>
+      <th>Test</th>
+      <th>Criterion</th>
+      <th>Source</th>
+      <th>Falsified By</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Stability under window variation</strong></td>
+      <td>Spearman rank correlation ≥ 0.85, Jaccard topk ≥ 0.80 across windows [5, 7, 9]</td>
+      <td><code class="language-plaintext highlighter-rouge">stability_audit_rank()</code></td>
+      <td>If either metric &lt; threshold</td>
+    </tr>
+    <tr>
+      <td><strong>Proxy ranges valid</strong></td>
+      <td>No proxies outside expected ranges (see proxies.yaml)</td>
+      <td><code class="language-plaintext highlighter-rouge">validate_proxy_ranges()</code></td>
+      <td>If &gt;0 out-of-range points without explicit exemption</td>
+    </tr>
+    <tr>
+      <td><strong>Composites are finite</strong></td>
+      <td>All composite values (P, O, E, R, G, @, Δd) are finite (no NaN, inf)</td>
+      <td><code class="language-plaintext highlighter-rouge">compute_levels_from_specs()</code> output</td>
+      <td>Any NaN or inf in composite</td>
+    </tr>
+    <tr>
+      <td><strong>E(t) monotone-increasing</strong></td>
+      <td>Stock E = cumsum(E_level) is monotone non-decreasing</td>
+      <td><code class="language-plaintext highlighter-rouge">compute_e_r()</code></td>
+      <td>If E decreases (negative dE in tail)</td>
+    </tr>
+    <tr>
+      <td><strong>MAD-normalized reproducibility</strong></td>
+      <td>Results identical when using MAD z-score normalization</td>
+      <td><code class="language-plaintext highlighter-rouge">robust_z_mad()</code></td>
+      <td>Differing results with different seed/order</td>
+    </tr>
+  </tbody>
+</table>
+
+<h4 id="optional-tests-nice-to-have">Optional Tests (NICE TO HAVE)</h4>
+
+<ul>
+  <li>Alignment with external domain expertise (subject matter review)</li>
+  <li>Temporal coherence: @(t) changes smoothly (no spurious jumps)</li>
+  <li>Proxy correlation: families (P, O, E, R, G) internally consistent</li>
+</ul>
+
+<p><strong>Falsification:</strong> Claim invalidated if any MUST PASS test fails.</p>
+
+<hr />
+
+<h3 id="2-predictive--event-validity-stress-signatures--l_act">2. <strong>Predictive / Event Validity</strong> (Stress signatures &amp; L_act)</h3>
+
+<p><strong>Claim:</strong> When a system enters Type II stress or bifurcates to Type III, the barometer reflects it with bounded latency and does not produce false signals in stable regimes (Type I).</p>
+
+<h4 id="required-tests-must-pass-1">Required Tests (MUST PASS)</h4>
+
+<table>
+  <thead>
+    <tr>
+      <th>Test</th>
+      <th>Criterion</th>
+      <th>Source</th>
+      <th>Falsified By</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Type I noise containment</strong></td>
+      <td>In pure noise regime (synthetic), @(t) median &lt; 2.0, no drift in E_stock over 200 steps</td>
+      <td>Synthetic “stable” scenario</td>
+      <td>If @(t) drifts or E_stock accumulates</td>
+    </tr>
+    <tr>
+      <td><strong>Type II oscillation signature</strong></td>
+      <td>In oscillating regime, Δd(t) sign alternates ≥60% of tail window, R_level recovers (mean in top 40%)</td>
+      <td>Synthetic “oscillation” scenario</td>
+      <td>If Δd monotone or R stays depressed</td>
+    </tr>
+    <tr>
+      <td><strong>Type III bifurcation signature</strong></td>
+      <td>In bifurcation regime: @(t) tail &gt; 90th percentile ≥50%, E_stock/max(E) ≥0.85, R_tail mean &lt;30%</td>
+      <td>Synthetic “bifurcation” scenario</td>
+      <td>If signatures absent or inverted</td>
+    </tr>
+    <tr>
+      <td><strong>L_act activation latency</strong></td>
+      <td>When system enters stress, detector activates within ≤ 20% of stress window</td>
+      <td>Real or synthetic event data</td>
+      <td>If latency &gt; threshold or false positives &gt;5%</td>
+    </tr>
+    <tr>
+      <td><strong>No systematic post-hoc signals</strong></td>
+      <td>Signal does not peak <em>after</em> documented event; median lead = 0 to +10 steps</td>
+      <td>Timestamped event validation</td>
+      <td>If signal systematically trails event</td>
+    </tr>
+  </tbody>
+</table>
+
+<h4 id="optional-tests-nice-to-have-1">Optional Tests (NICE TO HAVE)</h4>
+
+<ul>
+  <li>Sub-regime discriminability (Type II vs Type III clearly separable)</li>
+  <li>Sensitivity analysis: varying window, noise level doesn’t invert verdicts</li>
+  <li>Temporal lead-lag validation on &gt;3 real-world cases</li>
+</ul>
+
+<p><strong>Falsification:</strong> Claim invalidated if any MUST PASS test fails or if &gt;10% of events are missed.</p>
+
+<hr />
+
+<h3 id="3-anti-gaming--manipulability-robustness">3. <strong>Anti-Gaming / Manipulability Robustness</strong></h3>
+
+<p><strong>Claim:</strong> The barometer detects and penalizes systematic attempts to game proxies; improvement via fraud scores lower than legitimate improvement.</p>
+
+<h4 id="required-tests-must-pass-2">Required Tests (MUST PASS)</h4>
+
+<table>
+  <thead>
+    <tr>
+      <th>Test</th>
+      <th>Criterion</th>
+      <th>Source</th>
+      <th>Falsified By</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>O-family bias detection</strong></td>
+      <td>Artificially boost O proxies by +15%: verdict gaming_suspicion=”fail”, ΔP_illegit &lt; 0.5 * ΔP_clean</td>
+      <td><code class="language-plaintext highlighter-rouge">anti_gaming_o_bias()</code></td>
+      <td>If detection fails or illegit gains approach clean gains</td>
+    </tr>
+    <tr>
+      <td><strong>Volatility clamp detection</strong></td>
+      <td>Suppress volatility (std →0) on P proxies: gaming_suspicion=”fail”</td>
+      <td><code class="language-plaintext highlighter-rouge">anti_gaming_volatility_clamp()</code></td>
+      <td>If verdict doesn’t flag manipulation</td>
+    </tr>
+    <tr>
+      <td><strong>Range out-of-bounds gaming</strong></td>
+      <td>Push proxies outside expected ranges: gaming_suspicion=”fail”</td>
+      <td><code class="language-plaintext highlighter-rouge">anti_gaming_out_of_range()</code></td>
+      <td>If undetected excursions pass verdict</td>
+    </tr>
+    <tr>
+      <td><strong>Multi-proxy coordinated attack</strong></td>
+      <td>Simultaneous bias on P <em>and</em> O + delay on G: combined gaming_suspicion=”fail”</td>
+      <td><code class="language-plaintext highlighter-rouge">anti_gaming_coordinated()</code></td>
+      <td>If multi-proxy triche undetected</td>
+    </tr>
+    <tr>
+      <td><strong>Reporting delay gaming</strong></td>
+      <td>Suppress G signals by delaying sanction_delay/exemption_rate: gaming_suspicion=”fail”</td>
+      <td><code class="language-plaintext highlighter-rouge">anti_gaming_reporting_delay()</code></td>
+      <td>If governance manipulation undetected</td>
+    </tr>
+    <tr>
+      <td><strong>Gaming score integration</strong></td>
+      <td>Any verdict with gaming_suspicion=”fail” → overall verdict includes “anti_gaming: FAIL”</td>
+      <td><code class="language-plaintext highlighter-rouge">run_alignment_audit()</code> verdict</td>
+      <td>If gaming failures not propagated to verdict</td>
+    </tr>
+  </tbody>
+</table>
+
+<h4 id="optional-tests-nice-to-have-2">Optional Tests (NICE TO HAVE)</h4>
+
+<ul>
+  <li>Ensemble robustness: gaming detection consistent across 10 random perturbations</li>
+  <li>Attacker model refinement: detect subtle gaming (δ&lt;5%, e.g., micromanipulation)</li>
+  <li>Cost-benefit analysis: cost of gaming vs. benefit capped</li>
+</ul>
+
+<p><strong>Falsification:</strong> Claim invalidated if any MUST PASS anti-gaming test fails.</p>
+
+<hr />
+
+<h2 id="verdicts">Verdicts</h2>
+
+<h3 id="multidimensional-verdict-structure">Multidimensional Verdict Structure</h3>
+
+<p>Each run of <code class="language-plaintext highlighter-rouge">run_alignment_audit()</code> SHALL produce a JSON verdict with the following structure:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"spec_version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v1.0"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ISO-8601"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"dimensions"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"construct_validity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">"fail"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"event_signatures"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">"fail"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">"unknown"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"anti_gaming"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">"fail"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"overall"</span><span class="p">:</span><span class="w"> </span><span class="s2">"credible"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">"suspect"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">"not_ready"</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"details"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"construct"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="nl">"ranges"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="nl">"finitude"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">}</span><span class="w"> </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"events"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nl">"type_i"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="nl">"type_ii"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="nl">"type_iii"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">}</span><span class="w"> </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"anti_gaming"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nl">"o_bias"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="nl">"vol_clamp"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="nl">"coordinated"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="nl">"score"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0-1.0</span><span class="w"> </span><span class="p">},</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<h3 id="overall-credibility-verdict">Overall Credibility Verdict</h3>
+
+<p><strong>“credible”</strong> := construct_validity=”ok” AND (event_signatures=”ok” OR “unknown”) AND anti_gaming=”ok”</p>
+
+<p><strong>“suspect”</strong> := construct_validity=”ok” AND anti_gaming=”ok” AND event_signatures=”fail”
+→ Signals observed but may be post-hoc; needs real-world validation.</p>
+
+<p><strong>“not_ready”</strong> := Any MUST PASS test fails in construct_validity or anti_gaming.</p>
+
+<hr />
+
+<h2 id="explicit-falsifiability-examples">Explicit Falsifiability Examples</h2>
+
+<p>To prove we are scientific, not narrative:</p>
+
+<h3 id="example-1-construct-validity-failure">Example 1: Construct Validity Failure</h3>
+<ul>
+  <li>Data: pure random noise, n=500</li>
+  <li>Expected: @(t) bounded, no drift in E_stock, regime=”type_I_noise”</li>
+  <li><strong>Falsified if:</strong> E_stock rises linearly, regime=”type_III_bifurcation”
+→ Shows we can detect broken composites.</li>
+</ul>
+
+<h3 id="example-2-event-signature-failure">Example 2: Event Signature Failure</h3>
+<ul>
+  <li>Data: synthetic bifurcation injected at t=250</li>
+  <li>Expected: @(t) spike at t=250±20, regime=”type_III” by t=300</li>
+  <li><strong>Falsified if:</strong> Signal peaks at t=350, or regime stays “type_I”
+→ Shows we can fail to detect real stress.</li>
+</ul>
+
+<h3 id="example-3-anti-gaming-failure">Example 3: Anti-Gaming Failure</h3>
+<ul>
+  <li>Data: clean baseline, then O-family artificially boosted +15% from t=300</li>
+  <li>Expected: gaming_suspicion=”fail”, verdict=”suspect”</li>
+  <li><strong>Falsified if:</strong> gaming_suspicion=”ok”, verdict=”credible”
+→ Shows we can be gamed.</li>
+</ul>
+
+<hr />
+
+<h2 id="scope--exclusions">Scope &amp; Exclusions</h2>
+
+<h3 id="in-scope-for-dit-vrai">In Scope for “dit vrai”</h3>
+<ul>
+  <li>Construct validity of composites (P, O, E, R, G, @, Δd)</li>
+  <li>Detection of canonical stress signatures (Type I/II/III)</li>
+  <li>Resistance to systematic proxy manipulation</li>
+  <li>Reproducibility of verdict under reasonable parameter variation</li>
+</ul>
+
+<h3 id="out-of-scope-next-phases">Out of Scope (Next Phases)</h3>
+<ul>
+  <li>Sector-specific calibration (proxy ranges vary; handled in Phase 2)</li>
+  <li>Real-world validation on 10+ timestamped cases (Phase 5)</li>
+  <li>L_cap vs L_act separation (Phase 4)</li>
+  <li>Auditability manifests &amp; append-only history (Phase 5)</li>
+</ul>
+
+<hr />
+
+<h2 id="process-when-to-invoke-dod">Process: When to Invoke DoD</h2>
+
+<ol>
+  <li><strong>Before release:</strong> Run full DoD checklist; all MUST PASS must ✅</li>
+  <li><strong>On failure:</strong> Document in postmortem; fix root cause before retry</li>
+  <li><strong>On ambiguity:</strong> Err conservative; mark as “unknown” rather than guessing</li>
+  <li><strong>On sector variation:</strong> Document exemptions explicitly (e.g., “IA sector proxy ranges differ per Phase 2 spec”)</li>
+</ol>
+
+<hr />
+
+<h2 id="version-history">Version History</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Version</th>
+      <th>Date</th>
+      <th>Change</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>v0.1.0</td>
+      <td>2026-02-24</td>
+      <td>Initial definition. Construct + Event + Anti-Gaming.</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<h2 id="related-documents">Related Documents</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">docs/theory_audit_mapping.md</code> – Theoretical mapping</li>
+  <li><code class="language-plaintext highlighter-rouge">docs/proxies.yaml</code> – Current proxy specs (demo ranges)</li>
+  <li><code class="language-plaintext highlighter-rouge">src/amplification_barometer/alignment_audit.py</code> – Implementation</li>
+  <li><code class="language-plaintext highlighter-rouge">tools/run_alignment_audit.py</code> – CLI entrypoint</li>
+  <li><code class="language-plaintext highlighter-rouge">tools/run_anti_gaming_suite.py</code> – Anti-gaming suite (Phase 1)</li>
+</ul>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/DEFINITION_OF_DONE.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

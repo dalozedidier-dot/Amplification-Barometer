@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Proxy Specifications by Sector v0.1.0 | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Proxy Specifications by Sector v0.1.0" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_specs/" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_specs/" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Proxy Specifications by Sector v0.1.0" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Proxy Specifications by Sector v0.1.0","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/proxy_specs/"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="proxy-specifications-by-sector-v010">Proxy Specifications by Sector v0.1.0</h1>
+
+<p>Sector-specific proxy ranges, sources, and validation rules.</p>
+
+<h2 id="structure">Structure</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>proxy_specs/
+├── README.md (this file)
+├── finance/proxies.yaml
+├── ai/proxies.yaml
+├── critical_infrastructure/proxies.yaml
+└── MANIFEST.json
+</code></pre></div></div>
+
+<h2 id="manifest">Manifest</h2>
+
+<p>Each sector spec is versioned and hashed:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v0.1.0"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"sectors"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"finance"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v0.1.0"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"hash_sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"abc123..."</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"last_updated"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-02-24"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"audit_outputs"</span><span class="p">:</span><span class="w"> </span><span class="s2">"reports/calibration/finance_audit.json"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="err">...</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<h2 id="adding-a-new-sector">Adding a New Sector</h2>
+
+<ol>
+  <li>Create <code class="language-plaintext highlighter-rouge">docs/proxy_specs/&lt;sector&gt;/proxies.yaml</code></li>
+  <li>Specify ranges, sources, and validation rules</li>
+  <li>Run <code class="language-plaintext highlighter-rouge">python3 tools/validate_proxy_specs.py --sector &lt;sector&gt;</code></li>
+  <li>Update MANIFEST.json with hash and version</li>
+</ol>
+
+<h2 id="sectors-included">Sectors Included</h2>
+
+<ul>
+  <li><strong>finance/</strong> – Banking, trading, payments systems</li>
+  <li><strong>ai/</strong> – AI/ML systems, LLMs, autonomous agents</li>
+  <li><strong>critical_infrastructure/</strong> – Power, telecom, transportation</li>
+</ul>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/proxy_specs/README.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

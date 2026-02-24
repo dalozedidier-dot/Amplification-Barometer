@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Mapping théorie vers audit | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Mapping théorie vers audit" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/theory_audit_mapping.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/theory_audit_mapping.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Mapping théorie vers audit" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Mapping théorie vers audit","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/theory_audit_mapping.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="mapping-théorie-vers-audit">Mapping théorie vers audit</h1>
+
+<p>Ce document fournit un mapping formel entre les grandeurs du manuscrit et les sorties du framework.</p>
+
+<p>Objectif</p>
+<ol>
+  <li>Rendre les composites isomorphes au texte théorique.</li>
+  <li>Rendre chaque proxy auditable, versionné et testable.</li>
+  <li>Rendre les verdicts multi dimensionnels, sans réduire à un seul mot.</li>
+</ol>
+
+<h2 id="variables-principales">Variables principales</h2>
+
+<p>P(t)
+Composite de puissance. Calculé depuis la famille de proxys P. Voir docs/proxies.yaml.</p>
+
+<p>O(t)
+Composite de capacité d arrêt et d orientation opérationnelle. Calculé depuis la famille O.</p>
+
+<p>E(t)
+Stock d externalités, dispersif, inertiel, potentiellement irréversible. Calculé depuis la famille E, puis cumulé.</p>
+
+<p>R(t)
+Résilience, marges et récupération. Calculé depuis la famille R. Une hausse de recovery_time_proxy dégrade R.</p>
+
+<p>G(t)
+Gouvernance mesurable. Famille G. La cible de maturité utilise rule_execution_gap &lt; 0.05 et control_turnover &lt; 0.05.</p>
+
+<p>@(t)
+Ratio de dissociation. Par défaut @(t) = P_level / (O_level + eps). P_level et O_level sont des composites non centrés, donc comparables entre régimes.</p>
+
+<p>Δd(t)
+Différence de dérivées. Par défaut Δd(t) = dP/dt - dO/dt sur séries lissées. Certains passages du manuscrit utilisent le terme Ad(t). Ici Δd(t) correspond à ce rôle.</p>
+
+<p>L_cap
+Capacité intrinsèque, testée sous stress. Mesurée comme performance sur scénarios standardisés, sans circularité avec L_act.</p>
+
+<p>L_act
+Activation effective, observée dans les séries. Elle dépend de la persistance, du délai d activation et des proxys G.</p>
+
+<h2 id="critères-d-audit">Critères d audit</h2>
+
+<p>Stabilité du score
+On mesure la stabilité de classement quand on varie faiblement la fenêtre, la normalisation et le bruit. Si des variations mineures inversent le top k, le score est instable.</p>
+
+<p>Anti gaming
+On simule des falsifications. Exemple, injection de biais sur les proxys de O. On mesure la chute artificielle du risque et la détection par règles proxy.</p>
+
+<p>Stress tests alignés sur signatures
+Type I, bruit. Le score doit rester borné, sans drift de E.
+Type II, oscillations. Le score oscille mais R permet le retour. Δd(t) alterne de signe.
+Type III, bifurcation. @(t) diverge, E s accumule, R se dégrade, L doit activer plus tôt.</p>
+
+<p>Verdict multi dimensionnel
+On produit un verdict par composante. Stabilité, L_cap, L_act, Résilience, Gouvernance, Anti gaming, Stress tests.</p>
+
+<h2 id="fichiers-de-référence">Fichiers de référence</h2>
+
+<p>docs/proxies.yaml
+Spécification des proxys. Définition, plage attendue, sens du risque, source, fréquence, test de manipulabilité.</p>
+
+<p>tools/run_alignment_audit.py
+Génère un alignment_audit.json et un alignment_audit.md à partir d un dataset, sans données sensibles obligatoires.</p>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/theory_audit_mapping.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

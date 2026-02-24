@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Plotly visualizations (interactive) | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Plotly visualizations (interactive)" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/plotly_viz.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/plotly_viz.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Plotly visualizations (interactive)" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Plotly visualizations (interactive)","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/plotly_viz.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="plotly-visualizations-interactive">Plotly visualizations (interactive)</h1>
+
+<p>This repo ships two visualization modes:</p>
+
+<ul>
+  <li><strong>Matplotlib PNG</strong>: <code class="language-plaintext highlighter-rouge">tools/run_audit.py --plot</code> (CI-friendly, static)</li>
+  <li><strong>Plotly HTML</strong>: <code class="language-plaintext highlighter-rouge">tools/run_audit.py --plotly</code> (interactive, shareable)</li>
+</ul>
+
+<h2 id="why-plotly-here">Why Plotly here</h2>
+
+<p>Time series audits benefit from:</p>
+<ul>
+  <li>range slider (fast zoom/pan on long series)</li>
+  <li>unified hover (compare curves at the same timestamp)</li>
+  <li>log scale where growth is exponential (bifurcation regimes)</li>
+  <li>secondary axis for L_cap vs L_act (avoid clutter)</li>
+</ul>
+
+<h2 id="usage">Usage</h2>
+
+<p>Run a single dataset:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python tools/run_audit.py <span class="nt">--dataset</span> data/synthetic/bifurcation_regime.csv <span class="nt">--name</span> bifurcation <span class="nt">--out-dir</span> _ci_out <span class="nt">--plotly</span>
+</code></pre></div></div>
+
+<p>Run the full synthetic portfolio (stable / oscillating / bifurcation):</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python tools/run_audit.py <span class="nt">--all-synthetic</span> <span class="nt">--out-dir</span> _ci_out <span class="nt">--plotly</span>
+</code></pre></div></div>
+
+<h2 id="outputs">Outputs</h2>
+
+<p>For each dataset <code class="language-plaintext highlighter-rouge">&lt;name&gt;</code>:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">_ci_out/&lt;name&gt;_at.html</code></li>
+  <li><code class="language-plaintext highlighter-rouge">_ci_out/&lt;name&gt;_delta_d.html</code></li>
+  <li><code class="language-plaintext highlighter-rouge">_ci_out/&lt;name&gt;_l_cap_l_act.html</code></li>
+  <li><code class="language-plaintext highlighter-rouge">_ci_out/&lt;name&gt;_dashboard.html</code></li>
+</ul>
+
+<p>The HTML files use PlotlyJS via CDN (small artifacts, easy sharing). If you need fully offline artifacts, change <code class="language-plaintext highlighter-rouge">include_plotlyjs="cdn"</code> to <code class="language-plaintext highlighter-rouge">include_plotlyjs=True</code> in <code class="language-plaintext highlighter-rouge">src/amplification_barometer/plotly_viz.py</code>.</p>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/plotly_viz.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

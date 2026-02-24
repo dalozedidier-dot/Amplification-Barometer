@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>L_cap vs L_act Framework | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="L_cap vs L_act Framework" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/L_CAP_VS_ACT_FRAMEWORK.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/L_CAP_VS_ACT_FRAMEWORK.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="L_cap vs L_act Framework" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"L_cap vs L_act Framework","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/L_CAP_VS_ACT_FRAMEWORK.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="l_cap-vs-l_act-framework">L_cap vs L_act Framework</h1>
+
+<p><strong>Version:</strong> v0.1.0
+<strong>Date:</strong> 2026-02-24</p>
+
+<hr />
+
+<h2 id="purpose">Purpose</h2>
+
+<p>This document separates two concepts that can become circular:</p>
+
+<ol>
+  <li><strong>L_cap</strong> – Intrinsic detection <strong>capacity</strong> (what the barometer <em>can</em> do in principle)</li>
+  <li><strong>L_act</strong> – Observed <strong>activation</strong> (what the barometer <em>does</em> do in practice)</li>
+</ol>
+
+<p>Without this separation, you risk circular reasoning: “We detected it because we were capable of detecting it, and we were capable because we detected it.”</p>
+
+<p>This framework breaks that circle.</p>
+
+<hr />
+
+<h2 id="definitions">Definitions</h2>
+
+<h3 id="l_cap-intrinsic-capacity">L_cap: Intrinsic Capacity</h3>
+
+<p><strong>Question:</strong> “Under controlled conditions, can the barometer distinguish stress regimes?”</p>
+
+<p><strong>Measurement:</strong> Benchmark on <strong>synthetic canonical scenarios</strong> (Type I, II, III, Hybrid):</p>
+<ul>
+  <li>No confounding from real-world governance noise</li>
+  <li>Fixed, known ground truth (we injected the stress)</li>
+  <li>Same stress detection rules applied consistently</li>
+</ul>
+
+<p><strong>Source:</strong> <code class="language-plaintext highlighter-rouge">compute_l_cap(df)</code> on <code class="language-plaintext highlighter-rouge">data/canonical_scenarios/</code> files</p>
+
+<p><strong>Interpretation:</strong></p>
+<ul>
+  <li>High L_cap → system <em>can</em> detect differences in regime</li>
+  <li>Low L_cap → system lacks discriminative power</li>
+  <li>L_cap depends on O-family proxies (stop, threshold, execution, coherence)</li>
+</ul>
+
+<p><strong>Not circular because:</strong></p>
+<ul>
+  <li>Computed independently from observed governance (L_act)</li>
+  <li>Uses synthetic data where ground truth is known</li>
+  <li>Benchmarked once, then frozen</li>
+</ul>
+
+<h3 id="l_act-observed-activation">L_act: Observed Activation</h3>
+
+<p><strong>Question:</strong> “In reality, does the system actually activate its detection/response capability?”</p>
+
+<p><strong>Measurement:</strong> Computed on <strong>real or realistic datasets</strong>:</p>
+<ul>
+  <li>Actual governance signals (exemptions, sanctions, turnover, gaps)</li>
+  <li>Real decision delays and execution gaps</li>
+  <li>Depends on human/institutional factors</li>
+</ul>
+
+<p><strong>Source:</strong> <code class="language-plaintext highlighter-rouge">compute_l_act(df)</code> on real datasets or mixed datasets</p>
+
+<p><strong>Interpretation:</strong></p>
+<ul>
+  <li>High L_act → governance is alert and responsive</li>
+  <li>Low L_act → governance is asleep, or policy gaps exist</li>
+  <li>L_act depends on G-family proxies (exemption_rate, sanction_delay, control_turnover, conflict_interest, rule_execution_gap)</li>
+</ul>
+
+<p><strong>Not circular because:</strong></p>
+<ul>
+  <li>Computed from observable, external governance signals</li>
+  <li>Independent of the barometer’s technical capacity</li>
+  <li>Measures human/institutional readiness</li>
+</ul>
+
+<hr />
+
+<h2 id="22-matrix-classification">2×2 Matrix: Classification</h2>
+
+<p>Once you have L_cap and L_act for a system:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                    L_act ≥ 0 (Activated)        L_act &lt; 0 (Quiet)
+L_cap ≥ 0 (Capable)     SUCCESS                       MISS
+L_cap &lt; 0 (Limited)     FALSE_ALARM                   BENIGN
+</code></pre></div></div>
+
+<h3 id="quadrant-interpretation">Quadrant Interpretation</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Quadrant</th>
+      <th>Meaning</th>
+      <th>Implication</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>SUCCESS</strong></td>
+      <td>High capacity + High activation</td>
+      <td>System working well. Can detect, does detect. ✓</td>
+    </tr>
+    <tr>
+      <td><strong>MISS</strong></td>
+      <td>High capacity + Low activation</td>
+      <td>Detection ability exists but not triggered. Gap in governance or thresholds too high. ⚠️</td>
+    </tr>
+    <tr>
+      <td><strong>FALSE_ALARM</strong></td>
+      <td>Low capacity + High activation</td>
+      <td>System alerts despite lacking real capacity. May be spurious. ✗</td>
+    </tr>
+    <tr>
+      <td><strong>BENIGN</strong></td>
+      <td>Low capacity + Low activation</td>
+      <td>System quiet because either no threat OR no detection capability. Need context. ⓘ</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="example-scenarios">Example Scenarios</h3>
+
+<h4 id="scenario-a-finance-trading-system">Scenario A: Finance Trading System</h4>
+<ul>
+  <li><strong>L_cap:</strong> High (system architecture supports position limits, rapid execution stops)</li>
+  <li><strong>L_act:</strong> High (exemption rate low, sanctions applied quickly, control teams stable)</li>
+  <li><strong>Quadrant:</strong> SUCCESS ✓</li>
+  <li><strong>Implication:</strong> Trading surveillance is working as designed.</li>
+</ul>
+
+<h4 id="scenario-b-ai-model-deployment">Scenario B: AI Model Deployment</h4>
+<ul>
+  <li><strong>L_cap:</strong> High (model can distinguish safe vs unsafe outputs, has emergency stops)</li>
+  <li><strong>L_act:</strong> Low (safety reviews often waived, incidents take weeks to escalate, team turnover high)</li>
+  <li><strong>Quadrant:</strong> MISS ⚠️</li>
+  <li><strong>Implication:</strong> We <em>could</em> catch issues, but governance is asleep. Need to fix processes, not code.</li>
+</ul>
+
+<h4 id="scenario-c-power-grid-control">Scenario C: Power Grid Control</h4>
+<ul>
+  <li><strong>L_cap:</strong> Low (automated controls struggle to distinguish cascading failure from normal oscillation)</li>
+  <li><strong>L_act:</strong> High (operators alert, policies strictly enforced, incidents responded to quickly)</li>
+  <li><strong>Quadrant:</strong> FALSE_ALARM ✗</li>
+  <li><strong>Implication:</strong> Governance trying hard, but system is fragile. Need technical improvements.</li>
+</ul>
+
+<h4 id="scenario-d-infrastructure-without-monitoring">Scenario D: Infrastructure Without Monitoring</h4>
+<ul>
+  <li><strong>L_cap:</strong> Low (no real-time monitoring, manual checks only)</li>
+  <li><strong>L_act:</strong> Low (informal, sporadic reporting)</li>
+  <li><strong>Quadrant:</strong> BENIGN ⓘ</li>
+  <li><strong>Implication:</strong> System is quiet because there’s no automated detection, not because it’s safe. Baseline risk is high.</li>
+</ul>
+
+<hr />
+
+<h2 id="methodology-how-to-compute">Methodology: How to Compute</h2>
+
+<h3 id="step-1-benchmark-l_cap-once">Step 1: Benchmark L_cap (Once)</h3>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">amplification_barometer.l_capability_benchmark</span> <span class="kn">import</span> <span class="n">benchmark_suite_all_scenarios</span>
+
+<span class="c1"># Run on canonical scenarios (synthetic, ground truth known)
+</span><span class="n">benchmark</span> <span class="o">=</span> <span class="n">benchmark_suite_all_scenarios</span><span class="p">(</span>
+    <span class="n">scenarios_dir</span><span class="o">=</span><span class="s">"data/canonical_scenarios/"</span><span class="p">,</span>
+    <span class="n">proxies_yaml</span><span class="o">=</span><span class="s">"docs/proxies.yaml"</span>
+<span class="p">)</span>
+
+<span class="c1"># Validate that L_cap can distinguish Type I, II, III
+</span><span class="k">assert</span> <span class="n">benchmark</span><span class="p">[</span><span class="s">"summary"</span><span class="p">][</span><span class="s">"type_i_expected_low_l_cap"</span><span class="p">][</span><span class="s">"pass_rate"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">0.80</span>
+<span class="k">assert</span> <span class="n">benchmark</span><span class="p">[</span><span class="s">"summary"</span><span class="p">][</span><span class="s">"type_ii_expected_moderate_l_cap"</span><span class="p">][</span><span class="s">"pass_rate"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">0.80</span>
+<span class="k">assert</span> <span class="n">benchmark</span><span class="p">[</span><span class="s">"summary"</span><span class="p">][</span><span class="s">"type_iii_expected_high_l_cap"</span><span class="p">][</span><span class="s">"pass_rate"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">0.80</span>
+</code></pre></div></div>
+
+<p><strong>Output:</strong> Freezes L_cap capability profile. This is your baseline “what the system can do.”</p>
+
+<h3 id="step-2-compute-l_cap-on-real-data">Step 2: Compute L_cap on Real Data</h3>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">amplification_barometer.l_operator</span> <span class="kn">import</span> <span class="n">compute_l_cap</span>
+
+<span class="n">df_real</span> <span class="o">=</span> <span class="n">pd</span><span class="p">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s">"real_dataset.csv"</span><span class="p">)</span>
+<span class="n">l_cap_real</span> <span class="o">=</span> <span class="n">compute_l_cap</span><span class="p">(</span><span class="n">df_real</span><span class="p">)</span>  <span class="c1"># Intrinsic capacity in this context
+</span>
+<span class="n">l_cap_mean</span> <span class="o">=</span> <span class="n">l_cap_real</span><span class="p">.</span><span class="n">mean</span><span class="p">()</span>  <span class="c1"># Should align with benchmark Type II/III if stressed
+</span></code></pre></div></div>
+
+<h3 id="step-3-compute-l_act-on-real-data">Step 3: Compute L_act on Real Data</h3>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">amplification_barometer.l_operator</span> <span class="kn">import</span> <span class="n">compute_l_act</span>
+
+<span class="n">l_act_real</span> <span class="o">=</span> <span class="n">compute_l_act</span><span class="p">(</span><span class="n">df_real</span><span class="p">)</span>  <span class="c1"># Governance activation in this context
+</span><span class="n">l_act_mean</span> <span class="o">=</span> <span class="n">l_act_real</span><span class="p">.</span><span class="n">mean</span><span class="p">()</span>  <span class="c1"># Is governance responsive?
+</span></code></pre></div></div>
+
+<h3 id="step-4-classify">Step 4: Classify</h3>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">tools.run_l_cap_vs_act_validation</span> <span class="kn">import</span> <span class="n">classify_l_cap_l_act</span>
+
+<span class="n">classification</span> <span class="o">=</span> <span class="n">classify_l_cap_l_act</span><span class="p">(</span>
+    <span class="n">l_cap_mean</span><span class="p">,</span> <span class="n">l_act_mean</span><span class="p">,</span>
+    <span class="n">thresholds</span><span class="o">=</span><span class="p">{</span><span class="s">"l_cap_threshold"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s">"l_act_threshold"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
+<span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Quadrant: </span><span class="si">{</span><span class="n">classification</span><span class="p">[</span><span class="s">'quadrant'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Interpretation: </span><span class="si">{</span><span class="n">classification</span><span class="p">[</span><span class="s">'interpretation'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="step-5-validate-via-cli">Step 5: Validate via CLI</h3>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 tools/run_l_cap_vs_act_validation.py <span class="se">\</span>
+  <span class="nt">--scenarios-dir</span> data/canonical_scenarios <span class="se">\</span>
+  <span class="nt">--proxies-yaml</span> docs/proxies.yaml <span class="se">\</span>
+  <span class="nt">--out-dir</span> reports/l_cap_vs_act
+</code></pre></div></div>
+
+<p><strong>Output:</strong> <code class="language-plaintext highlighter-rouge">l_cap_vs_act_validation.json</code> with full 2×2 matrix across all test datasets.</p>
+
+<hr />
+
+<h2 id="falsification-criteria">Falsification Criteria</h2>
+
+<p>This framework is falsifiable:</p>
+
+<h3 id="falsification-1-l_cap-benchmark-fails">Falsification 1: L_cap Benchmark Fails</h3>
+<ul>
+  <li><strong>If:</strong> Type III bifurcation scenario shows low L_cap (&lt; 0.0)</li>
+  <li><strong>Then:</strong> System cannot distinguish bifurcation from noise</li>
+  <li><strong>Consequence:</strong> Claim “barometer detects Type III” is false → redesign needed</li>
+</ul>
+
+<h3 id="falsification-2-quadrant-mismatch">Falsification 2: Quadrant Mismatch</h3>
+<ul>
+  <li><strong>If:</strong> Finance system shows many MISS or FALSE_ALARM entries</li>
+  <li><strong>Then:</strong> Either capacity is not real, or governance is broken</li>
+  <li><strong>Consequence:</strong> Investigate and fix root cause</li>
+</ul>
+
+<h3 id="falsification-3-no-separation">Falsification 3: No Separation</h3>
+<ul>
+  <li><strong>If:</strong> L_cap ≈ L_act always (perfectly correlated)</li>
+  <li><strong>Then:</strong> No independent information; L_cap is just a proxy for governance</li>
+  <li><strong>Consequence:</strong> Framework is circular; need to redesign L_cap measurement</li>
+</ul>
+
+<hr />
+
+<h2 id="related-components">Related Components</h2>
+
+<ul>
+  <li><strong>L_cap computation:</strong> <code class="language-plaintext highlighter-rouge">src/amplification_barometer/l_operator.py::compute_l_cap()</code></li>
+  <li><strong>L_act computation:</strong> <code class="language-plaintext highlighter-rouge">src/amplification_barometer/l_operator.py::compute_l_act()</code></li>
+  <li><strong>Benchmark tool:</strong> <code class="language-plaintext highlighter-rouge">src/amplification_barometer/l_capability_benchmark.py</code></li>
+  <li><strong>Validation CLI:</strong> <code class="language-plaintext highlighter-rouge">tools/run_l_cap_vs_act_validation.py</code></li>
+  <li><strong>Canonical scenarios:</strong> <code class="language-plaintext highlighter-rouge">data/canonical_scenarios/</code> (20 deterministic CSVs)</li>
+</ul>
+
+<hr />
+
+<h2 id="integration-with-dod">Integration with DoD</h2>
+
+<p>This framework addresses <strong>Phase 4</strong> of the truth contract:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Phase</th>
+      <th>Deliverable</th>
+      <th>Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1-3</td>
+      <td>Definition of Done, Calibration, Proxy Specs</td>
+      <td>Foundation</td>
+    </tr>
+    <tr>
+      <td><strong>4</strong></td>
+      <td><strong>L_cap vs L_act separation</strong></td>
+      <td><strong>Eliminate circular reasoning</strong></td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Real-world validation</td>
+      <td>Empirical proof</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>Auditability manifests</td>
+      <td>Trust infrastructure</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Without Phase 4, you risk intellectual vulnerability:</p>
+<blockquote>
+  <p>“You detected it because you could detect it, and you could detect it because you detected it.”</p>
+</blockquote>
+
+<p>With Phase 4, you can answer:</p>
+<blockquote>
+  <p>“We <em>can</em> detect Type III bifurcations (L_cap ≥ 0.5). We <em>did</em> detect it in case X (L_act ≥ 0.3). Here’s the 2×2 matrix showing that SUCCESS cases are real.”</p>
+</blockquote>
+
+<hr />
+
+<h2 id="version-history">Version History</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Version</th>
+      <th>Date</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>v0.1.0</td>
+      <td>2026-02-24</td>
+      <td>Initial framework. L_cap on canonical scenarios, L_act on governance proxies.</td>
+    </tr>
+  </tbody>
+</table>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/L_CAP_VS_ACT_FRAMEWORK.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

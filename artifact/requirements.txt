@@ -1,0 +1,10 @@
+# Core runtime dependencies (Python 3.12 compatible)
+# Keep versions broad enough for portability; reproducibility is handled by the prereg + seeds.
+
+numpy>=1.26
+pandas>=2.0
+matplotlib>=3.8
+scipy>=1.11
+statsmodels>=0.14
+
+tqdm>=4.66

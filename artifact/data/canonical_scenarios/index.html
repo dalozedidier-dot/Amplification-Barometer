@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Canonical Scenarios v0.1.0 | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Canonical Scenarios v0.1.0" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/data/canonical_scenarios/" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/data/canonical_scenarios/" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Canonical Scenarios v0.1.0" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Canonical Scenarios v0.1.0","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/data/canonical_scenarios/"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="canonical-scenarios-v010">Canonical Scenarios v0.1.0</h1>
+
+<p>Deterministic, reproducible stress scenarios for barometer calibration.</p>
+
+<h2 id="structure">Structure</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>canonical_scenarios/
+├── README.md (this file)
+├── type_i_noise_base.csv
+├── type_i_noise_0.05.csv
+├── type_i_noise_0.10.csv
+├── type_i_noise_0.15.csv
+├── type_i_noise_0.20.csv
+├── type_i_noise_0.25.csv
+├── type_ii_oscillations_base.csv
+├── type_ii_oscillations_0.05.csv
+├── ... (5 noise variants each for type_ii, type_iii, hybrid)
+└── EXPECTED_VS_OBSERVED.csv (CI artifact)
+</code></pre></div></div>
+
+<h2 id="generation">Generation</h2>
+
+<p>Run: <code class="language-plaintext highlighter-rouge">python3 tools/generate_canonical_scenarios.py</code></p>
+
+<p>All scenarios generated with fixed seeds for reproducibility.</p>
+
+<h2 id="scenario-specs">Scenario Specs</h2>
+
+<p>See <code class="language-plaintext highlighter-rouge">docs/calibration_protocol.md</code> for detailed expected signatures.</p>
+
+<ul>
+  <li><strong>type_i_noise:</strong> Pure stochastic variation, regime=”type_I_noise”</li>
+  <li><strong>type_ii_oscillations:</strong> Cyclical stress with recovery, regime=”type_II_oscillations”</li>
+  <li><strong>type_iii_bifurcation:</strong> Irreversible stress &amp; accumulation, regime=”type_III_bifurcation”</li>
+  <li><strong>hybrid_ii_to_iii:</strong> Transition from oscillations to bifurcation, regime changes mid-run</li>
+</ul>
+
+<p>Each scenario has 5 noise-variant CSVs (noise_level ∈ {0.05, 0.10, 0.15, 0.20, 0.25}).</p>
+
+<h2 id="columns">Columns</h2>
+
+<p>All CSVs contain the 22 proxy columns (P, O, E, R, G families) as defined in <code class="language-plaintext highlighter-rouge">docs/proxies.yaml</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>date, scale_proxy, speed_proxy, leverage_proxy, autonomy_proxy, replicability_proxy,
+stop_proxy, threshold_proxy, decision_proxy, execution_proxy, coherence_proxy,
+impact_proxy, propagation_proxy, hysteresis_proxy,
+margin_proxy, redundancy_proxy, diversity_proxy, recovery_time_proxy,
+exemption_rate, sanction_delay, control_turnover, conflict_interest_proxy, rule_execution_gap
+</code></pre></div></div>
+
+<h2 id="expected-verdicts">Expected Verdicts</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Scenario</th>
+      <th>Base</th>
+      <th>Noise Variants</th>
+      <th>Regime</th>
+      <th>Stability</th>
+      <th>Anti-Gaming</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>type_i_noise</td>
+      <td>type_I_noise</td>
+      <td>All type_I_noise</td>
+      <td>type_I_noise</td>
+      <td>ok</td>
+      <td>ok</td>
+    </tr>
+    <tr>
+      <td>type_ii_oscillations</td>
+      <td>type_II_oscillations</td>
+      <td>All type_II_oscillations</td>
+      <td>type_II_oscillations</td>
+      <td>ok</td>
+      <td>ok</td>
+    </tr>
+    <tr>
+      <td>type_iii_bifurcation</td>
+      <td>type_III_bifurcation</td>
+      <td>All type_III_bifurcation</td>
+      <td>type_III_bifurcation</td>
+      <td>ok</td>
+      <td>ok</td>
+    </tr>
+    <tr>
+      <td>hybrid_ii_to_iii</td>
+      <td>Type II → III transition</td>
+      <td>All show transition</td>
+      <td>type_II→type_III</td>
+      <td>ok</td>
+      <td>ok</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="usage">Usage</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Run audit on single scenario</span>
+python3 tools/run_alignment_audit.py <span class="se">\</span>
+  <span class="nt">--dataset</span> data/canonical_scenarios/type_ii_oscillations_base.csv <span class="se">\</span>
+  <span class="nt">--name</span> calibration_type_ii_base <span class="se">\</span>
+  <span class="nt">--out-dir</span> reports/calibration
+
+<span class="c"># Validate all scenarios (generates EXPECTED_VS_OBSERVED.csv)</span>
+python3 tools/run_calibration_validation.py <span class="se">\</span>
+  <span class="nt">--scenarios-dir</span> data/canonical_scenarios <span class="se">\</span>
+  <span class="nt">--out-dir</span> reports/calibration
+</code></pre></div></div>
+
+<h2 id="ci-integration">CI Integration</h2>
+
+<p>GitHub Actions runs <code class="language-plaintext highlighter-rouge">run_calibration_validation.py</code> on every commit.</p>
+
+<p>If any scenario produces unexpected regime or fails stability, CI fails.</p>
+
+<p>This ensures no regression in core logic.</p>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/data/canonical_scenarios/README.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

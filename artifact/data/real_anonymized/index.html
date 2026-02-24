@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Real anonymized datasets (templates) | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Real anonymized datasets (templates)" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/data/real_anonymized/" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/data/real_anonymized/" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Real anonymized datasets (templates)" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Real anonymized datasets (templates)","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/data/real_anonymized/"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="real-anonymized-datasets-templates">Real anonymized datasets (templates)</h1>
+
+<p>Ce dossier est prévu pour des séries réelles anonymisées, sans divulgation de données sensibles.</p>
+
+<p>Principes:</p>
+<ul>
+  <li>Pas de PII, pas de secrets industriels, pas d’identifiants internes.</li>
+  <li>Les colonnes sont des proxys opérationnels du baromètre.</li>
+  <li>Les unités doivent être stables dans le temps et documentées (même si elles sont arbitraires).</li>
+</ul>
+
+<p>Deux gabarits sont fournis:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">finance_2026_template.csv</code>: chocs principalement sur P(t) (vitesse, levier, scale) et retards d’orientation.</li>
+  <li><code class="language-plaintext highlighter-rouge">ia_2026_template.csv</code>: externalités réseau dominantes (propagation, hysteresis) et dérive institutionnelle possible.</li>
+</ul>
+
+<p>Colonnes obligatoires (baromètre):</p>
+<ul>
+  <li>date (ISO YYYY-MM-DD)</li>
+  <li>5 proxys P, 5 proxys O, 3 proxys E, 4 proxys R, 5 proxys G</li>
+</ul>
+
+<p>Colonnes optionnelles:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">u_exog</code>: signal exogène (choc) si disponible</li>
+  <li><code class="language-plaintext highlighter-rouge">sector_tag</code>: texte libre (<code class="language-plaintext highlighter-rouge">finance</code>, <code class="language-plaintext highlighter-rouge">ia</code>, etc.)</li>
+</ul>
+
+<p>Note audit:</p>
+<ul>
+  <li>Le proxy <code class="language-plaintext highlighter-rouge">rule_execution_gap</code> vise une cible &lt; 0.05 (5%).</li>
+  <li>Si tu utilises d’autres proxys, documente-les et ajoute-les dans <code class="language-plaintext highlighter-rouge">docs/sector_specs_2026.md</code>.</li>
+</ul>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/data/real_anonymized/README.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

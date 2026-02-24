@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Calibration Protocol: Frozen Thresholds | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Calibration Protocol: Frozen Thresholds" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/CALIBRATION_PROTOCOL_v1.0.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/docs/CALIBRATION_PROTOCOL_v1.0.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Calibration Protocol: Frozen Thresholds" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Calibration Protocol: Frozen Thresholds","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/docs/CALIBRATION_PROTOCOL_v1.0.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="calibration-protocol-frozen-thresholds">Calibration Protocol: Frozen Thresholds</h1>
+
+<p><strong>Version:</strong> v1.0.0
+<strong>Status:</strong> FROZEN (2026-02-24)
+<strong>Git Commit:</strong> 73676cc</p>
+
+<hr />
+
+<h2 id="purpose">Purpose</h2>
+
+<p>This document freezes the calibration thresholds <strong>before analyzing any real cases</strong>.</p>
+
+<p>If thresholds change after looking at results → <strong>tuning bias</strong>.
+If thresholds are pre-committed → <strong>falsifiable and defensible</strong>.</p>
+
+<hr />
+
+<h2 id="canonical-scenario-definitions">Canonical Scenario Definitions</h2>
+
+<h3 id="type-i-noise-baseline">Type I: Noise (Baseline)</h3>
+<p><strong>Definition:</strong> No true stress. System oscillates around stable equilibrium.</p>
+
+<p><strong>Ground Truth:</strong></p>
+<ul>
+  <li>P proxies: constant or very low drift</li>
+  <li>O proxies: stable, reactive only to noise</li>
+  <li>E stock: bounded, no accumulation</li>
+  <li>R proxies: maintained</li>
+  <li>G proxies: normal operation</li>
+</ul>
+
+<p><strong>Expected Barometer Signature:</strong></p>
+<ul>
+  <li><strong>@ mean:</strong> 0.5 ± 0.3</li>
+  <li><strong>E irreversibility:</strong> &lt; 0.30</li>
+  <li><strong>Persistence(dE/dt &gt; 0):</strong> &lt; 0.40</li>
+  <li><strong>Regime classification:</strong> Type I (regime_divergence_score &lt; 0.30)</li>
+  <li><strong>Stability (Spearman min):</strong> ≥ 0.85</li>
+  <li><strong>Anti-gaming:</strong> all passes</li>
+</ul>
+
+<p><strong>Tolerance:</strong></p>
+<ul>
+  <li>±5% noise perturbation → same regime classification</li>
+  <li>±10% proxy range change → same regime classification</li>
+</ul>
+
+<p><strong>Falsification Criterion:</strong>
+If Type I scenario shows @ mean &gt; 1.0 or E irreversibility &gt; 0.40 → framework fails</p>
+
+<hr />
+
+<h3 id="type-ii-oscillations-damped-recovery">Type II: Oscillations (Damped Recovery)</h3>
+<p><strong>Definition:</strong> Stress builds, O responds, system recovers, repeat.</p>
+
+<p><strong>Ground Truth:</strong></p>
+<ul>
+  <li>P proxies: cyclical elevation (peaks then decay)</li>
+  <li>O proxies: respond to peaks (gap-filling)</li>
+  <li>E stock: increases then stabilizes (bounded)</li>
+  <li>R proxies: degrade during peaks, recover</li>
+  <li>G proxies: reactive, control frequency &gt; 0</li>
+</ul>
+
+<p><strong>Expected Barometer Signature:</strong></p>
+<ul>
+  <li><strong>@ mean:</strong> 0.8 ± 0.4</li>
+  <li><strong>E irreversibility:</strong> 0.30–0.65</li>
+  <li><strong>Persistence(dE/dt &gt; 0):</strong> 0.40–0.70</li>
+  <li><strong>Delta-D std:</strong> &gt; 0.10 (oscillations visible)</li>
+  <li><strong>Regime classification:</strong> Type II (regime_divergence_score 0.30–0.65)</li>
+  <li><strong>Stability (Spearman min):</strong> ≥ 0.85</li>
+  <li><strong>Anti-gaming:</strong> all passes</li>
+</ul>
+
+<p><strong>Tolerance:</strong></p>
+<ul>
+  <li>±5% noise → persists as Type II (may shift to Type I or III, but not jump to extreme)</li>
+  <li>Oscillation period 5–20 days acceptable</li>
+</ul>
+
+<p><strong>Falsification Criterion:</strong>
+If Type II shows no oscillations in delta_d or E irreversibility outside [0.30, 0.65] → framework fails</p>
+
+<hr />
+
+<h3 id="type-iii-bifurcation-divergence-to-collapse">Type III: Bifurcation (Divergence to Collapse)</h3>
+<p><strong>Definition:</strong> O capabilities saturate, E accumulates monotonically, system tips.</p>
+
+<p><strong>Ground Truth:</strong></p>
+<ul>
+  <li>P proxies: continuous growth (no reversion)</li>
+  <li>O proxies: initially respond but asymptote (can’t keep up)</li>
+  <li>E stock: monotone increase, no reversion (irreversible)</li>
+  <li>R proxies: degrade, stay depressed</li>
+  <li>G proxies: governance gaps emerge (exemptions, delays)</li>
+</ul>
+
+<p><strong>Expected Barometer Signature:</strong></p>
+<ul>
+  <li><strong>@ mean:</strong> 1.2 ± 0.5</li>
+  <li><strong>E irreversibility:</strong> ≥ 0.75</li>
+  <li><strong>Persistence(dE/dt &gt; 0):</strong> ≥ 0.70</li>
+  <li><strong>@_tail divergence (last 30%):</strong> ≥ 0.50 (@ stays high at end)</li>
+  <li><strong>R_tail_mean:</strong> &lt; 0.60 (recovery exhausted)</li>
+  <li><strong>O_saturation:</strong> L_cap detects asymptote</li>
+  <li><strong>Regime classification:</strong> Type III (regime_divergence_score &gt; 0.65)</li>
+  <li><strong>Stability (Spearman min):</strong> ≥ 0.85</li>
+  <li><strong>Anti-gaming:</strong> all passes</li>
+</ul>
+
+<p><strong>Tolerance:</strong></p>
+<ul>
+  <li>±5% noise → persists as Type III (may shift from II to III, but not to I)</li>
+  <li>E may oscillate early, but must trend monotone overall (last 40% of series)</li>
+</ul>
+
+<p><strong>Falsification Criterion:</strong>
+If Type III shows E irreversibility &lt; 0.70 or @ doesn’t stay elevated → framework fails</p>
+
+<hr />
+
+<h3 id="type-iv-hybrid-iiiii-transition">Type IV: Hybrid II→III (Transition)</h3>
+<p><strong>Definition:</strong> Starts Type II (oscillating, recovering), then transitions to Type III (bifurcation).</p>
+
+<p><strong>Ground Truth:</strong></p>
+<ul>
+  <li>Phase 1 (days 1-40): Oscillations with recovery</li>
+  <li>Phase 2 (days 40-80): Recovery weakens, divergence emerges</li>
+  <li>Phase 3 (days 80-120): Full bifurcation</li>
+</ul>
+
+<p><strong>Expected Barometer Signature:</strong></p>
+<ul>
+  <li><strong>@ first half:</strong> 0.8–1.0 (oscillatory)</li>
+  <li><strong>@ second half:</strong> 1.2–1.5 (divergent)</li>
+  <li><strong>E irreversibility:</strong> 0.40 early → 0.85 late</li>
+  <li><strong>Delta-D:</strong> large early, diminishes as divergence dominates</li>
+  <li><strong>Regime classification:</strong> Initially Type II, then Type III (tipping point detectable around day 40)</li>
+  <li><strong>Stability (Spearman min):</strong> ≥ 0.85</li>
+</ul>
+
+<p><strong>Tolerance:</strong></p>
+<ul>
+  <li>Tipping point can occur ±5 days (day 35–45)</li>
+</ul>
+
+<p><strong>Falsification Criterion:</strong>
+If Hybrid scenario doesn’t show transition or shows both simultaneously → framework fails</p>
+
+<hr />
+
+<h2 id="proxy-range-specifications">Proxy Range Specifications</h2>
+
+<h3 id="o-family-proxies-detection-capacity">O-Family Proxies (Detection Capacity)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Proxy</th>
+      <th>Min</th>
+      <th>Normal</th>
+      <th>Max</th>
+      <th>Unit</th>
+      <th>Source</th>
+      <th>Normalisation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>stop_proxy</strong></td>
+      <td>0.0</td>
+      <td>0.7</td>
+      <td>1.0</td>
+      <td>ratio</td>
+      <td>Position limits / leverage</td>
+      <td>(limit − current) / limit</td>
+    </tr>
+    <tr>
+      <td><strong>threshold_proxy</strong></td>
+      <td>0.0</td>
+      <td>0.8</td>
+      <td>1.0</td>
+      <td>ratio</td>
+      <td>Alert threshold headroom</td>
+      <td>(threshold − current) / threshold</td>
+    </tr>
+    <tr>
+      <td><strong>execution_proxy</strong></td>
+      <td>0.0</td>
+      <td>0.6</td>
+      <td>1.0</td>
+      <td>ratio</td>
+      <td>Speed to execute controls</td>
+      <td>1 − (latency / max_latency)</td>
+    </tr>
+    <tr>
+      <td><strong>coherence_proxy</strong></td>
+      <td>0.0</td>
+      <td>0.75</td>
+      <td>1.0</td>
+      <td>ratio</td>
+      <td>Consistency of decision rules</td>
+      <td>agreement_rate among decision makers</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Gate:</strong> If any O proxy &lt; 0.4 on Type III scenario → anti-gaming FAIL</p>
+
+<h3 id="g-family-proxies-governance-activation">G-Family Proxies (Governance Activation)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Proxy</th>
+      <th>Min</th>
+      <th>Normal</th>
+      <th>Max</th>
+      <th>Unit</th>
+      <th>Source</th>
+      <th>Normalisation</th>
+      <th>Gate</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>exemption_rate</strong></td>
+      <td>0.0</td>
+      <td>0.02</td>
+      <td>0.30</td>
+      <td>ratio</td>
+      <td>Policy exceptions granted</td>
+      <td>count_exemptions / count_requests</td>
+      <td>&gt; 0.10 → WARN</td>
+    </tr>
+    <tr>
+      <td><strong>sanction_delay</strong></td>
+      <td>1</td>
+      <td>15</td>
+      <td>365</td>
+      <td>days</td>
+      <td>Time to enforce policy violation</td>
+      <td>min(time_to_sanction)</td>
+      <td>&gt; 90 days → WARN</td>
+    </tr>
+    <tr>
+      <td><strong>control_turnover</strong></td>
+      <td>0.0</td>
+      <td>0.05</td>
+      <td>0.50</td>
+      <td>ratio/year</td>
+      <td>Annual staff turnover in controls</td>
+      <td>fired_or_resigned / total</td>
+      <td>&gt; 0.20 → WARN</td>
+    </tr>
+    <tr>
+      <td><strong>conflict_interest_proxy</strong></td>
+      <td>0.0</td>
+      <td>0.10</td>
+      <td>0.80</td>
+      <td>ratio</td>
+      <td>Fraction with undisclosed conflicts</td>
+      <td>count_conflicts / count_staff</td>
+      <td>&gt; 0.25 → WARN</td>
+    </tr>
+    <tr>
+      <td><strong>rule_execution_gap</strong></td>
+      <td>0.0</td>
+      <td>0.05</td>
+      <td>0.40</td>
+      <td>ratio</td>
+      <td>Fraction of violations not caught</td>
+      <td>undetected_violations / total_violations</td>
+      <td>&gt; 0.15 → WARN</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Gate:</strong> If any G proxy at Type III scenario crosses WARN threshold → verdict dims to “Partial” or “Caution”</p>
+
+<p><strong>Important:</strong> These ranges are <strong>FROZEN as of 2026-02-24, git 73676cc</strong>.
+To change: create new version v1.1.0, document reason, update git, publish amendment.</p>
+
+<hr />
+
+<h2 id="calibration-procedure">Calibration Procedure</h2>
+
+<h3 id="step-1-generate-canonical-scenarios-pre-commitment-phase">Step 1: Generate Canonical Scenarios (Pre-commitment Phase)</h3>
+<ol>
+  <li>Create 4 scenario types × 6 noise variants = 24 datasets</li>
+  <li>Fix random seeds (reproducible)</li>
+  <li>Compute expected signatures (Type I, II, III, IV)</li>
+  <li><strong>Freeze in git</strong> (commit message: “Canonical scenarios v1.0, thresholds frozen”)</li>
+</ol>
+
+<h3 id="step-2-define-regime-decision-rules-pre-commitment-phase">Step 2: Define Regime Decision Rules (Pre-commitment Phase)</h3>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>regime_divergence_score = 0.50 * persistence_dE_dt
+                        + 0.30 * e_irreversibility
+                        + 0.20 * at_divergence_tail
+
+Type I:   score &lt; 0.30  → @ mean 0.5 ± 0.3, E_irr &lt; 0.30
+Type II:  score 0.30–0.65 → @ mean 0.8 ± 0.4, E_irr 0.30–0.65
+Type III: score &gt; 0.65  → @ mean 1.2 ± 0.5, E_irr &gt; 0.75
+</code></pre></div></div>
+
+<p><strong>Freeze date:</strong> 2026-02-24
+<strong>Cannot be changed without new protocol version</strong></p>
+
+<h3 id="step-3-run-on-canonical-scenarios-validation-phase">Step 3: Run on Canonical Scenarios (Validation Phase)</h3>
+<ol>
+  <li>Compute @ and signatures for all 24 datasets</li>
+  <li>Check each Type I, II, III, IV scenario against expected signature table above</li>
+  <li><strong>Pass rate target:</strong> ≥ 95% correct regime classification</li>
+</ol>
+
+<h3 id="step-4-test-noise-robustness-validation-phase">Step 4: Test Noise Robustness (Validation Phase)</h3>
+<ol>
+  <li>Perturb each dataset by ±5% and ±10% random noise</li>
+  <li>Re-classify</li>
+  <li><strong>Pass rate target:</strong> ≥ 90% keep same regime</li>
+</ol>
+
+<h3 id="step-5-anti-gaming-checks-validation-phase">Step 5: Anti-gaming Checks (Validation Phase)</h3>
+<ol>
+  <li>Run <code class="language-plaintext highlighter-rouge">tools/run_anti_gaming_suite.py</code> on all 24 datasets</li>
+  <li><strong>Pass target:</strong> All 5 attack vectors fail to flip verdict</li>
+</ol>
+
+<h3 id="step-6-freeze-calibration-public-commitment-phase">Step 6: Freeze Calibration (Public Commitment Phase)</h3>
+<ol>
+  <li>Publish <code class="language-plaintext highlighter-rouge">CALIBRATION_REPORT_v1.0.json</code> with results</li>
+  <li>Commit to git with tag <code class="language-plaintext highlighter-rouge">v1.0-calibration-frozen</code></li>
+  <li><strong>After this:</strong> Any changes require new version, dated amendment, and re-validation</li>
+</ol>
+
+<hr />
+
+<h2 id="multidimensional-verdict">Multidimensional Verdict</h2>
+
+<p>Every audit run produces a <strong>public verdict table</strong>, not just “Mature/Immature”:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"run_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"20260224_case_001_finance"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-02-24T16:00:00Z"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"verdict_table"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"spearman_min"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.89</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"jaccard_min"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.82</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"threshold"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.85</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PASS"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"l_cap"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"value"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.72</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"expected_range"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.50</span><span class="p">,</span><span class="w"> </span><span class="mf">1.50</span><span class="p">],</span><span class="w">
+      </span><span class="nl">"regime_detected"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type_III_bifurcation"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PASS"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"l_act"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"value"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.64</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"expected_range"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.30</span><span class="p">,</span><span class="w"> </span><span class="mf">1.00</span><span class="p">],</span><span class="w">
+      </span><span class="nl">"governance_alert"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PASS"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"governance"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"exemption_rate"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.08</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"sanction_delay"</span><span class="p">:</span><span class="w"> </span><span class="mi">45</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"control_turnover"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.12</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"conflict_interest"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.09</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"rule_execution_gap"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.08</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w">
+      </span><span class="nl">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PASS"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"anti_gaming"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"o_bias_attack"</span><span class="p">:</span><span class="w"> </span><span class="s2">"FAIL_DETECTED"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"vol_clamp_attack"</span><span class="p">:</span><span class="w"> </span><span class="s2">"FAIL_DETECTED"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"range_shift_attack"</span><span class="p">:</span><span class="w"> </span><span class="s2">"FAIL_DETECTED"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"coordinated_attack"</span><span class="p">:</span><span class="w"> </span><span class="s2">"FAIL_DETECTED"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"delay_attack"</span><span class="p">:</span><span class="w"> </span><span class="s2">"FAIL_DETECTED"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PASS"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"stress_signature"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"e_irreversibility"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.88</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"persistence_de"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.62</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"at_divergence"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.51</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"r_recovery"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.52</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"expected_signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type_III_bifurcation"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PASS"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"overall_verdict"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CREDIBLE"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"reasoning"</span><span class="p">:</span><span class="w"> </span><span class="s2">"All dimensions passed. Signal timing matches event date (0 days lag). Regime correct. Governance in normal bands. Anti-gaming passed."</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<hr />
+
+<h2 id="falsification-thresholds-hard-stops">Falsification Thresholds (Hard Stops)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Condition</th>
+      <th>Consequence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Type I scenario: @ &gt; 1.0</td>
+      <td><strong>FRAMEWORK INVALID</strong></td>
+    </tr>
+    <tr>
+      <td>Type II scenario: E_irr outside [0.30, 0.65]</td>
+      <td><strong>FRAMEWORK INVALID</strong></td>
+    </tr>
+    <tr>
+      <td>Type III scenario: E_irr &lt; 0.70</td>
+      <td><strong>FRAMEWORK INVALID</strong></td>
+    </tr>
+    <tr>
+      <td>Hybrid: No transition detected</td>
+      <td><strong>FRAMEWORK INVALID</strong></td>
+    </tr>
+    <tr>
+      <td>Stability: Spearman min &lt; 0.80</td>
+      <td><strong>RUN INVALID</strong> (retest)</td>
+    </tr>
+    <tr>
+      <td>Anti-gaming: Any attack succeeds</td>
+      <td><strong>RUN INVALID</strong> (debug)</td>
+    </tr>
+    <tr>
+      <td>Real case: Signal lags event &gt; 10 days</td>
+      <td><strong>SIGNAL QUESTIONED</strong> (note in report)</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<h2 id="amendment-process">Amendment Process</h2>
+
+<p>If someone finds a case that breaks the protocol:</p>
+
+<ol>
+  <li><strong>Document</strong>: Create GitHub issue with case details</li>
+  <li><strong>Root cause analysis</strong>: Why did it break?</li>
+  <li><strong>Decision</strong>:
+    <ul>
+      <li>If framework is wrong → v2.0.0 with new thresholds</li>
+      <li>If implementation is wrong → v1.0.1 (patch)</li>
+      <li>If data quality issue → note in case report, framework stands</li>
+    </ul>
+  </li>
+  <li><strong>Publish</strong>: Amended protocol with date and reason</li>
+</ol>
+
+<hr />
+
+<h2 id="version-history">Version History</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Version</th>
+      <th>Date</th>
+      <th>Changes</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>v1.0.0</td>
+      <td>2026-02-24</td>
+      <td>Initial freeze: 4 scenario types, proxy ranges, verdicts</td>
+      <td>FROZEN</td>
+    </tr>
+  </tbody>
+</table>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/docs/CALIBRATION_PROTOCOL_v1.0.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

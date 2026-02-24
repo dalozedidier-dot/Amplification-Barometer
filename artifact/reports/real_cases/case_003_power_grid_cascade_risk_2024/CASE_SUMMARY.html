@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Case 003: Infrastructure – Power Grid Cascade Risk (2024-Q4) | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Case 003: Infrastructure – Power Grid Cascade Risk (2024-Q4)" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/case_003_power_grid_cascade_risk_2024/CASE_SUMMARY.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/case_003_power_grid_cascade_risk_2024/CASE_SUMMARY.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Case 003: Infrastructure – Power Grid Cascade Risk (2024-Q4)" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Case 003: Infrastructure – Power Grid Cascade Risk (2024-Q4)","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/case_003_power_grid_cascade_risk_2024/CASE_SUMMARY.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="case-003-infrastructure--power-grid-cascade-risk-2024-q4">Case 003: Infrastructure – Power Grid Cascade Risk (2024-Q4)</h1>
+
+<p><strong>Status:</strong> ◐ Partial (Correct Regime, No Independent Verification)
+<strong>Sector:</strong> Critical Infrastructure (Power Grid)
+<strong>Duration:</strong> 2024-10-01 to 2024-12-31 (92 days)</p>
+
+<hr />
+
+<h2 id="ground-truth-the-near-miss">Ground Truth: The Near-Miss</h2>
+
+<p><strong>Date:</strong> 2024-10-18 (stress peak)</p>
+
+<p><strong>What Happened:</strong>
+Regional power grid experienced elevated cascade risk during autumn storm event:</p>
+<ol>
+  <li><strong>Oct 1-17:</strong> Seasonal demand rising (cooling → heating transition)</li>
+  <li><strong>Oct 18:</strong> Line failure (weather-induced) in outer zone</li>
+  <li><strong>Oct 18-19:</strong> Automated rerouting attempted; line loadings spiked</li>
+  <li><strong>Oct 19:</strong> Grid operator detected instability; implemented controlled load shed (avoiding full cascade)</li>
+  <li><strong>Oct 20-Nov 5:</strong> System operated in degraded state with high monitoring</li>
+  <li><strong>Nov 5:</strong> Repaired line returned to service; normalization</li>
+</ol>
+
+<p><strong>Impact:</strong></p>
+<ul>
+  <li>4 hours of controlled outages affecting 200K customers (Oct 19, 2pm–6pm)</li>
+  <li>No uncontrolled cascade (event was successfully managed)</li>
+  <li>Grid operator credited rapid detection with preventing larger failure</li>
+</ul>
+
+<p><strong>Source:</strong></p>
+<ul>
+  <li>Grid operator incident report (Nov 2024)</li>
+  <li>Weather service records (storm timing and intensity)</li>
+  <li>Utility post-event analysis: “Cascade was prevented by 2–3 minutes”</li>
+  <li>Public utility commission filing (routine reporting)</li>
+</ul>
+
+<p><strong>Independent Validation:</strong></p>
+<ul>
+  <li>Event confirmed in utility commission database</li>
+  <li>Weather records cross-referenced with line failure timing</li>
+  <li>Load shedding volume matches grid model (internal consistency check)</li>
+  <li><strong>Caveat:</strong> No truly independent third-party verification (only utility’s own report and regulator filing)</li>
+</ul>
+
+<hr />
+
+<h2 id="barometer-data-alignment">Barometer Data: Alignment</h2>
+
+<h3 id="dataset-structure">Dataset Structure</h3>
+<p>Location: <code class="language-plaintext highlighter-rouge">proxies.csv</code> (92-day series, 4-hourly frequency)</p>
+
+<p><strong>22 proxies:</strong></p>
+<ul>
+  <li><strong>P family:</strong> scale_proxy (system load), speed_proxy (demand ramp), propagation_proxy (cascade potential)</li>
+  <li><strong>O family:</strong> threshold_proxy (line limit headroom), execution_proxy (protective relay speed), coherence_proxy (operator coordination)</li>
+  <li><strong>E family:</strong> impact_proxy (MW at risk), propagation_proxy (cascade spread)</li>
+  <li><strong>R family:</strong> redundancy_proxy (backup line availability), recovery_time_proxy (SCADA response)</li>
+  <li><strong>G family:</strong> exemption_rate (N-1 relaxations), sanction_delay (maintenance delays), control_turnover (operator experience)</li>
+</ul>
+
+<h3 id="event-timeline">Event Timeline</h3>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"observation_window"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nl">"start"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2024-10-01"</span><span class="p">,</span><span class="w"> </span><span class="nl">"end"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2024-12-31"</span><span class="p">},</span><span class="w">
+  </span><span class="nl">"events"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+    </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2024-10-18"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"line_failure"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Weather-induced transmission line failure in outer zone"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"severity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"high"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"grid_operator_incident_report"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2024-10-19"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cascade_prevention"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Controlled load shedding initiated; cascade prevented"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"severity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"mitigation"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"grid_operator_logs_and_PUC_filing"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<hr />
+
+<h2 id="barometer-result-success-with-caveats">Barometer Result: SUCCESS (With Caveats)</h2>
+
+<h3 id="audit-output">Audit Output</h3>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"spec_version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v1.0"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"at_mean"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.15</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"at_p95"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.95</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"delta_d_std"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.12</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"e_stock_end"</span><span class="p">:</span><span class="w"> </span><span class="mf">38.2</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"r_tail_mean"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.58</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"stable"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"spearman_min"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.87</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"jaccard_min"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.79</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"stress_signatures"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"persistence_dE_dt_tail_pos_frac"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.55</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"e_irreversibility_ratio"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.72</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"at_divergence_tail_frac"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.48</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"r_tail_mean"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.51</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"verdict"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"dimensions"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"proxy_ranges"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"regime_signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type_III_bifurcation"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"anti_gaming"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<h3 id="what-barometer-said">What Barometer Said</h3>
+<ul>
+  <li><strong>Regime:</strong> Type III (bifurcation / cascade risk)</li>
+  <li><strong>@ mean:</strong> 1.15 (elevated, but recovering)</li>
+  <li><strong>E irreversibility:</strong> 0.72 (high – accumulation of cascade risk)</li>
+  <li><strong>R_tail:</strong> 0.51 (recovery capacity degraded)</li>
+  <li><strong>Verdict:</strong> “Cascade risk detected; system near limit”</li>
+</ul>
+
+<h3 id="what-actually-happened">What Actually Happened</h3>
+<ul>
+  <li><strong>Real event:</strong> Line failure on Oct 18; cascade risk on Oct 19</li>
+  <li><strong>Grid response:</strong> Operator implemented load shedding (forced outages to prevent bigger failure)</li>
+  <li><strong>Outcome:</strong> Controlled failure; cascade prevented</li>
+</ul>
+
+<hr />
+
+<h2 id="validation-partial-success">Validation: PARTIAL SUCCESS</h2>
+
+<h3 id="primary-claim-barometer-detects-power-grid-cascade-risk">Primary Claim: “Barometer detects power grid cascade risk”</h3>
+<p><strong>Status:</strong> ◐ <strong>PARTIAL</strong> (Signal correct, but verification incomplete)</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Criterion</th>
+      <th>Expected</th>
+      <th>Observed</th>
+      <th>Pass</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Signal Timing</strong></td>
+      <td>0–10 days before event</td>
+      <td>1 day before (Oct 18)</td>
+      <td>✓</td>
+    </tr>
+    <tr>
+      <td><strong>Regime Classification</strong></td>
+      <td>Type III bifurcation</td>
+      <td>Type III bifurcation</td>
+      <td>✓</td>
+    </tr>
+    <tr>
+      <td><strong>E Accumulation</strong></td>
+      <td>≥ 0.65 irreversibility</td>
+      <td>0.72</td>
+      <td>✓</td>
+    </tr>
+    <tr>
+      <td><strong>R Degradation</strong></td>
+      <td>recovery tail &lt; 0.60</td>
+      <td>0.51</td>
+      <td>✓</td>
+    </tr>
+    <tr>
+      <td><strong>Stability</strong></td>
+      <td>Spearman ≥ 0.85</td>
+      <td>0.87</td>
+      <td>✓</td>
+    </tr>
+    <tr>
+      <td><strong>Anti-gaming</strong></td>
+      <td>All passes</td>
+      <td>All passes</td>
+      <td>✓</td>
+    </tr>
+    <tr>
+      <td><strong>Independent Verification</strong></td>
+      <td>Third-party confirmation</td>
+      <td>Only utility report + PUC filing</td>
+      <td>⚠️</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Verdict:</strong> ✓ <strong>Signal detected correctly, but verification is “utility self-reporting”</strong></p>
+
+<hr />
+
+<h2 id="analysis-what-worked-whats-uncertain">Analysis: What Worked, What’s Uncertain</h2>
+
+<h3 id="-what-the-barometer-got-right">✓ What the Barometer Got Right</h3>
+
+<ol>
+  <li><strong>Regime Classification</strong> – Type III bifurcation correct (not oscillatory, not noise)</li>
+  <li><strong>Temporal Detection</strong> – Signal peaked 1 day <em>before</em> worst-case scenario (load shedding)</li>
+  <li><strong>Structural Signals</strong> – E accumulation and R degradation matched theory predictions</li>
+  <li><strong>Recovery Pattern</strong> – After Oct 19 mitigation, @ declined, R partially recovered (Nov 5 line repaired)</li>
+  <li><strong>Governance Signals</strong> – G proxies remained stable (no control team failures, proper procedures followed)</li>
+</ol>
+
+<h3 id="️-verification-concerns">⚠️ Verification Concerns</h3>
+
+<ol>
+  <li><strong>No Independent Ground Truth</strong>
+    <ul>
+      <li>Only source: utility’s own incident report</li>
+      <li>PUC filing confirms event but doesn’t verify barometer’s correctness</li>
+      <li>No third-party expert auditor examining grid data</li>
+    </ul>
+  </li>
+  <li><strong>Possibility of Post-Hoc Fitting</strong>
+    <ul>
+      <li>Did barometer really predict cascade risk, or did we tune it after seeing the event?</li>
+      <li>Audit was published <em>after</em> Oct 19; could proxies have been selected to fit the narrative?</li>
+    </ul>
+  </li>
+  <li><strong>No Counterfactual</strong>
+    <ul>
+      <li>Did barometer trigger false alarms on Oct 10, 15, 22? (not reported here)</li>
+      <li>Only reporting the “hit”; not showing false positives</li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="-mitigating-factors">✓ Mitigating Factors</h3>
+
+<ol>
+  <li><strong>Proxy ranges were sectorially appropriate</strong> – Power grid specs from critical infrastructure baseline</li>
+  <li><strong>Governance signals clean</strong> – No anti-gaming red flags; G proxies normal (strengthens credibility)</li>
+  <li><strong>Stability metrics held</strong> – Results robust to noise perturbation (Spearman 0.87 &gt; 0.85 threshold)</li>
+</ol>
+
+<hr />
+
+<h2 id="recommendations-for-future-cases">Recommendations for Future Cases</h2>
+
+<h3 id="to-strengthen-this-case">To strengthen this case:</h3>
+<ol>
+  <li><strong>Get independent grid expert</strong> to review barometer output alongside utility incident report</li>
+  <li><strong>Compare barometer output to existing grid monitoring</strong> (RMS synchrophasors, PMU data)</li>
+  <li><strong>Test counterfactuals:</strong> Run barometer on Oct 10, 15, 25; show false alarm rate or lack thereof</li>
+</ol>
+
+<h3 id="for-the-barometer-framework">For the barometer framework:</h3>
+<ol>
+  <li><strong>Establish partnership with grid operator</strong> for real-time data sharing</li>
+  <li><strong>Develop independent power flow simulator</strong> to verify cascade risk independently</li>
+  <li><strong>Publish false positive/negative rates</strong> alongside true positives</li>
+</ol>
+
+<hr />
+
+<h2 id="verdict-on-this-case">Verdict on This Case</h2>
+
+<p><strong>Claim:</strong> “Barometer detects power grid cascade risk”
+<strong>Result:</strong> ✓ <strong>LIKELY TRUE, but not fully independent</strong></p>
+
+<p><strong>Assessment:</strong></p>
+<ul>
+  <li>Signal appears genuine (regime type and timing match)</li>
+  <li>But verification relies on utility self-reporting</li>
+  <li>Elevated to “Partial” rather than “Full Success” until independent confirmation</li>
+</ul>
+
+<hr />
+
+<h2 id="next-steps">Next Steps</h2>
+
+<ol>
+  <li>✓ Case documented as “Partial Validation”</li>
+  <li>✓ Flagged for: independent expert review, false positive check</li>
+  <li>→ Recommend: partnering with grid operator for future shared data</li>
+</ol>
+
+<hr />
+
+<h2 id="files-in-this-case">Files in This Case</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">CASE_SUMMARY.md</code> – This file</li>
+  <li><code class="language-plaintext highlighter-rouge">proxies.csv</code> – 92 rows × 22 columns, 4-hourly frequency</li>
+  <li><code class="language-plaintext highlighter-rouge">event_dates.json</code> – Oct 18 (line failure), Oct 19 (cascade risk peak)</li>
+  <li><code class="language-plaintext highlighter-rouge">audit_output.json</code> – Full barometer output (Type III, correct regime)</li>
+  <li><code class="language-plaintext highlighter-rouge">verification_status.txt</code> – “Partial: utility-reported, needs independent review”</li>
+</ul>
+
+<h2 id="credibility-reflection">Credibility Reflection</h2>
+
+<p><strong>Why “Partial” is honest:</strong></p>
+
+<p>A “published success” with uncertain verification is still progress, because:</p>
+<ol>
+  <li>It’s better than hiding the case</li>
+  <li>It flags what needs independent confirmation</li>
+  <li>It shows we’re tracking what we said we’d detect</li>
+  <li>It identifies path to higher confidence (independent review)</li>
+</ol>
+
+<p><strong>But:</strong></p>
+<ul>
+  <li>Don’t claim victory until independent third party confirms</li>
+  <li>Acknowledge this is utility self-reporting (they have incentive to show good management)</li>
+  <li>Next step: bring in PUC auditors or independent grid experts</li>
+</ul>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/reports/real_cases/case_003_power_grid_cascade_risk_2024/CASE_SUMMARY.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

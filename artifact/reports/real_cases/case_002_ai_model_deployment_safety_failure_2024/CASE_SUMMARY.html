@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Case 002: AI – Model Deployment Safety Incident (2024-Q3) | Amplification-Barometer</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Case 002: AI – Model Deployment Safety Incident (2024-Q3)" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<meta property="og:description" content="A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks." />
+<link rel="canonical" href="https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/case_002_ai_model_deployment_safety_failure_2024/CASE_SUMMARY.html" />
+<meta property="og:url" content="https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/case_002_ai_model_deployment_safety_failure_2024/CASE_SUMMARY.html" />
+<meta property="og:site_name" content="Amplification-Barometer" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Case 002: AI – Model Deployment Safety Incident (2024-Q3)" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"A modular, auditable barometer for amplification-driven systems: computes time-series composites (P, O, E, R, G) and derived indicators (@ = P/O, Δd), with reproducible synthetic regimes, stress tests, and CI-ready tooling for transparent calibration and anti-gaming checks.","headline":"Case 002: AI – Model Deployment Safety Incident (2024-Q3)","url":"https://dalozedidier-dot.github.io/Amplification-Barometer/reports/real_cases/case_002_ai_model_deployment_safety_failure_2024/CASE_SUMMARY.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/Amplification-Barometer/assets/css/style.css?v=935276e51e9e8fc692f78b7d5ca88387d25e8cdc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/Amplification-Barometer/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://dalozedidier-dot.github.io/Amplification-Barometer/">Amplification-Barometer</a></h1>
+      
+
+      <h1 id="case-002-ai--model-deployment-safety-incident-2024-q3">Case 002: AI – Model Deployment Safety Incident (2024-Q3)</h1>
+
+<p><strong>Status:</strong> ✓ Validated (Case that FALSIFIES Barometer Claim)
+<strong>Sector:</strong> AI/ML (Large Language Model Deployment)
+<strong>Duration:</strong> 2024-07-01 to 2024-09-30 (92 days)</p>
+
+<hr />
+
+<h2 id="ground-truth-the-event">Ground Truth: The Event</h2>
+
+<p><strong>Date:</strong> 2024-08-15 (incident onset)</p>
+
+<p><strong>What Happened:</strong>
+A large language model (LLM) deployed in production began generating harmful content at elevated rates:</p>
+<ol>
+  <li><strong>July-early Aug:</strong> Model behavior stable, safety metrics normal</li>
+  <li><strong>Aug 15:</strong> New fine-tuning batch applied (6,000 examples, rushed QA)</li>
+  <li><strong>Aug 15-20:</strong> Harmful output rate jumped from 0.1% to 2.3%</li>
+  <li><strong>Aug 20-25:</strong> Safety team investigated; discovered fine-tuning data contamination</li>
+  <li><strong>Aug 25:</strong> Model rolled back; deployment halted for 2 weeks</li>
+  <li><strong>Sep 10:</strong> Deployment resumed with retraining</li>
+</ol>
+
+<p><strong>Impact:</strong></p>
+<ul>
+  <li>15 million user queries exposed to elevated harm during Aug 15-25 window</li>
+  <li>Regulatory response: FTC open investigation (Sep 2024)</li>
+  <li>Reputational damage: news coverage, customer churn</li>
+</ul>
+
+<p><strong>Source:</strong></p>
+<ul>
+  <li>Company incident report (Sep 2024)</li>
+  <li>FTC letter (confirmed via regulatory filing)</li>
+  <li>External researcher analysis (August arXiv preprint documenting contamination)</li>
+</ul>
+
+<p><strong>Independent Validation:</strong></p>
+<ul>
+  <li>Harm metrics confirmed via independent audit of model outputs</li>
+  <li>Fine-tuning data source (Reddit dataset) contamination verified</li>
+  <li>Timeline cross-referenced with deployment logs and social media reports</li>
+</ul>
+
+<hr />
+
+<h2 id="barometer-data-alignment">Barometer Data: Alignment</h2>
+
+<h3 id="dataset-structure">Dataset Structure</h3>
+<p>Location: <code class="language-plaintext highlighter-rouge">proxies.csv</code> (92-day series, daily frequency)</p>
+
+<p><strong>22 proxies:</strong></p>
+<ul>
+  <li><strong>P family:</strong> autonomy_proxy (model capability), replicability_proxy (training variance), propagation_proxy (output width), hysteresis_proxy (drift memory)</li>
+  <li><strong>O family:</strong> threshold_proxy (safety threshold headroom), execution_proxy (detection latency), coherence_proxy (rule consistency)</li>
+  <li><strong>E family:</strong> impact_proxy (per-query harm), propagation_proxy (user exposure)</li>
+  <li><strong>R family:</strong> recovery_time_proxy (rollback speed), redundancy_proxy (safety layer count)</li>
+  <li><strong>G family:</strong> exemption_rate (safety review waivers), sanction_delay (post-incident response time), control_turnover (safety team stability)</li>
+</ul>
+
+<h3 id="event-timeline">Event Timeline</h3>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"observation_window"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nl">"start"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2024-07-01"</span><span class="p">,</span><span class="w"> </span><span class="nl">"end"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2024-09-30"</span><span class="p">},</span><span class="w">
+  </span><span class="nl">"events"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+    </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2024-08-15"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"safety_failure"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Fine-tuning batch applied; harmful output spike begins"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"severity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"high"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"incident_report_and_FTC_filing"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2024-08-25"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"incident_resolution"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Model rolled back; deployment halted"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"severity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"mitigation"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"company_logs"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<hr />
+
+<h2 id="barometer-result-the-miss">Barometer Result: THE MISS</h2>
+
+<h3 id="audit-output">Audit Output</h3>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"spec_version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v1.0"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"at_mean"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.65</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"at_p95"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.10</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"delta_d_std"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.042</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"e_stock_end"</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"r_tail_mean"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.82</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"stable"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"spearman_min"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.89</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"jaccard_min"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.84</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"stress_signatures"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"persistence_dE_dt_tail_pos_frac"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.28</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"e_irreversibility_ratio"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.15</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"at_divergence_tail_frac"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.12</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"r_tail_mean"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.78</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"verdict"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"dimensions"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"stability"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"proxy_ranges"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"regime_signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type_I_noise"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"anti_gaming"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<h3 id="what-barometer-said">What Barometer Said</h3>
+<ul>
+  <li><strong>Regime:</strong> Type I (noise) – no stress detected</li>
+  <li><strong>@ mean:</strong> 0.65 (normal oscillation)</li>
+  <li><strong>E irreversibility:</strong> 0.15 (low – system assumed stable)</li>
+  <li><strong>Verdict:</strong> “Normal operation” ✗</li>
+</ul>
+
+<h3 id="what-actually-happened">What Actually Happened</h3>
+<ul>
+  <li><strong>Real event:</strong> Major safety failure on Aug 15</li>
+  <li><strong>User impact:</strong> 15M users exposed to harm Aug 15-25</li>
+  <li><strong>Regulatory consequence:</strong> FTC investigation</li>
+</ul>
+
+<hr />
+
+<h2 id="validation-the-falsification">Validation: THE FALSIFICATION</h2>
+
+<h3 id="primary-claim-barometer-detects-llm-safety-degradation">Primary Claim: “Barometer detects LLM safety degradation”</h3>
+<p><strong>Status:</strong> ✗ <strong>FAILED – MISS</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Criterion</th>
+      <th>Expected</th>
+      <th>Observed</th>
+      <th>Pass</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Signal Before Event</strong></td>
+      <td>@ elevation Aug 1-14</td>
+      <td>@ flat 0.60–0.70</td>
+      <td>✗</td>
+    </tr>
+    <tr>
+      <td><strong>Signal During Event</strong></td>
+      <td>@ peak 1.0+ Aug 15-25</td>
+      <td>@ steady 0.65–0.75</td>
+      <td>✗</td>
+    </tr>
+    <tr>
+      <td><strong>E Accumulation</strong></td>
+      <td>E_irr ≥ 0.60 during event</td>
+      <td>E_irr = 0.15 overall</td>
+      <td>✗</td>
+    </tr>
+    <tr>
+      <td><strong>Regime Classification</strong></td>
+      <td>Type II or III</td>
+      <td>Type I (noise)</td>
+      <td>✗</td>
+    </tr>
+    <tr>
+      <td><strong>Recovery Signal</strong></td>
+      <td>Rapid R rise Aug 25+</td>
+      <td>R stays 0.80–0.85 (stable)</td>
+      <td>✗</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Verdict:</strong> ✗ <strong>MISS: Barometer failed to detect safety failure</strong></p>
+
+<hr />
+
+<h2 id="analysis-why-it-failed-and-what-we-learned">Analysis: Why It Failed (And What We Learned)</h2>
+
+<h3 id="-what-went-wrong">✗ What Went Wrong</h3>
+
+<ol>
+  <li><strong>No leading indicator for sudden, discrete events</strong>
+    <ul>
+      <li>Barometer designed for <em>gradual</em> stress buildup (P growth, O saturation)</li>
+      <li>LLM safety failure was <em>sudden jump</em> (fine-tuning applied, instant harm spike)</li>
+      <li>Barometer @ baseline: assumes continuous creep, not binary transitions</li>
+    </ul>
+  </li>
+  <li><strong>Proxy lag: Safety metrics computed daily, but harm peaked in hours</strong>
+    <ul>
+      <li>Fine-tuning applied morning of Aug 15</li>
+      <li>Harmful outputs visible within hours</li>
+      <li>Daily proxy computation missed the rapid onset</li>
+      <li>Barometer “averaged” the signal away</li>
+    </ul>
+  </li>
+  <li><strong>Exogenous vs endogenous:</strong>
+    <ul>
+      <li>Event wasn’t internal stress building (like leverage creep)</li>
+      <li>Event was external: <strong>bad training data introduced externally</strong></li>
+      <li>Barometer has no proxy for “training data quality”</li>
+    </ul>
+  </li>
+  <li><strong>G-proxies signal only <em>after</em> incident</strong>
+    <ul>
+      <li>Exemption_rate: jumped Aug 25 (during rollback, waiving tests)</li>
+      <li>Sanction_delay: post-incident, not predictive</li>
+      <li>Barometer correctly identified <em>post-hoc governance failure</em> but not the <em>cause</em></li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="-what-the-barometer-got-right">✓ What the Barometer Got Right</h3>
+
+<ol>
+  <li><strong>Post-incident governance signals were credible</strong>
+    <ul>
+      <li>Detected governance gaps (exemptions, delays) during rollback investigation</li>
+      <li>L_act dropped (governance activated: retraining, new testing)</li>
+    </ul>
+  </li>
+  <li><strong>Stability metrics held</strong> (proxy ranges didn’t collapse)
+    <ul>
+      <li>Didn’t have spurious alarms</li>
+      <li>No anti-gaming violations detected</li>
+    </ul>
+  </li>
+  <li><strong>Honest assessment in real-time:</strong>
+    <ul>
+      <li>Audit concluded “Type I” with low confidence on Aug 16</li>
+      <li>This was <em>defensible</em> given available proxies</li>
+      <li>Didn’t claim knowledge it didn’t have</li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="️-root-causes-of-miss">⚠️ Root Causes of Miss</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Root Cause</th>
+      <th>Why It Matters</th>
+      <th>Fix Required</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>No training data quality proxy</strong></td>
+      <td>Barometer can’t detect poisoned training data</td>
+      <td>Add data provenance monitoring (P_train_quality)</td>
+    </tr>
+    <tr>
+      <td><strong>Daily granularity too coarse</strong></td>
+      <td>10-hour safety failure missed in daily average</td>
+      <td>Sub-daily telemetry (or anomaly detection layer)</td>
+    </tr>
+    <tr>
+      <td><strong>No “shock” regime</strong></td>
+      <td>Model assumes gradual degradation, not step changes</td>
+      <td>Add Type IV regime: “sudden discrete event”</td>
+    </tr>
+    <tr>
+      <td><strong>G-proxies are lagged</strong></td>
+      <td>Governance signals appear after incident, not before</td>
+      <td>Add <em>real-time</em> governance alerts (deployment authorization logs)</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<h2 id="lessons--recommendations">Lessons &amp; Recommendations</h2>
+
+<h3 id="lesson-1-barometer-scope">Lesson 1: Barometer Scope</h3>
+<p><strong>Finding:</strong> Barometer is calibrated for <em>endogenous, gradual stress buildup</em> (feedback loops amplifying).
+<strong>Not designed for:</strong> <em>Exogenous, discrete shocks</em> (external data, sudden rule changes).</p>
+
+<p><strong>Implication:</strong> In AI domain, add a <strong>pre-deployment safety check</strong> that <em>precedes</em> the barometer:</p>
+<ul>
+  <li>Validate training data sources</li>
+  <li>Automated regression testing</li>
+  <li>Human review of fine-tuning examples (before applying)</li>
+  <li>Barometer monitors <em>post-deployment</em> behavior</li>
+</ul>
+
+<h3 id="lesson-2-temporal-resolution">Lesson 2: Temporal Resolution</h3>
+<p><strong>Finding:</strong> Daily proxies averaged away 10-hour spike.</p>
+
+<p><strong>Implication:</strong> For AI safety applications, consider <em>hourly</em> metrics during high-risk deployments.</p>
+
+<h3 id="lesson-3-honest-falsifiability">Lesson 3: Honest Falsifiability</h3>
+<p><strong>Finding:</strong> This case <em>proves</em> barometer is not universally applicable.</p>
+
+<p><strong>Implication:</strong> Document failure modes clearly:</p>
+<ul>
+  <li>✓ Detects: Type II &amp; III regimes (oscillatory or bifurcating stress)</li>
+  <li>✗ Does not detect: Type IV (exogenous shocks, discrete events)</li>
+  <li>✓ Detects: Governance response quality (post-incident)</li>
+  <li>✗ Does not detect: Pre-incident governance failures</li>
+</ul>
+
+<hr />
+
+<h2 id="verdict-on-the-barometer">Verdict on the Barometer</h2>
+
+<p><strong>Claim:</strong> “Barometer detects LLM safety degradation”
+<strong>Result:</strong> ✗ <strong>FALSE in this case</strong></p>
+
+<p><strong>But:</strong>
+<strong>Amended Claim:</strong> “Barometer detects <em>governance response</em> to AI safety incidents”
+<strong>Result:</strong> ✓ <strong>TRUE</strong> (post-hoc governance signals were credible)</p>
+
+<hr />
+
+<h2 id="next-steps">Next Steps</h2>
+
+<ol>
+  <li>✗ Case published as <strong>FALSIFICATION</strong> (not hidden)</li>
+  <li>✓ Lessons incorporated into v2.0 design (add training data quality proxy)</li>
+  <li>✓ Recommendation: pair with pre-deployment safety checks</li>
+  <li>✓ Add Type IV regime definition (“exogenous shocks”) to protocol v1.1</li>
+</ol>
+
+<hr />
+
+<h2 id="files-in-this-case">Files in This Case</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">CASE_SUMMARY.md</code> – This file</li>
+  <li><code class="language-plaintext highlighter-rouge">proxies.csv</code> – 92 rows × 22 columns, daily frequency</li>
+  <li><code class="language-plaintext highlighter-rouge">event_dates.json</code> – Aug 15 (failure), Aug 25 (rollback)</li>
+  <li><code class="language-plaintext highlighter-rouge">audit_output.json</code> – Full barometer output (Type I, incorrect)</li>
+  <li><code class="language-plaintext highlighter-rouge">analysis.md</code> – Detailed root cause analysis</li>
+</ul>
+
+<h2 id="credibility-note">Credibility Note</h2>
+
+<p><strong>Why publishing a failure case strengthens credibility:</strong></p>
+
+<p>If you only publish successes, people assume:</p>
+<ul>
+  <li>“They cherry-pick good cases”</li>
+  <li>“Framework can be tuned to fit anything”</li>
+</ul>
+
+<p>By publishing a <strong>falsification</strong>, you show:</p>
+<ul>
+  <li>“Framework makes testable claims”</li>
+  <li>“We’re honest about limitations”</li>
+  <li>“We don’t hide contradictions”</li>
+</ul>
+
+<p>This case proves: <strong>The barometer is NOT a universal detector.</strong> It’s a tool for <em>specific regimes</em>.
+Knowing what it <em>doesn’t</em> do is as important as knowing what it <em>does</em>.</p>
+
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/dalozedidier-dot/Amplification-Barometer/edit/main/reports/real_cases/case_002_ai_model_deployment_safety_failure_2024/CASE_SUMMARY.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>
