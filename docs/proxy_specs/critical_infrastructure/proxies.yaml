@@ -1,0 +1,206 @@
+version: "v0.1.0"
+sector: "critical_infrastructure"
+notes:
+  purpose: "Proxy specifications for critical infrastructure (power, telecom, transportation)"
+  normalization_default: "mad_z"
+  missing_policy: "raise"
+  range_rationale: |
+    Ranges calibrated on NERC standards, telecom resilience frameworks, and transportation
+    safety regulations. Emphasizes cascade risk, irreversibility, and population impact.
+
+families:
+  P:  # Power and scaling capacity
+    description: "Operational intensity, speed of decision-making, and resource utilization"
+    proxies:
+      scale_proxy:
+        definition: "Utilization ratio relative to nominal capacity"
+        expected_range: [0.3, 1.5]
+        risk_direction: "up_risk"
+        source: "scada_systems"
+        frequency: "daily"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Above 0.95 leaves no headroom for contingencies"
+      speed_proxy:
+        definition: "Automated response latency (dispatch lag, inverse)"
+        expected_range: [0.1, 1.0]
+        risk_direction: "up_risk"
+        source: "control_logs"
+        frequency: "daily"
+        manipulability_test: "detect_volatility_clamp"
+        infrastructure_notes: "Faster automation without human oversight = cascade risk"
+      leverage_proxy:
+        definition: "Interdependency coupling (systems relying on single node)"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "network_topology"
+        frequency: "weekly"
+        manipulability_test: "detect_out_of_range"
+        infrastructure_notes: "High leverage = single failures trigger cascades"
+      autonomy_proxy:
+        definition: "Fraction of adjustments made without human authorization"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "operator_logs"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+        infrastructure_notes: "Above 0.7 = reliance on autonomy; risky if untested"
+      replicability_proxy:
+        definition: "Homogeneity of systems / attack surface uniformity"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "asset_inventory"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "High replicability = single vulnerability affects all"
+
+  O:  # Orientation and stop capacity
+    description: "Manual override, emergency shutoff, and control authority"
+    proxies:
+      stop_proxy:
+        definition: "Effectiveness of emergency stop / manual override"
+        expected_range: [0.4, 1.0]
+        risk_direction: "down_risk"
+        source: "emergency_drills"
+        frequency: "quarterly"
+        manipulability_test: "detect_out_of_range"
+        infrastructure_notes: "Below 0.6 = unreliable shutdown"
+      threshold_proxy:
+        definition: "Clarity and enforceability of operating limits"
+        expected_range: [0.3, 1.0]
+        risk_direction: "down_risk"
+        source: "procedure_audit"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Ambiguous limits = delayed response to stress"
+      decision_proxy:
+        definition: "Operator decision quality under stress"
+        expected_range: [0.2, 1.0]
+        risk_direction: "down_risk"
+        source: "incident_reviews"
+        frequency: "monthly"
+        manipulability_test: "detect_volatility_clamp"
+        infrastructure_notes: "Fatigue/training gaps degrade decision speed"
+      execution_proxy:
+        definition: "Fidelity of control execution (no drift from intent)"
+        expected_range: [0.5, 1.0]
+        risk_direction: "down_risk"
+        source: "control_verification"
+        frequency: "daily"
+        manipulability_test: "detect_volatility_clamp"
+        infrastructure_notes: "Equipment malfunction = execution gap"
+      coherence_proxy:
+        definition: "Alignment between policy and actual operations"
+        expected_range: [0.3, 1.0]
+        risk_direction: "down_risk"
+        source: "compliance_audit_samples"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Policy drift = uncontrolled expansion"
+
+  E:  # Externalities stock
+    description: "Cascading failure, population exposure, irreversibility"
+    proxies:
+      impact_proxy:
+        definition: "Population affected per unit failure (people impacted)"
+        expected_range: [0.0, 2.5]
+        risk_direction: "up_risk"
+        source: "impact_models"
+        frequency: "weekly"
+        manipulability_test: "detect_out_of_range"
+        infrastructure_notes: "Normalized: 0=local, 1=millions, >1=continental"
+      propagation_proxy:
+        definition: "Cascade likelihood (failure spreads to adjacent systems)"
+        expected_range: [0.0, 2.0]
+        risk_direction: "up_risk"
+        source: "failure_mode_analysis"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Power grid interconnections = high propagation"
+      hysteresis_proxy:
+        definition: "Recovery time (longer = more irreversibility)"
+        expected_range: [0.0, 1.5]
+        risk_direction: "up_risk"
+        source: "historical_outages"
+        frequency: "quarterly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Multi-day outages indicate structural damage"
+
+  R:  # Resilience
+    description: "Backup systems, diversity, and spare capacity"
+    proxies:
+      margin_proxy:
+        definition: "Spare capacity as fraction of load"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "capacity_planning"
+        frequency: "daily"
+        manipulability_test: "detect_out_of_range"
+        infrastructure_notes: "Below 0.15 = insufficient headroom"
+      redundancy_proxy:
+        definition: "Path/component redundancy (independent backup routes)"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "network_design"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Single points of failure are critical risks"
+      diversity_proxy:
+        definition: "Technology diversity (mix of control systems, suppliers)"
+        expected_range: [0.0, 1.0]
+        risk_direction: "down_risk"
+        source: "equipment_inventory"
+        frequency: "quarterly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Single vendor = correlated failure risk"
+      recovery_time_proxy:
+        definition: "Mean time to full service restoration (normalized)"
+        expected_range: [0.0, 1.0]
+        risk_direction: "up_risk"
+        source: "restoration_records"
+        frequency: "quarterly"
+        manipulability_test: "detect_out_of_range"
+        infrastructure_notes: "Normalized: 0=<1hr, 1=24+hrs"
+
+  G:  # Governance
+    description: "Operator oversight, safety culture, and regulatory compliance"
+    proxies:
+      exemption_rate:
+        definition: "Rate of maintenance deferrals / procedure skips"
+        expected_range: [0.0, 0.2]
+        risk_direction: "up_risk"
+        source: "maintenance_logs"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Above 0.05 (5%) signals deferred maintenance"
+      sanction_delay:
+        definition: "Median response time to safety violations"
+        expected_range: [0.0, 0.4]
+        risk_direction: "up_risk"
+        source: "safety_database"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Normalized: 0=immediate, 1=90+ days"
+      control_turnover:
+        definition: "Quarterly turnover in control room operators"
+        expected_range: [0.0, 0.15]
+        risk_direction: "up_risk"
+        source: "hr_records"
+        frequency: "quarterly"
+        manipulability_test: "detect_out_of_range"
+        infrastructure_notes: "Above 0.10 (10%/quarter) = expertise loss"
+      conflict_interest_proxy:
+        definition: "Pressure to ignore safety for operational targets"
+        expected_range: [0.0, 0.1]
+        risk_direction: "up_risk"
+        source: "safety_surveys"
+        frequency: "quarterly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Production pressure overriding safety = critical"
+      rule_execution_gap:
+        definition: "Gap between written procedures and actual practice"
+        expected_range: [0.0, 0.25]
+        risk_direction: "up_risk"
+        source: "procedure_audits"
+        frequency: "monthly"
+        manipulability_test: "detect_step_jump"
+        infrastructure_notes: "Target < 0.05 for safety-critical systems"
