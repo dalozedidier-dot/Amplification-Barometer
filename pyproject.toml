@@ -4,3 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+exclude = ["notebooks"]
+
+[tool.ruff.lint]
+ignore = ["E741"]

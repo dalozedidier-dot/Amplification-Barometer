@@ -23,10 +23,8 @@ Domains tested:
 import numpy as np
 import pandas as pd
 import pytest
-from datetime import datetime, timedelta
 
 from amplification_barometer.exogenous_shock_detection import assess_exogenous_shock_risk
-from amplification_barometer.energy_recovery import assess_bifurcation_energy_state
 
 
 # ============================================================================

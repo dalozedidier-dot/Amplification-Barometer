@@ -70,4 +70,5 @@ __all__ = [
     "required_proxies",
     "simulate_minimal_po",
     "simulate_barometer_ode",
+    "simulate_endogenous_g",
 ]

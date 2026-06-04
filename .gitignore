@@ -9,3 +9,12 @@ __pycache__/
 
 # Large real-world sources (keep fixtures under tests/fixtures/real/)
 data/real/raw/
+artifact/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+src.zip

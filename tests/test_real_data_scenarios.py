@@ -13,7 +13,6 @@ Scenarios:
 import numpy as np
 import pandas as pd
 import pytest
-from datetime import datetime, timedelta
 
 from amplification_barometer.energy_recovery import assess_bifurcation_energy_state
 from amplification_barometer.exogenous_shock_detection import assess_exogenous_shock_risk
@@ -31,7 +30,7 @@ def create_real_finance_scenario() -> pd.DataFrame:
 
     # Stress buildup (endogenous)
     t = np.arange(n)
-    stress_progression = 0.3 + 0.4 * np.tanh((t - 45) / 15.0)
+    0.3 + 0.4 * np.tanh((t - 45) / 15.0)
 
     # O-proxies degrade
     stop_proxy = 0.8 - 0.3 * np.tanh((t - 45) / 15.0) + np.random.normal(0, 0.02, n)

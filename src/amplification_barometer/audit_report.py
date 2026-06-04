@@ -4,15 +4,13 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 import numpy as np
 import pandas as pd
 
-REPORT_VERSION = "0.4.13"
-
 from .audit_tools import anti_gaming_o_bias, audit_score_stability, run_stress_suite
-from .calibration import Thresholds, derive_thresholds, risk_signature
+from .calibration import Thresholds, risk_signature
 from .composites import (
     WEIGHTS_VERSION,
     compute_at,
@@ -30,8 +28,11 @@ from .composites import (
     robust_zscore,
     standard_zscore,
 )
-from .l_operator import MaturityAssessment, assess_maturity, evaluate_l_performance
+from .l_operator import assess_maturity, evaluate_l_performance
 from .manipulability import run_manipulability_suite
+
+
+REPORT_VERSION = "0.4.13"
 
 
 @dataclass(frozen=True)
@@ -107,11 +108,13 @@ def build_audit_report(
     manipulability_magnitude: float = 0.2,
     o_bias_magnitude: float = 0.15,
     thresholds: Optional[Thresholds] = None,
+    enable_proactive_autotune: bool = True,
 ) -> AuditReport:
     """Builds a reproducible audit report for a single dataset.
 
     Important:
     - if `thresholds` is provided (derived from STABLE baseline), risk normalization is comparable across datasets.
+    - `enable_proactive_autotune=False` keeps smoke tests fast while preserving the default full audit behavior.
     """
     created = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -213,7 +216,7 @@ def build_audit_report(
     
     # Proactive autotune: if the first pass is weak, explore a small grid.
     # Goal: reach prevented_topk_excess_rel >= 0.10 when possible, without making CI heavy.
-    if (float(v1.get("prevented_topk_excess_rel", 0.0)) < 0.10) and (float(v1.get("prevented_exceedance_rel", 0.0)) < 0.10):
+    if enable_proactive_autotune and (float(v1.get("prevented_topk_excess_rel", 0.0)) < 0.10) and (float(v1.get("prevented_exceedance_rel", 0.0)) < 0.10):
         o_thr_candidates = [float(o_thr), float(np.quantile(o_level.to_numpy(dtype=float), 0.20))]
 
         topk_candidates = sorted({float(max(0.10, min(0.40, float(topk_frac)))), 0.15, 0.20, 0.25, 0.30})

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from amplification_barometer.html_report import HtmlReportOptions, build_reports_index, build_self_contained_html_report
+from amplification_barometer.html_report import HtmlReportOptions, build_self_contained_html_report
 
 
 def _read_csv(path: Path) -> pd.DataFrame:

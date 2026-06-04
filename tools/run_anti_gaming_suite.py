@@ -19,16 +19,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
 
 from amplification_barometer.alignment_audit import (
-    compute_at_delta,
-    compute_e_r,
     compute_levels_from_specs,
-    robust_z_mad,
 )
 from amplification_barometer.theory_map import load_proxy_specs, TheoryAuditMap
 
@@ -113,7 +110,7 @@ def attack_volatility_clamp(
         x = df_attack[col].to_numpy(dtype=float, copy=True)
         tail = x[start_idx:]
         tail_mean = np.nanmean(tail)
-        tail_std = np.nanstd(tail)
+        np.nanstd(tail)
         # Compress: std → std * target_std_frac
         compressed = tail_mean + (tail - tail_mean) * target_std_frac
         x[start_idx:] = np.clip(compressed, 0.0, 2.0)
@@ -159,7 +156,7 @@ def attack_out_of_range(
 
     Detection rule: any proxy outside expected_range is flagged.
     """
-    df_clean = df.copy()
+    df.copy()
     df_attack = df.copy()
 
     start_idx = int(len(df_attack) * float(start_frac))
@@ -232,7 +229,7 @@ def attack_coordinated_multi_proxy(
         x = df_attack[col].to_numpy(dtype=float, copy=True)
         tail = x[start_idx:]
         tail_mean = np.nanmean(tail)
-        tail_std = np.nanstd(tail)
+        np.nanstd(tail)
         x[start_idx:] = tail_mean + (tail - tail_mean) * 0.3
         x = np.clip(x, 0.0, 2.0)
         df_attack[col] = x
@@ -380,7 +377,7 @@ def write_anti_gaming_output(report: Dict[str, Any], out_dir: str | Path, name: 
     md = []
     md.append(f"# Anti-Gaming Test Suite: {name}\n\n")
     md.append(f"**Timestamp:** {report.get('timestamp', 'N/A')}\n\n")
-    md.append(f"## Summary\n\n")
+    md.append("## Summary\n\n")
     summary = report.get("summary", {})
     md.append(f"- **Total Attacks:** {summary.get('total_attacks', 0)}\n")
     md.append(f"- **Detected:** {summary.get('detected', 0)}\n")

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -134,7 +133,7 @@ def stress_signature_suite(df: pd.DataFrame, specs: TheoryAuditMap) -> Dict[str,
     sig = compute_at_delta(levels, smooth_win=7)
     er = compute_e_r(levels)
     at = sig["at"]
-    delta_d = sig["delta_d"]
+    sig["delta_d"]
     e_stock = er["e_stock"]
     r_level = er["r_level"]
 

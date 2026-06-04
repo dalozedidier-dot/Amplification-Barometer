@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -18,7 +17,7 @@ import pandas as pd
 
 def _base_proxies(n: int = 200, seed: int = 42) -> pd.DataFrame:
     """Create baseline proxy DataFrame with all 22 columns at neutral values."""
-    rng = np.random.default_rng(seed)
+    np.random.default_rng(seed)
 
     # P family
     scale_proxy = np.ones(n) * 1.0
@@ -128,7 +127,7 @@ def generate_type_ii_oscillations(n: int = 200, seed: int = 43) -> pd.DataFrame:
     P oscillates, O lags and responds, E grows slowly, R oscillates.
     """
     df = _base_proxies(n=n, seed=seed)
-    rng = np.random.default_rng(seed)
+    np.random.default_rng(seed)
 
     period = 40.0  # Oscillation period
     t = np.arange(n, dtype=float)
@@ -166,7 +165,7 @@ def generate_type_iii_bifurcation(n: int = 200, seed: int = 44) -> pd.DataFrame:
     Phase 2 (t=80-200): structural shift with no recovery
     """
     df = _base_proxies(n=n, seed=seed)
-    rng = np.random.default_rng(seed)
+    np.random.default_rng(seed)
 
     period = 40.0
     t = np.arange(n, dtype=float)
@@ -214,7 +213,7 @@ def generate_hybrid_ii_to_iii(n: int = 300, seed: int = 45) -> pd.DataFrame:
     Phase 2 (t=150-300): gradually morph to Type III
     """
     df = _base_proxies(n=n, seed=seed)
-    rng = np.random.default_rng(seed)
+    np.random.default_rng(seed)
 
     period = 40.0
     t = np.arange(n, dtype=float)
@@ -289,7 +288,7 @@ def main() -> int:
 
     print(f"Generating canonical scenarios to {args.out_dir}...")
     generate_all_scenarios(args.out_dir)
-    print(f"\n✓ Generated 20 canonical scenarios (4 types × 5 noise levels)")
+    print("\n✓ Generated 20 canonical scenarios (4 types × 5 noise levels)")
     return 0
 
 

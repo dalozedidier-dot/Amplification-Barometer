@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -332,7 +331,7 @@ def borg_traces_to_proxies(
     df["_max_cpu"] = mx
     df["_failed"] = failed
 
-    user = df.get("user", pd.Series(["u"] * len(df))).astype(str)
+    df.get("user", pd.Series(["u"] * len(df))).astype(str)
 
     g = df.groupby("_bucket", sort=True)
     agg = pd.DataFrame(index=g.size().index.astype(int))

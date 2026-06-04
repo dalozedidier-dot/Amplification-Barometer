@@ -11,13 +11,13 @@ then compared to L_act in real/realistic datasets.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
 
 from .alignment_audit import compute_at_delta, compute_e_r, compute_levels_from_specs
-from .l_operator import compute_l_cap, compute_l_act
+from .l_operator import compute_l_cap
 from .theory_map import TheoryAuditMap, load_proxy_specs
 
 
@@ -42,7 +42,7 @@ def benchmark_l_cap_on_scenario(df: pd.DataFrame, specs: TheoryAuditMap, scenari
         er = compute_e_r(levels)
 
         at = sig["at"]
-        delta_d = sig["delta_d"]
+        sig["delta_d"]
         e_stock = er["e_stock"]
         r_level = er["r_level"]
 
@@ -50,7 +50,7 @@ def benchmark_l_cap_on_scenario(df: pd.DataFrame, specs: TheoryAuditMap, scenari
         pers_de = float(np.mean(de[-30:] > 0.0)) if len(de) >= 30 else 0.0
         r_tail = float(np.nanmean(r_level[-30:])) if len(r_level) >= 30 else float(np.nanmean(r_level))
         o_level = np.asarray(levels["O_level"], dtype=float)
-        o_sat = float(np.mean(o_level < np.nanpercentile(o_level, 10)))
+        float(np.mean(o_level < np.nanpercentile(o_level, 10)))
         at_div = float(np.mean(at[-30:] > np.nanpercentile(at, 90))) if len(at) >= 30 else 0.0
         irr = float((e_stock[-1] / (np.max(e_stock) + 1e-9)) if len(e_stock) else 0.0)
 

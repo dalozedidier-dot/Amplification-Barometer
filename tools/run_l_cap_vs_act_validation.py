@@ -18,12 +18,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
 
-from amplification_barometer.alignment_audit import run_alignment_audit
 from amplification_barometer.l_capability_benchmark import benchmark_suite_all_scenarios, validate_l_cap_benchmark
 from amplification_barometer.l_operator import compute_l_act, compute_l_cap
 
@@ -221,7 +220,7 @@ def main() -> int:
     ap.add_argument("--out-dir", default="reports/l_cap_vs_act", help="Output directory.")
     args = ap.parse_args()
 
-    print(f"Running L_cap vs L_act validation...")
+    print("Running L_cap vs L_act validation...")
     print(f"  Scenarios: {args.scenarios_dir}")
     print(f"  Proxies: {args.proxies_yaml}")
     print()
@@ -229,7 +228,7 @@ def main() -> int:
     report = run_validation(args.scenarios_dir, args.proxies_yaml)
     paths = write_validation_report(report, args.out_dir)
 
-    print(f"\n✓ Report written:")
+    print("\n✓ Report written:")
     print(f"  JSON: {paths['json']}")
     print(f"  MD:   {paths['md']}")
     print()

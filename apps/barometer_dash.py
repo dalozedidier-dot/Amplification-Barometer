@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 from scipy.ndimage import gaussian_filter1d
 
 import dash
-from dash import dcc, html, Input, Output, dash_table
+from dash import dcc, html, dash_table
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots

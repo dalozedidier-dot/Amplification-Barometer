@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -10,7 +9,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 from .calibration import Thresholds, risk_signature
-from .composites import compute_at, compute_delta_d, compute_o_level
+from .composites import compute_at, compute_delta_d
 from .l_operator import compute_l_act, compute_l_cap
 
 
@@ -53,7 +52,6 @@ def render_audit_html(
         baseline_used = True
     else:
         # Fallback: per-dataset robust z
-        import numpy as np
         from .composites import robust_zscore
 
         risk = pd.Series(robust_zscore(at.to_numpy(dtype=float)) + robust_zscore(dd.to_numpy(dtype=float)), index=df.index, name="RISK")

@@ -15,10 +15,9 @@ These are NOT captured by the L_cap/L_act framework alone, which assumes continu
 
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Dict
 import numpy as np
 import pandas as pd
-from scipy import stats
 
 
 def detect_volatility_spike(

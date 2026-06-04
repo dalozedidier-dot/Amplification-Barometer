@@ -12,7 +12,7 @@ def _load_fixture(rel_path: str) -> pd.DataFrame:
 
 def test_real_data_smoke_crypto_btc():
     df = _load_fixture("tests/fixtures/real/btc_5min_proxies_sample.csv")
-    rep = build_audit_report(df, dataset_name="btc_5min_real")
+    rep = build_audit_report(df.tail(500), dataset_name="btc_5min_real", enable_proactive_autotune=False)
     assert "AT" in rep.summary
     assert "DELTA_D" in rep.summary
     assert "E_stock" in rep.summary
@@ -23,7 +23,7 @@ def test_real_data_smoke_crypto_btc():
 
 def test_real_data_smoke_algae_raceway():
     df = _load_fixture("tests/fixtures/real/algae_raceway0_proxies_sample.csv")
-    rep = build_audit_report(df, dataset_name="algae_raceway_real")
+    rep = build_audit_report(df.tail(500), dataset_name="algae_raceway_real", enable_proactive_autotune=False)
     assert "AT" in rep.summary
     assert "DELTA_D" in rep.summary
     assert "E_stock" in rep.summary

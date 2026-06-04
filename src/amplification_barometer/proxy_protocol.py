@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Proxy protocol definitions for auditability.
 
 The intent is not to claim ontological truth. The goal is operational measurability,
@@ -13,7 +11,9 @@ Each proxy entry documents:
 - falsification_flags: minimal conditions that should raise an audit flag
 """
 
-from typing import Any, Dict, List, Mapping, Tuple
+from __future__ import annotations
+
+from typing import Any, Dict, List
 
 PROXY_PROTOCOL: Dict[str, Dict[str, Any]] = {
     # P proxies

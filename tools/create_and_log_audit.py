@@ -153,12 +153,12 @@ def main() -> int:
     print(f"✓ Manifest written: {manifest_path}")
 
     # Append to history
-    print(f"Appending to history log...")
+    print("Appending to history log...")
     append_to_history(manifest, verdict=args.verdict, status=args.status, note=args.note)
-    print(f"✓ History log updated: history.jsonl")
+    print("✓ History log updated: history.jsonl")
 
     # Summary
-    print(f"\n✓ Audit logged:")
+    print("\n✓ Audit logged:")
     print(f"  Run ID: {args.run_id}")
     print(f"  Timestamp: {manifest['timestamp']}")
     print(f"  Verdict: {args.verdict}")
