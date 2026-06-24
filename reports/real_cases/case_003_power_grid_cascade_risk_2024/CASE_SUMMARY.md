@@ -163,7 +163,7 @@ Location: `proxies.csv` (92-day series, 4-hourly frequency)
 
 2. **Possibility of Post-Hoc Fitting**
    - Did barometer really predict cascade risk, or did we tune it after seeing the event?
-   - Audit was published *after* Oct 19; could proxies have been selected to fit the narrative?
+   - Audit was documented *after* Oct 19; could proxies have been selected to fit the narrative?
 
 3. **No Counterfactual**
    - Did barometer trigger false alarms on Oct 10, 15, 22? (not reported here)
@@ -187,7 +187,7 @@ Location: `proxies.csv` (92-day series, 4-hourly frequency)
 ### For the barometer framework:
 1. **Establish partnership with grid operator** for real-time data sharing
 2. **Develop independent power flow simulator** to verify cascade risk independently
-3. **Publish false positive/negative rates** alongside true positives
+3. **Document false positive/negative rates** alongside true positives
 
 ---
 
@@ -223,7 +223,7 @@ Location: `proxies.csv` (92-day series, 4-hourly frequency)
 
 **Why "Partial" is honest:**
 
-A "published success" with uncertain verification is still progress, because:
+A "documented success" with uncertain verification is still progress, because:
 1. It's better than hiding the case
 2. It flags what needs independent confirmation
 3. It shows we're tracking what we said we'd detect

@@ -10,6 +10,21 @@ import pandas as pd
 # Version des pondérations et conventions (auditabilité)
 WEIGHTS_VERSION = "v0.4.5"
 
+# Public notation used in reports. AT is kept as a backward-compatible internal key.
+RHO_OUTPUT_NAME = "RHO"
+AT_LEGACY_NAME = "AT"
+
+# Operational bounds for governance risk proxies used to build G_level in [0, 1].
+# Rate-like proxies are expected in [0, 1]. sanction_delay is scaled by a conservative cap
+# so G_level remains bounded and interpretable instead of being a centered z-score.
+G_PROXY_CAPS = {
+    "exemption_rate": 1.0,
+    "sanction_delay": 90.0,
+    "control_turnover": 1.0,
+    "conflict_interest_proxy": 1.0,
+    "rule_execution_gap": 1.0,
+}
+
 
 @dataclass(frozen=True)
 class CompositeSpec:
@@ -68,6 +83,26 @@ def _weighted_average(arr: np.ndarray, weights: np.ndarray) -> np.ndarray:
     if not np.isclose(w.sum(), 1.0):
         w = w / w.sum()
     return np.average(arr, weights=w, axis=1)
+
+
+def _ensure_finite_series(s: pd.Series, context: str) -> None:
+    arr = s.to_numpy(dtype=float)
+    if not np.all(np.isfinite(arr)):
+        raise ValueError(f"{context} contient des valeurs non finies")
+
+
+def _ensure_strictly_positive_series(s: pd.Series, context: str, eps: float) -> None:
+    _ensure_finite_series(s, context)
+    arr = s.to_numpy(dtype=float)
+    if np.nanmin(arr) <= float(eps):
+        raise ValueError(
+            f"{context} doit rester strictement positif pour calculer le ratio rho(t). "
+            f"min={float(np.nanmin(arr)):.6g}, eps={float(eps):.6g}"
+        )
+
+
+def _clip01(x: np.ndarray) -> np.ndarray:
+    return np.clip(np.asarray(x, dtype=float), 0.0, 1.0)
 
 
 def compute_composite_raw(df: pd.DataFrame, spec: CompositeSpec) -> np.ndarray:
@@ -220,11 +255,41 @@ def compute_r(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd
 
 
 def compute_g(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
-    """Stabilité narrative G(t): conformité effective, délais de sanction, intégrité contrôle.
+    """Score robuste de gouvernance G_score(t).
 
-    G est construit en "sens risque", puis inversé.
+    Ce score est utile pour détecter des variations internes, mais il n'est pas borné.
+    Pour l'interprétation institutionnelle conforme au manuscrit, utiliser compute_g_level(),
+    qui renvoie G_level(t) dans [0, 1].
     """
-    return compute_composite(df, _override_weights(G_SPEC, weights), norm="robust")
+    s = compute_composite(df, _override_weights(G_SPEC, weights), norm="robust")
+    s.name = "G_SCORE"
+    return s
+
+
+def compute_g_level(df: pd.DataFrame, *, weights: Sequence[float] | None = None) -> pd.Series:
+    """G_level(t) dans [0, 1], lisible comme effectivité institutionnelle bornée.
+
+    Les cinq proxys de gouvernance sont traités comme des risques: plus ils sont élevés,
+    plus G_level diminue. sanction_delay est mis à l'échelle par G_PROXY_CAPS afin
+    d'éviter qu'un délai exprimé en jours casse la borne [0, 1].
+    """
+    _require_columns(df, G_SPEC.proxies, "G_level")
+    w = G_SPEC.weights if weights is None else np.asarray(list(weights), dtype=float)
+    if w.shape[0] != len(G_SPEC.proxies):
+        raise ValueError(f"Override weights for G_level must have length {len(G_SPEC.proxies)}")
+    if not np.isclose(float(np.sum(w)), 1.0):
+        w = w / float(np.sum(w))
+
+    risk_cols = []
+    for col in G_SPEC.proxies:
+        cap = float(G_PROXY_CAPS.get(col, 1.0))
+        if cap <= 0:
+            raise ValueError(f"Cap invalide pour {col}: {cap}")
+        vals = pd.to_numeric(df[col], errors="coerce").to_numpy(dtype=float) / cap
+        risk_cols.append(_clip01(vals))
+    risk = _weighted_average(np.column_stack(risk_cols), w)
+    g_level = 1.0 - _clip01(risk)
+    return pd.Series(g_level, index=df.index, name="G_LEVEL")
 
 
 
@@ -232,7 +297,7 @@ def compute_p_level(df: pd.DataFrame, *, weights: Sequence[float] | None = None)
     """P_level(t): moyenne pondérée des proxys bruts de P(t).
 
     Nota: ceci est un niveau (unités de proxy), pas un z-score.
-    On l'utilise pour construire @(t) = P_level / O_level sans ambiguïté de signe.
+    On l'utilise pour construire rho(t) = P_level / O_level sans ambiguïté de signe.
     """
     _require_columns(df, P_SPEC.proxies, "P_level")
     w = P_SPEC.weights if weights is None else np.asarray(list(weights), dtype=float)
@@ -252,17 +317,49 @@ def compute_o_level(df: pd.DataFrame, *, weights: Sequence[float] | None = None)
     return pd.Series(raw, index=df.index, name="O_LEVEL")
 
 
-def compute_at(df: pd.DataFrame, eps: float = 1e-8, *, p_weights: Sequence[float] | None = None, o_weights: Sequence[float] | None = None) -> pd.Series:
-    """@(t) = P_level(t) / O_level(t).
+def compute_rho(
+    df: pd.DataFrame,
+    eps: float = 1e-8,
+    *,
+    p_weights: Sequence[float] | None = None,
+    o_weights: Sequence[float] | None = None,
+    validate_positive: bool = False,
+) -> pd.Series:
+    """rho(t) = P_level(t) / (O_level(t) + eps).
 
     Important pour l'audit:
-    - évite l'ambiguïté de signe induite par des z-scores centrés (P ou O négatifs)
-    - la normalisation (robust_zscore) se fait ensuite, au niveau du risque ou des seuils
+    - rho(t) se calcule sur des niveaux bruts, pas sur des z-scores centrés;
+    - P_level et O_level sont contrôlés comme valeurs finies;
+    - si O_level approche zéro ou devient négatif dans un stress test, le dénominateur est planché à eps, ce qui produit un signal rho élevé sans masquer le problème;
+    - validate_positive=True permet de durcir le contrôle dans les audits qui veulent refuser ces données.
     """
     p = compute_p_level(df, weights=p_weights)
     o = compute_o_level(df, weights=o_weights)
-    at = p / (o + eps)
-    at.name = "AT"
+    _ensure_finite_series(p, "P_level")
+    if validate_positive:
+        _ensure_strictly_positive_series(o, "O_level", eps=float(eps))
+        denom = o.to_numpy(dtype=float) + float(eps)
+    else:
+        _ensure_finite_series(o, "O_level")
+        denom = np.maximum(o.to_numpy(dtype=float), float(eps))
+    rho = p.to_numpy(dtype=float) / denom
+    return pd.Series(rho, index=df.index, name=RHO_OUTPUT_NAME)
+
+
+def compute_at(
+    df: pd.DataFrame,
+    eps: float = 1e-8,
+    *,
+    p_weights: Sequence[float] | None = None,
+    o_weights: Sequence[float] | None = None,
+) -> pd.Series:
+    """Alias historique de compute_rho().
+
+    Le nom interne AT est conservé pour compatibilité avec les rapports et tests anciens.
+    Les sorties publiques doivent afficher rho(t).
+    """
+    at = compute_rho(df, eps=eps, p_weights=p_weights, o_weights=o_weights)
+    at.name = AT_LEGACY_NAME
     return at
 
 

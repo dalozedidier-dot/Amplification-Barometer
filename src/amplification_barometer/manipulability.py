@@ -82,7 +82,7 @@ def inject_falsification(
 
 
 
-# Ciblage O(t): manipulation de l'orientation pour faire baisser @(t)
+# Ciblage O(t): manipulation de l'orientation pour faire baisser rho(t)
 O_PROXIES: Tuple[str, ...] = ("stop_proxy", "threshold_proxy", "decision_proxy", "execution_proxy", "coherence_proxy")
 
 
@@ -97,7 +97,7 @@ def inject_bias_o(
     """Injecte un biais artificiel sur les proxys de O(t).
 
     But: simuler une tentative de gaming où l'acteur "fait monter" les indicateurs
-    d'orientation (arrêt, seuils, exécution) pour faire baisser @(t).
+    d'orientation (arrêt, seuils, exécution) pour faire baisser rho(t).
 
     Options:
     - clamp_volatility: réduit artificiellement la variance après start (cas de "reporting" lissé)

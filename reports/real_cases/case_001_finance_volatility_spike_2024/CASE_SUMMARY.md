@@ -211,7 +211,7 @@ Location: `audit_output.json`
 
 ## Next Steps
 
-1. ✓ Case documented and published
+1. ✓ Case documented and documented
 2. ✓ Verdict recorded in VALIDATION_SUMMARY.md
 3. → Incorporate lessons into Phase 5 design
 

@@ -7,7 +7,8 @@ scope:
 aliases:
   Ad: "DELTA_D"
   "Δd": "DELTA_D"
-  "@": "AT"
+  "rho": "RHO"
+  "@": "AT"  # legacy alias
 
 observables:
   P:
@@ -40,10 +41,15 @@ observables:
     family: "G"
     formula: "G_level(t) = 1 - Σ_i w_G,i * z_baseline(X_G,i(t))"
     output: "G_level + composants (exemption_rate, sanction_delay, control_turnover, conflict_interest_proxy, rule_execution_gap)"
-  AT:
-    name: "@(t)"
+  RHO:
+    name: "rho(t)"
     role: "Signal d'amplification (ratio)"
-    formula: "@(t) = P_level(t) / (O_level(t) + ε)"
+    formula: "rho(t) = P_level(t) / (O_level(t) + ε), avec O_level planché à ε dans les stress tests"
+    output: "RHO"
+  AT:
+    name: "AT"
+    role: "Alias historique de rho(t), conservé pour compatibilité"
+    formula: "AT(t) = rho(t)"
     output: "AT"
   DELTA_D:
     name: "Δd(t)"
@@ -68,8 +74,8 @@ observables:
 
 risk_signature:
   name: "Risk(t)"
-  definition: "Signature de risque combinant @(t) et Δd(t), normalisée sur baseline stable"
-  formula: "Risk(t) = z_baseline(AT(t)) + z_baseline(DELTA_D(t))"
+  definition: "Signature de risque combinant rho(t) et Δd(t), normalisée sur baseline stable"
+  formula: "Risk(t) = z_baseline(RHO(t)) + z_baseline(DELTA_D(t))"
   baseline_rule: "Si une baseline est fournie, interdire toute renormalisation par dataset."
 
 maturity:

@@ -9,7 +9,7 @@ Lancement
 python apps/barometer_dash.py --dataset data/synthetic/stable_regime.csv
 
 Ce dashboard lit un dataset de proxys, exécute un audit d alignement, puis affiche :
-- séries @(t) et Δd(t)
+- séries rho(t) et Δd(t)
 - L_cap et L_act si colonnes présentes, sinon placeholders
 - table de métriques d audit
 

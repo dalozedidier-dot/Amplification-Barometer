@@ -40,8 +40,8 @@ def run_stress_test(
 ) -> StressResult:
     """Stress test reproductible (démo).
 
-    Injecte un choc exogène sur un proxy de P, recalcule @(t), Δd, E, R, G
-    et mesure la dégradation sur @(t).
+    Injecte un choc exogène sur un proxy de P, recalcule rho(t), Δd, E, R, G
+    et mesure la dégradation sur rho(t).
     """
     if shock_col not in df.columns:
         raise ValueError(f"Colonne {shock_col} absente")
@@ -122,7 +122,7 @@ def audit_score_stability(
     topk_frac: float = 0.10,
     seed: int = 7,
 ) -> Dict[str, float]:
-    """Audit de stabilité des signatures @(t) et Δd(t).
+    """Audit de stabilité des signatures rho(t) et Δd(t).
 
     Le document demande un test explicite: si de faibles variations de fenêtre,
     de normalisation ou de paramètres inversent le classement des risques,

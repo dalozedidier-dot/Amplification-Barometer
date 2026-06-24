@@ -24,8 +24,8 @@ Résilience, marges et récupération. Calculé depuis la famille R. Une hausse 
 G(t)
 Gouvernance mesurable. Famille G. La cible de maturité utilise rule_execution_gap < 0.05 et control_turnover < 0.05.
 
-@(t)
-Ratio de dissociation. Par défaut @(t) = P_level / (O_level + eps). P_level et O_level sont des composites non centrés, donc comparables entre régimes.
+rho(t)
+Ratio de dissociation. Par défaut rho(t) = P_level / (O_level + eps). P_level et O_level sont des composites non centrés, donc comparables entre régimes.
 
 Δd(t)
 Différence de dérivées. Par défaut Δd(t) = dP/dt - dO/dt sur séries lissées. Certains passages du manuscrit utilisent le terme Ad(t). Ici Δd(t) correspond à ce rôle.
@@ -47,7 +47,7 @@ On simule des falsifications. Exemple, injection de biais sur les proxys de O. O
 Stress tests alignés sur signatures
 Type I, bruit. Le score doit rester borné, sans drift de E.
 Type II, oscillations. Le score oscille mais R permet le retour. Δd(t) alterne de signe.
-Type III, bifurcation. @(t) diverge, E s accumule, R se dégrade, L doit activer plus tôt.
+Type III, bifurcation. rho(t) diverge, E s accumule, R se dégrade, L doit activer plus tôt.
 
 Verdict multi dimensionnel
 On produit un verdict par composante. Stabilité, L_cap, L_act, Résilience, Gouvernance, Anti gaming, Stress tests.

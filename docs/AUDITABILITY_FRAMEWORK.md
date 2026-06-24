@@ -69,16 +69,16 @@ This framework makes audit runs **immutable and timestamped**:
 **File:** `history.jsonl` (in repo root)
 
 ```jsonl
-{"timestamp": "2026-02-24T15:00:00Z", "run_id": "20260224_type_i_noise_base", "verdict": "type_I_noise", "stability": "ok", "status": "published"}
-{"timestamp": "2026-02-24T15:30:00Z", "run_id": "20260224_type_ii_oscillations_base", "verdict": "type_II_oscillations", "stability": "ok", "status": "published"}
-{"timestamp": "2026-02-24T15:47:23Z", "run_id": "20260224_type_iii_bifurcation_base", "verdict": "type_III_bifurcation", "stability": "ok", "status": "published"}
+{"timestamp": "2026-02-24T15:00:00Z", "run_id": "20260224_type_i_noise_base", "verdict": "type_I_noise", "stability": "ok", "status": "documented"}
+{"timestamp": "2026-02-24T15:30:00Z", "run_id": "20260224_type_ii_oscillations_base", "verdict": "type_II_oscillations", "stability": "ok", "status": "documented"}
+{"timestamp": "2026-02-24T15:47:23Z", "run_id": "20260224_type_iii_bifurcation_base", "verdict": "type_III_bifurcation", "stability": "ok", "status": "documented"}
 ```
 
 **Rules:**
 - **Append-only:** New lines added to end, never modified
 - **No deletions:** Failed runs stay (marked with `status: failed`)
 - **Reverse chronological:** Newest first when reading (but appended last)
-- **Immutable once published:** A published run cannot be unpublished
+- **Immutable once documented:** A documented run cannot be undocumented
 
 ---
 
@@ -116,7 +116,7 @@ python3 tools/create_audit_manifest.py \
 python3 tools/append_to_history.py \
   --manifest reports/audits/20260224_type_iii_bifurcation_base/manifest.json \
   --verdict type_III_bifurcation \
-  --status published
+  --status documented
 ```
 
 **Output:**
@@ -254,7 +254,7 @@ Creates manifest.json with hashes and metadata.
 usage: append_to_history.py
   --manifest <json>
   --verdict <str>
-  --status [published|failed|review]
+  --status [documented|failed|review]
 ```
 Appends single line to history.jsonl (append-only).
 

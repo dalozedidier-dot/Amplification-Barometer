@@ -166,7 +166,7 @@ def run_anti_gaming_quick_checks(df: pd.DataFrame, specs: TheoryAuditMap) -> Dic
     Quick anti-gaming checks integrated into main audit.
 
     Tests 3 critical gaming vectors:
-    1. O-family simultaneous boost + @(t) drop
+    1. O-family simultaneous boost + rho(t) drop
     2. P volatility collapse + E growth
     3. Proxy range violations
 
@@ -183,7 +183,7 @@ def run_anti_gaming_quick_checks(df: pd.DataFrame, specs: TheoryAuditMap) -> Dic
         at = sig["at"]
         o_level = levels["O_level"]
 
-        # Check for sudden jump in O + drop in @(t)
+        # Check for sudden jump in O + drop in rho(t)
         o_first_half = np.nanmean(o_level[:len(o_level)//2])
         o_second_half = np.nanmean(o_level[len(o_level)//2:])
         at_first_half = np.nanmean(at[:len(at)//2])

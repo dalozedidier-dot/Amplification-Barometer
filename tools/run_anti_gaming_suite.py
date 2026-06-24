@@ -68,7 +68,7 @@ def attack_o_bias(
     at_clean = levels_clean["P_level"] / (o_clean + 1e-9)
     at_attack = levels_attack["P_level"] / (o_attack + 1e-9)
 
-    # Detect: O went up, @(t) went down (suspicious)
+    # Detect: O went up, rho(t) went down (suspicious)
     o_increased = float(np.nanmean(o_attack[start_idx:]) - np.nanmean(o_clean[start_idx:]))
     at_decreased = float(np.nanmean(at_attack[start_idx:]) - np.nanmean(at_clean[start_idx:]))
 

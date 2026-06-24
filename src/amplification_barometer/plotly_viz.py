@@ -282,7 +282,7 @@ def plot_dashboard(
     width: int = 1100,
     height: int = 900,
 ) -> Path:
-    """Dashboard with aligned time axis: @(t), Δd(t), and L_cap/L_act."""
+    """Dashboard with aligned time axis: rho(t), Δd(t), and L_cap/L_act."""
     dates = pd.to_datetime(pd.Index(dates))
     at = np.asarray(at, dtype=float)
     dd = np.asarray(dd, dtype=float)
@@ -298,20 +298,20 @@ def plot_dashboard(
         row_heights=[0.34, 0.33, 0.33],
     )
 
-    # @(t)
+    # rho(t)
     at_sm = _safe_smooth(at, 3.0)
     use_log = _maybe_log_y(at_sm)
     fig.add_trace(
-        go.Scatter(x=dates, y=at, mode="lines", line=dict(color="lightgray", width=1), name="@(t) raw", opacity=0.6),
+        go.Scatter(x=dates, y=at, mode="lines", line=dict(color="lightgray", width=1), name="rho(t) raw", opacity=0.6),
         row=1,
         col=1,
     )
     fig.add_trace(
-        go.Scatter(x=dates, y=at_sm, mode="lines", line=dict(color="#1f77b4", width=2.4), name="@(t) smoothed"),
+        go.Scatter(x=dates, y=at_sm, mode="lines", line=dict(color="#1f77b4", width=2.4), name="rho(t) smoothed"),
         row=1,
         col=1,
     )
-    fig.update_yaxes(title_text="@(t)" + (" (log)" if use_log else ""), type="log" if use_log else "linear", row=1, col=1)
+    fig.update_yaxes(title_text="rho(t)" + (" (log)" if use_log else ""), type="log" if use_log else "linear", row=1, col=1)
 
     # Δd(t)
     dd_sm = _safe_smooth(dd, 3.0)
@@ -396,8 +396,8 @@ def build_plotly_outputs(
     plot_exponential_or_bifurcation(
         dates,
         df[at_col].to_numpy(dtype=float),
-        title=f"{title_prefix} @(t)",
-        y_label="@(t)",
+        title=f"{title_prefix} rho(t)",
+        y_label="rho(t)",
         out_html=at_html,
         allow_log=True,
     )

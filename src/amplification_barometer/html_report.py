@@ -94,7 +94,7 @@ def render_audit_html(
     )
     # Figures
     figs = [
-        _fig_line(at.index, at.to_numpy(dtype=float), title="@(t)", y_label="AT"),
+        _fig_line(at.index, at.to_numpy(dtype=float), title="rho(t)", y_label="AT"),
         _fig_line(dd.index, dd.to_numpy(dtype=float), title="Δd(t)", y_label="DELTA_D"),
         _fig_line(risk.index, pd.Series(risk).to_numpy(dtype=float), title="RISK(t) (baseline-normalized)" if baseline_used else "RISK(t)", y_label="RISK"),
         _fig_line(lcap.index, lcap.to_numpy(dtype=float), title="L_cap (z)", y_label="L_cap"),
@@ -105,7 +105,7 @@ def render_audit_html(
     # Recommendations (simple rule-based)
     recos = []
     if risk_mean > risk_thr:
-        recos.append("RISK moyen supérieur au seuil de baseline. Priorité: réduire @(t) et Δd(t), renforcer O(t) et l'opérateur L.")
+        recos.append("RISK moyen supérieur au seuil de baseline. Priorité: réduire rho(t) et Δd(t), renforcer O(t) et l'opérateur L.")
     if anti_flag:
         recos.append("Anti-gaming: signal o_bias. Vérifier manipulations de seuils, délais ou cohérence.")
     if maturity_label == "Dissonant":

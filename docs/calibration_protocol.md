@@ -14,7 +14,7 @@ This document locks down the calibration of the Amplification Barometer. It spec
 3. **Expected signatures** (Type I, II, III) and their empirical benchmarks
 4. **Reproducibility criteria** to ensure audits are repeatable
 
-Once published, this protocol applies to all audits. Changes require version bump + justification.
+Once documented, this protocol applies to all audits. Changes require version bump + justification.
 
 ---
 
@@ -30,7 +30,7 @@ Once published, this protocol applies to all audits. Changes require version bum
 - No trends, no shocks
 
 **Expected signatures:**
-- `@(t)` mean < 2.0, std < 0.5
+- `rho(t)` mean < 2.0, std < 0.5
 - `E_stock` final ≈ E_stock initial (no cumulative drift)
 - `regime_signature` = "type_I_noise"
 - `Δd(t)` sign alternates (no persistent trend)
@@ -227,7 +227,7 @@ For each canonical scenario run:
 }
 ```
 
-Publish a CSV table with all 20 runs (4 scenarios × 5 noise levels).
+Document a CSV table with all 20 runs (4 scenarios × 5 noise levels).
 
 ---
 
@@ -242,7 +242,7 @@ Publish a CSV table with all 20 runs (4 scenarios × 5 noise levels).
 **Any change** to thresholds, scenarios, or logic requires:
 1. New calibration version (e.g., v0.2.0)
 2. Re-run all 20 variants
-3. Publish new expected vs observed table
+3. Document new expected vs observed table
 4. Justify in changelog
 
 ---

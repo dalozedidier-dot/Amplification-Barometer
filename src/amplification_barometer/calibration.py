@@ -52,7 +52,7 @@ def risk_signature(df: pd.DataFrame, *, thresholds: Thresholds, window: int = 5)
     """Risk signature used for audit calibration and regime discrimination.
 
     Signature (audit-friendly):
-    - compute @(t) and Δd(t)
+    - compute rho(t) and Δd(t)
     - compute robust z-scores using STABLE baseline location/scale
     - risk = z_at + z_dd
 

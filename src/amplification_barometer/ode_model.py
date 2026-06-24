@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 
 import numpy as np
 import pandas as pd
@@ -74,6 +74,154 @@ class BarometerParams:
     delta: float = 0.4
     gamma: float = 0.5
     xi: float = 0.3
+
+
+@dataclass(frozen=True)
+class ActiveEquilibrium:
+    """Équilibre actif du modèle 4D, quand il existe dans le domaine positif."""
+
+    P: float
+    O: float
+    E: float
+    R: float
+    feasible: bool
+    reason: str = ""
+
+
+@dataclass(frozen=True)
+class HurwitzDiagnostics:
+    """Diagnostic de stabilité locale du bloc (P, O, E).
+
+    Ce diagnostic est strictement local: il vaut au voisinage de l'équilibre actif
+    linéarisé. Il ne mesure ni le bassin d'attraction, ni les effets réseau, ni la dérive
+    temporelle des paramètres.
+    """
+
+    A1: float
+    A2: float
+    A3: float
+    A1A2_minus_A3: float
+    locally_stable: bool
+    conditions: dict[str, bool]
+    equilibrium: dict[str, float | bool | str]
+    status: str
+    scope_note: str
+
+
+def _require_positive_params(params: BarometerParams, names: tuple[str, ...]) -> None:
+    bad = [name for name in names if float(getattr(params, name)) <= 0.0]
+    if bad:
+        raise ValueError(f"Paramètres strictement positifs requis pour le diagnostic: {bad}")
+
+
+def compute_active_equilibrium(params: BarometerParams = BarometerParams(), *, eps: float = 1e-12) -> ActiveEquilibrium:
+    """Calcule l'équilibre actif P*>0 du modèle 4D, si le cas linéaire est faisable.
+
+    Conditions de validité minimales: b > 0, lam > 0, xi > 0. Le résultat est marqué
+    infeasible si P*, O*, E* ou R* sortent de R_+^4.
+    """
+    _require_positive_params(params, ("b", "lam", "xi"))
+
+    def f_of_p(P: float) -> float:
+        O = (params.a - params.c * P) / params.b
+        E = (params.alpha * P - params.beta * O) / params.lam
+        return params.u - params.v * P - params.n * O - params.m * E
+
+    f0 = float(f_of_p(0.0))
+    f1 = float(f_of_p(1.0))
+    slope = f1 - f0
+    if abs(slope) <= float(eps):
+        return ActiveEquilibrium(float("nan"), float("nan"), float("nan"), float("nan"), False, "singular_equilibrium_equation")
+
+    P = -f0 / slope
+    O = (params.a - params.c * P) / params.b
+    E = (params.alpha * P - params.beta * O) / params.lam
+    R = (params.delta * O - params.gamma * E) / params.xi
+    vals = np.asarray([P, O, E, R], dtype=float)
+    if not np.all(np.isfinite(vals)):
+        return ActiveEquilibrium(float(P), float(O), float(E), float(R), False, "non_finite_equilibrium")
+    if np.any(vals < -float(eps)) or P <= float(eps):
+        return ActiveEquilibrium(float(P), float(O), float(E), float(R), False, "outside_positive_domain")
+    return ActiveEquilibrium(float(P), float(O), float(E), float(R), True, "")
+
+
+def jacobian_3d_at_active_equilibrium(
+    params: BarometerParams = BarometerParams(),
+    equilibrium: ActiveEquilibrium | None = None,
+) -> np.ndarray:
+    """Jacobienne du bloc (P, O, E) au voisinage de l'équilibre actif."""
+    eq = equilibrium if equilibrium is not None else compute_active_equilibrium(params)
+    if not eq.feasible:
+        raise ValueError(f"Équilibre actif non faisable: {eq.reason}")
+    P = float(eq.P)
+    return np.array(
+        [
+            [-params.c * P, -params.b * P, 0.0],
+            [-params.v, -params.n, -params.m],
+            [params.alpha, -params.beta, -params.lam],
+        ],
+        dtype=float,
+    )
+
+
+def hurwitz_coefficients(
+    params: BarometerParams = BarometerParams(),
+    equilibrium: ActiveEquilibrium | None = None,
+) -> dict[str, float]:
+    """Retourne A1, A2, A3 pour le polynôme μ^3 + A1 μ^2 + A2 μ + A3."""
+    eq = equilibrium if equilibrium is not None else compute_active_equilibrium(params)
+    if not eq.feasible:
+        raise ValueError(f"Équilibre actif non faisable: {eq.reason}")
+    P = float(eq.P)
+    A1 = params.c * P + params.n + params.lam
+    A2 = P * (params.c * params.n - params.b * params.v) + params.c * P * params.lam + (params.n * params.lam - params.m * params.beta)
+    A3 = P * (params.c * (params.n * params.lam - params.m * params.beta) - params.b * (params.v * params.lam + params.m * params.alpha))
+    return {"A1": float(A1), "A2": float(A2), "A3": float(A3), "A1A2_minus_A3": float(A1 * A2 - A3)}
+
+
+def assess_hurwitz_local_stability(
+    params: BarometerParams = BarometerParams(),
+    equilibrium: ActiveEquilibrium | None = None,
+) -> HurwitzDiagnostics:
+    """Évalue les conditions de Hurwitz pour le bloc local (P, O, E).
+
+    Interprétation: STABLE_LOCAL signifie stabilité asymptotique locale du modèle
+    linéarisé autour de l'équilibre actif. UNSTABLE_LOCAL signale une zone rouge
+    structurale dans ce cadre paramétré, sans prétendre prédire un événement réel.
+    """
+    eq = equilibrium if equilibrium is not None else compute_active_equilibrium(params)
+    if not eq.feasible:
+        return HurwitzDiagnostics(
+            A1=float("nan"),
+            A2=float("nan"),
+            A3=float("nan"),
+            A1A2_minus_A3=float("nan"),
+            locally_stable=False,
+            conditions={"A1_positive": False, "A2_positive": False, "A3_positive": False, "A1A2_gt_A3": False},
+            equilibrium={"P": float(eq.P), "O": float(eq.O), "E": float(eq.E), "R": float(eq.R), "feasible": False, "reason": str(eq.reason)},
+            status="INFEASIBLE_EQUILIBRIUM",
+            scope_note="Diagnostic local non applicable: l'équilibre actif n'est pas faisable dans R_+^4.",
+        )
+
+    coeffs = hurwitz_coefficients(params, eq)
+    conditions = {
+        "A1_positive": bool(coeffs["A1"] > 0.0),
+        "A2_positive": bool(coeffs["A2"] > 0.0),
+        "A3_positive": bool(coeffs["A3"] > 0.0),
+        "A1A2_gt_A3": bool(coeffs["A1A2_minus_A3"] > 0.0),
+    }
+    stable = bool(all(conditions.values()))
+    return HurwitzDiagnostics(
+        A1=float(coeffs["A1"]),
+        A2=float(coeffs["A2"]),
+        A3=float(coeffs["A3"]),
+        A1A2_minus_A3=float(coeffs["A1A2_minus_A3"]),
+        locally_stable=stable,
+        conditions=conditions,
+        equilibrium={"P": float(eq.P), "O": float(eq.O), "E": float(eq.E), "R": float(eq.R), "feasible": True, "reason": ""},
+        status="STABLE_LOCAL" if stable else "UNSTABLE_LOCAL",
+        scope_note="Valable seulement au voisinage de l'équilibre actif, pour les paramètres fournis. Ne mesure pas le bassin d'attraction, les réseaux, ni la dérive des coefficients.",
+    )
 
 
 def barometer_ode_4d(x, t, p: BarometerParams, shock_u: float = 0.0):

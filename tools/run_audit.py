@@ -62,9 +62,9 @@ def _plot_series_matplotlib(df: pd.DataFrame, out_dir: Path, *, window: int = 5,
 
     fig1 = plt.figure(figsize=(11, 5.5))
     plt.plot(at.index, at.to_numpy(), linewidth=2.0)
-    plt.title("@(t)", fontsize=14, pad=15)
+    plt.title("rho(t)", fontsize=14, pad=15)
     plt.xlabel("Date", fontsize=12)
-    plt.ylabel("@(t)", fontsize=12)
+    plt.ylabel("rho(t)", fontsize=12)
     plt.grid(True, alpha=0.3, linestyle="--")
     fig1.tight_layout()
     fig1.savefig(out_dir / f"{pfx}at.png", dpi=140)
@@ -140,9 +140,9 @@ def _run_one(csv_path: Path, *, name: str, out_dir: Path, window: int, do_png: b
         oscill_hint = ("oscill" in name.lower()) or (float(at.std()) < 0.8 and float(at.abs().max()) < 6.0)
 
         if oscill_hint:
-            plot_oscillating(at.index, at.to_numpy(), title=f"@(t) - {name}", y_label="@(t)", out_html=out_dir / f"{name}_at.html", baseline=1.0)
+            plot_oscillating(at.index, at.to_numpy(), title=f"rho(t) - {name}", y_label="rho(t)", out_html=out_dir / f"{name}_at.html", baseline=1.0)
         else:
-            plot_exponential_or_bifurcation(at.index, at.to_numpy(), title=f"@(t) - {name}", y_label="@(t)", out_html=out_dir / f"{name}_at.html")
+            plot_exponential_or_bifurcation(at.index, at.to_numpy(), title=f"rho(t) - {name}", y_label="rho(t)", out_html=out_dir / f"{name}_at.html")
         plot_exponential_or_bifurcation(dd.index, dd.to_numpy(), title=f"Δd(t) - {name}", y_label="Δd(t)", out_html=out_dir / f"{name}_delta_d.html")
         l_cap = compute_l_cap(df).to_numpy()
         l_act = compute_l_act(df).to_numpy()

@@ -13,7 +13,7 @@ Le script `tools/run_audit.py` génère dans un dossier de sortie:
 
 ## Contenu du JSON
 
-1. `summary` contient des statistiques simples sur P, O, E, R, G, @(t), Δd(t) et une signature de risque.
+1. `summary` contient des statistiques simples sur P, O, E, R, G, rho(t), Δd(t) et une signature de risque.
 2. `stability` contient un audit de stabilité du score.
    Si de faibles variations de fenêtre ou de bruit inversent le classement des risques, le score est déclaré instable.
 3. `stress_suite` contient une suite de scénarios standardisés.

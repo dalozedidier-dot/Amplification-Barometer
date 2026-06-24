@@ -5,7 +5,7 @@ Ce document résume comment les exigences de mise en pratique et d'auditabilité
 ## 1. Preuve de vie empirique
 
 1. Trois régimes synthétiques sont fournis dans `data/synthetic` (stable, oscillant, bifurcation).
-2. Les notebooks et le script `tools/run_audit.py` montrent le calcul de @(t), Δd(t), E(t), R(t).
+2. Les notebooks et le script `tools/run_audit.py` montrent le calcul de rho(t), Δd(t), E(t), R(t).
 
 ## 2. Audit de stabilité du score
 

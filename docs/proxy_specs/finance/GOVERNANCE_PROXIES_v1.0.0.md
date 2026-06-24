@@ -229,7 +229,7 @@ If changes are needed, follow this process:
 
 2. **Public Comment Period**
    - 30 days for external stakeholders to review
-   - Publish in docs/amendments/ directory
+   - Document in docs/amendments/ directory
 
 3. **Create v2.0.0**
    - Copy GOVERNANCE_PROXIES_v1.0.0.md to v2.0.0

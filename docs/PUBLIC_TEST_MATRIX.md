@@ -20,11 +20,11 @@ This is **not** an internal spec. This is our commitment to the outside world: h
 |---|------|-------|---|---|---|
 | **S1** | **Stability under variation** | Synthetic noise scenario | Spearman ≥ 0.85, Jaccard topk ≥ 0.80 across windows [5,7,9] | Either metric < threshold | `calibration_protocol.md` |
 | **S2** | **Proxy ranges enforced** | Any real or synthetic dataset | Zero out-of-range proxy values (except documented exemptions) | Any proxy outside [expected_lo, expected_hi] | `proxies.yaml` + `proxy_specs/` |
-| **S3** | **Composites are finite** | Any dataset | P, O, E, R, G, @(t), Δd(t) all finite (no NaN, inf) | Any NaN or inf in outputs | `alignment_audit.py` |
+| **S3** | **Composites are finite** | Any dataset | P, O, E, R, G, rho(t), Δd(t) all finite (no NaN, inf) | Any NaN or inf in outputs | `alignment_audit.py` |
 | **S4** | **E is monotone-increasing** | Any dataset | E_stock cumsum never decreases | Negative dE in any window | `alignment_audit.py` |
-| **S5** | **Type I: Noise contained** | Synthetic pure noise (200 steps) | @(t) mean < 2.0, E_stock final ≈ initial, regime="type_I_noise" | E drifts or regime ≠ type_I | `canonical_scenarios/type_i_noise_base.csv` |
+| **S5** | **Type I: Noise contained** | Synthetic pure noise (200 steps) | rho(t) mean < 2.0, E_stock final ≈ initial, regime="type_I_noise" | E drifts or regime ≠ type_I | `canonical_scenarios/type_i_noise_base.csv` |
 | **S6** | **Type II: Oscillation signature** | Synthetic oscillations (200 steps) | Δd(t) sign alternates ≥60% tail, R_tail mean > 0.40, regime="type_II_oscillations" | Any signature metric fails | `canonical_scenarios/type_ii_oscillations_base.csv` |
-| **S7** | **Type III: Bifurcation signature** | Synthetic bifurcation (200 steps) | @(t) divergence ≥50%, E_stock irreversibility ≥0.90, R_tail < 0.30, regime="type_III_bifurcation" | Any metric below threshold | `canonical_scenarios/type_iii_bifurcation_base.csv` |
+| **S7** | **Type III: Bifurcation signature** | Synthetic bifurcation (200 steps) | rho(t) divergence ≥50%, E_stock irreversibility ≥0.90, R_tail < 0.30, regime="type_III_bifurcation" | Any metric below threshold | `canonical_scenarios/type_iii_bifurcation_base.csv` |
 | **S8** | **Noise robustness** | All 4 scenario types × 5 noise levels (20 total) | Regime verdict same across all noise variants | Regime changes with noise level | `canonical_scenarios/` (all files) |
 | **AG1** | **O-family bias detection** | Dataset with artificial O boost (+15%) from t=150 | Gaming verdict="fail" | Gaming verdict="ok" | `run_alignment_audit.py` (anti_gaming dimension) |
 | **AG2** | **Volatility clamp detection** | Dataset with P std suppressed by 50% from t=150 | Gaming verdict="fail" | Gaming verdict="ok" | `run_alignment_audit.py` (anti_gaming dimension) |
@@ -66,7 +66,7 @@ python3 tools/run_alignment_audit.py \
 }
 ```
 
-### Publish Claim
+### Document Claim
 
 **You can publicly claim "dit vrai" if all of:**
 - `stability: ok` ✓
@@ -93,9 +93,9 @@ python3 tools/run_alignment_audit.py \
 **Falsified if:** Spearman < 0.85 → **We admit the composite is unstable and fix it.**
 
 ### Falsification 2: Stress Signature Failure
-**Scenario:** We claim Type III bifurcation has @(t) tail divergence ≥ 50%.
+**Scenario:** We claim Type III bifurcation has rho(t) tail divergence ≥ 50%.
 **Expected:** Test **S7** on synthetic bifurcation passes.
-**Falsified if:** @(t) divergence < 30% → **We acknowledge signal is too weak and recalibrate.**
+**Falsified if:** rho(t) divergence < 30% → **We acknowledge signal is too weak and recalibrate.**
 
 ### Falsification 3: Anti-Gaming Vulnerability
 **Scenario:** We claim we detect O-bias attacks.
@@ -162,7 +162,7 @@ print("SUCCESS: All tests pass -- claim 'dit vrai' for this dataset")
 ### For Researchers
 - Tests S1-S8 are **falsifiable hypotheses** about barometer behavior
 - If any test fails, the barometer's core claim (construct validity) is invalidated
-- Publish counter-examples to challenge the claim
+- Document counter-examples to challenge the claim
 - We commit to either:
   1. Explaining why the test is wrong, or
   2. Fixing the barometer

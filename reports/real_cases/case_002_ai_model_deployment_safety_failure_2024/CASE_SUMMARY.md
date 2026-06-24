@@ -231,7 +231,7 @@ Location: `proxies.csv` (92-day series, daily frequency)
 
 ## Next Steps
 
-1. ✗ Case published as **FALSIFICATION** (not hidden)
+1. ✗ Case documented as **FALSIFICATION** (not hidden)
 2. ✓ Lessons incorporated into v2.0 design (add training data quality proxy)
 3. ✓ Recommendation: pair with pre-deployment safety checks
 4. ✓ Add Type IV regime definition ("exogenous shocks") to protocol v1.1
@@ -250,7 +250,7 @@ Location: `proxies.csv` (92-day series, daily frequency)
 
 **Why publishing a failure case strengthens credibility:**
 
-If you only publish successes, people assume:
+If you only document successes, people assume:
 - "They cherry-pick good cases"
 - "Framework can be tuned to fit anything"
 

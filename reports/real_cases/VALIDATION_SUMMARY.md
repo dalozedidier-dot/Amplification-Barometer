@@ -1,7 +1,6 @@
 # Real-World Case Studies: Validation Summary
 
-**Report Date:** 2026-02-24
-**Status:** 3 cases analyzed (1 Success, 1 Partial, 1 Falsification)
+**Status:** exploratory real case material. Cases 001 to 003 are the consolidated examples used in the original summary. Cases 004 to 008 are present in the repository as additional draft or exploratory material and should not be presented as independently validated unless reviewed separately.
 
 ---
 
@@ -150,7 +149,7 @@
 
 | Metric | Value | Interpretation |
 |--------|-------|-----------------|
-| **Total Cases** | 3 | Small sample (need 10+ for statistical significance) |
+| **Consolidated Cases** | 3 | Small sample. Additional cases 004 to 008 are exploratory until separately reviewed |
 | **Successes** | 1 | Case 001: Finance ✓ |
 | **Partial** | 1 | Case 003: Infrastructure (needs independent review) |
 | **Falsifications** | 1 | Case 002: AI (correct to publish) |
@@ -197,7 +196,7 @@
 > - 1 failure (AI, falsifies universal claim)
 > - 1 partial success (infrastructure, needs verification)
 >
-> We don't hide failures. We publish them."
+> We don't hide failures. We document them."
 >
 > Credibility: ⭐⭐⭐ (falsifiable, honest, scoped)
 
@@ -213,7 +212,7 @@
 ### Short-term (Next Quarter)
 - [ ] Commission 3–5 new cases (aim for 10 total)
 - [ ] Measure false positive rate (run on 50 random datasets)
-- [ ] Publish methodology paper: "The Amplification Barometer: Design, Validation, Limitations"
+- [ ] Document methodology paper: "The Amplification Barometer: Design, Validation, Limitations"
 
 ### Long-term (Next Year)
 - [ ] Real-time integration with finance desk monitoring

@@ -4,7 +4,7 @@ Implémentation modulaire et auditable d'un baromètre d'amplification.
 
 Le package expose:
 - composites P(t), O(t), E(t), R(t), G(t)
-- signatures @(t) et Δd(t)
+- signatures rho(t) et Δd(t)
 - opérateur de limite: L_cap et L_act, plus tests de performance L(t)
 - stress tests, audit de stabilité, et suite anti-gaming (manipulabilité)
 - modèle ODE de démonstration (non jumeau numérique)
@@ -13,6 +13,7 @@ Le package expose:
 from .composites import (
     WEIGHTS_VERSION,
     compute_at,
+    compute_rho,
     compute_delta_d,
     compute_e,
     compute_e_level,
@@ -20,6 +21,7 @@ from .composites import (
     compute_de_dt,
     compute_e_irreversibility,
     compute_g,
+    compute_g_level,
     compute_o,
     compute_p,
     compute_r,
@@ -34,7 +36,14 @@ from .audit_tools import audit_score_stability, run_stress_suite, run_stress_tes
 from .audit_report import build_audit_report, write_audit_report
 from .calibration import discriminate_regimes, derive_thresholds, risk_signature
 from .manipulability import run_manipulability_suite, validate_proxy_ranges
-from .ode_model import simulate_barometer_ode, simulate_endogenous_g, simulate_minimal_po
+from .ode_model import (
+    assess_hurwitz_local_stability,
+    compute_active_equilibrium,
+    hurwitz_coefficients,
+    simulate_barometer_ode,
+    simulate_endogenous_g,
+    simulate_minimal_po,
+)
 from .proxy_protocol import PROXY_PROTOCOL, required_proxies
 
 __version__ = "0.4.13"
@@ -50,7 +59,9 @@ __all__ = [
     "compute_e_irreversibility",
     "compute_r",
     "compute_g",
+    "compute_g_level",
     "compute_at",
+    "compute_rho",
     "compute_delta_d",
     "compute_l_cap",
     "compute_l_act",
@@ -68,6 +79,9 @@ __all__ = [
     "run_manipulability_suite",
     "PROXY_PROTOCOL",
     "required_proxies",
+    "compute_active_equilibrium",
+    "hurwitz_coefficients",
+    "assess_hurwitz_local_stability",
     "simulate_minimal_po",
     "simulate_barometer_ode",
     "simulate_endogenous_g",

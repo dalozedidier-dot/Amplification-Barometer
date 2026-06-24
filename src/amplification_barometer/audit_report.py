@@ -21,6 +21,7 @@ from .composites import (
     compute_de_dt,
     compute_e_irreversibility,
     compute_g,
+    compute_g_level,
     compute_o,
     compute_o_level,
     compute_p,
@@ -127,6 +128,7 @@ def build_audit_report(
     e_irreversibility = compute_e_irreversibility(df)
     r = compute_r(df)
     g = compute_g(df)
+    g_level = compute_g_level(df)
     at = compute_at(df)
     dd = compute_delta_d(df, window=delta_d_window)
 
@@ -147,8 +149,11 @@ def build_audit_report(
         "R_level": _series_stats(r),
         "R_mttr_proxy": _series_stats(r_mttr if isinstance(r_mttr, pd.Series) else pd.Series(r_mttr, index=df.index)),
         "G": _series_stats(g),
-        "G_level": _series_stats(g),
-        "AT": _series_stats(at),
+        "G_score": _series_stats(g),
+        "G_level": _series_stats(g_level),
+        "rho": _series_stats(at),
+        "RHO": _series_stats(at),
+        "AT": _series_stats(at),  # legacy alias
         "DELTA_D": _series_stats(dd),
         "RISK": _series_stats(risk),
         "risk_threshold": float(thresholds.risk_thr) if thresholds is not None else float(np.nanpercentile(risk.to_numpy(dtype=float), 95)),

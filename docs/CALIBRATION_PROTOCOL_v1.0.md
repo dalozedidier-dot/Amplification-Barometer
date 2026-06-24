@@ -152,7 +152,7 @@ If Hybrid scenario doesn't show transition or shows both simultaneously → fram
 **Gate:** If any G proxy at Type III scenario crosses WARN threshold → verdict dims to "Partial" or "Caution"
 
 **Important:** These ranges are **FROZEN as of 2026-02-24, git 73676cc**.
-To change: create new version v1.1.0, document reason, update git, publish amendment.
+To change: create new version v1.1.0, document reason, update git, document amendment.
 
 ---
 
@@ -193,7 +193,7 @@ Type III: score > 0.65  → @ mean 1.2 ± 0.5, E_irr > 0.75
 2. **Pass target:** All 5 attack vectors fail to flip verdict
 
 ### Step 6: Freeze Calibration (Public Commitment Phase)
-1. Publish `CALIBRATION_REPORT_v1.0.json` with results
+1. Document `CALIBRATION_REPORT_v1.0.json` with results
 2. Commit to git with tag `v1.0-calibration-frozen`
 3. **After this:** Any changes require new version, dated amendment, and re-validation
 

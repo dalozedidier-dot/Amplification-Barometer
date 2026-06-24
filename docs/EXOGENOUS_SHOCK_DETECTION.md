@@ -292,7 +292,7 @@ This module **still cannot** detect:
 ## Version
 
 **Added:** v1.0.1 (2026-02-24)
-**Status:** Fixes Case 002 gap, PRODUCTION-READY
+**Status:** Fixes Case 002 gap, RESEARCH-PROTOTYPE
 **Tests:** 7/7 passing
 **Accuracy:** Estimated +20–30% improvement
 

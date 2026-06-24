@@ -30,7 +30,7 @@ Sorties:
 
 ## 3. Notebooks
 
-1. `notebooks/demo_synthetic.ipynb` pour visualiser @(t), Δd(t), E(t), R(t), G(t)
+1. `notebooks/demo_synthetic.ipynb` pour visualiser rho(t), Δd(t), E(t), R(t), G(t)
 2. `notebooks/stress_test.ipynb` pour exécuter une suite de stress tests
 
 ## 4. Auditabilité

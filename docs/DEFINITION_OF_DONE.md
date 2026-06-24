@@ -20,7 +20,7 @@ This is the foundation for auditability and scientific credibility.
 
 ## Three Mandatory Dimensions
 
-### 1. **Construct Validity** (P, O, E, R, G, @(t), Δd(t))
+### 1. **Construct Validity** (P, O, E, R, G, rho(t), Δd(t))
 
 **Claim:** The composites measure what they claim to measure, with stable behavior.
 
@@ -37,7 +37,7 @@ This is the foundation for auditability and scientific credibility.
 #### Optional Tests (NICE TO HAVE)
 
 - Alignment with external domain expertise (subject matter review)
-- Temporal coherence: @(t) changes smoothly (no spurious jumps)
+- Temporal coherence: rho(t) changes smoothly (no spurious jumps)
 - Proxy correlation: families (P, O, E, R, G) internally consistent
 
 **Falsification:** Claim invalidated if any MUST PASS test fails.
@@ -52,9 +52,9 @@ This is the foundation for auditability and scientific credibility.
 
 | Test | Criterion | Source | Falsified By |
 |------|-----------|--------|--------------|
-| **Type I noise containment** | In pure noise regime (synthetic), @(t) median < 2.0, no drift in E_stock over 200 steps | Synthetic "stable" scenario | If @(t) drifts or E_stock accumulates |
+| **Type I noise containment** | In pure noise regime (synthetic), rho(t) median < 2.0, no drift in E_stock over 200 steps | Synthetic "stable" scenario | If rho(t) drifts or E_stock accumulates |
 | **Type II oscillation signature** | In oscillating regime, Δd(t) sign alternates ≥60% of tail window, R_level recovers (mean in top 40%) | Synthetic "oscillation" scenario | If Δd monotone or R stays depressed |
-| **Type III bifurcation signature** | In bifurcation regime: @(t) tail > 90th percentile ≥50%, E_stock/max(E) ≥0.85, R_tail mean <30% | Synthetic "bifurcation" scenario | If signatures absent or inverted |
+| **Type III bifurcation signature** | In bifurcation regime: rho(t) tail > 90th percentile ≥50%, E_stock/max(E) ≥0.85, R_tail mean <30% | Synthetic "bifurcation" scenario | If signatures absent or inverted |
 | **L_act activation latency** | When system enters stress, detector activates within ≤ 20% of stress window | Real or synthetic event data | If latency > threshold or false positives >5% |
 | **No systematic post-hoc signals** | Signal does not peak *after* documented event; median lead = 0 to +10 steps | Timestamped event validation | If signal systematically trails event |
 
@@ -134,13 +134,13 @@ To prove we are scientific, not narrative:
 
 ### Example 1: Construct Validity Failure
 - Data: pure random noise, n=500
-- Expected: @(t) bounded, no drift in E_stock, regime="type_I_noise"
+- Expected: rho(t) bounded, no drift in E_stock, regime="type_I_noise"
 - **Falsified if:** E_stock rises linearly, regime="type_III_bifurcation"
 → Shows we can detect broken composites.
 
 ### Example 2: Event Signature Failure
 - Data: synthetic bifurcation injected at t=250
-- Expected: @(t) spike at t=250±20, regime="type_III" by t=300
+- Expected: rho(t) spike at t=250±20, regime="type_III" by t=300
 - **Falsified if:** Signal peaks at t=350, or regime stays "type_I"
 → Shows we can fail to detect real stress.
 
